@@ -43,6 +43,7 @@ var meters;
 
 var uitime = setInterval(refresh_UI, 20);
 var scriptModule;
+var scriptCalls;
 
 function connect_ip(){
 	chrome.sockets.tcp.create({}, createInfo);
@@ -713,7 +714,7 @@ function redrawTop(){
 	ctx.textAlign = "left";
 	ctx.fillStyle = "white"
 
-	ctx.fillText("MIDI-File: " + midi_state.file + ' State: ' + midi_state.state + ' ' + midi_state.progress + '% / 100%'  ,TRIGGER_SPACE, 12);
+	ctx.fillText("MIDI-File: " + midi_state.file + ' State: ' + midi_state.state + ' Remaining: ' + midi_state.progress + '% / 100%'  ,TRIGGER_SPACE, 12);
  
   
 }
@@ -894,6 +895,9 @@ function stopMidiFile() {
 		var msg=new Uint8Array([0xB0,0x77,0x00]);
 		chrome.sockets.tcp.send(socket_midi, msg, sendmidi);
 	}
+	if (scriptCalls) {
+		scriptCalls.onMidiStopped();
+	}
 }
 
 function ondrop(e){
@@ -914,6 +918,7 @@ function ondrop(e){
 			var shouldLoad = typeof modTmp.cancel == "function";
 			var loadScript = function () {
 				var allowedCalls = [];
+				// Calls
 				allowedCalls.println = (s)=>terminal.io.println(s);
 				allowedCalls.setOntime = setOntime;
 				allowedCalls.setBPS = setBPS;
@@ -922,14 +927,19 @@ function ondrop(e){
 				allowedCalls.setBurstOntime = setBurstOntime;
 				allowedCalls.setBurstOfftime = setBurstOfftime;
 				allowedCalls.onScriptStopped = function() {
+					scriptCalls = null;
 					stopMidiFile();
 					setOntime(0);
 					terminal.io.println("Script stopped");
 				};
 				allowedCalls.cancelMidi = stopMidiFile;
 				allowedCalls.waitForInput = (text, callback)=>w2confirm(text).no(allowedCalls.onScriptStopped).yes(callback);
+				// Callbacks/Event handlers
+				allowedCalls.onMidiStopped = ()=>{};
+
 				modTmp.setAllowedCalls(allowedCalls);
 				scriptModule = modTmp;
+				scriptCalls = allowedCalls;
 				w2ui['toolbar'].get('mnu_script').text = 'Script: '+file.name;
 				w2ui['toolbar'].refresh();
 			};
@@ -1560,7 +1570,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	
 	
 	midi_start();
-	midi_state.progress = 0;
+	midi_state.progress = 100;
 	
 });
 
