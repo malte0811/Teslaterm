@@ -765,6 +765,10 @@ function redrawTrigger(){
   }
 }
 
+function stopTransientOut() {
+	send_command('tr stop\r');
+}
+
 //MIDI IO
 var midiHandle = null;
 var currMidiOut = null;
@@ -962,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					warn_tr();
 				break;
 				case 'mnu_command:TR Stop':
-					send_command('tr stop\r');
+					stopTransientMode();
 				break;
 				case 'mnu_command:Load EEPROM-Config':
 					warn_eeprom_load();
@@ -971,14 +975,13 @@ document.addEventListener('DOMContentLoaded', function () {
 					warn_eeprom_save();
 				break;
 				case 'mnu_midi:Play':
+					stopTransientMode();
 					Player.play();
 					midi_state.state = 'playing';
 				break;
 				case 'mnu_midi:Stop':
 					stopMidiFile();
 				break;
-				
-				
 				case 'kill_set':
 					send_command('kill set\r');
 				break;
