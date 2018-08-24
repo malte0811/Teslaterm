@@ -65,18 +65,19 @@ var Player = new MidiPlayer.Player(process_midi);
 
 
 function process_midi(event){
-	
-	if(connected==true && event.bytes_buf[0] != 0x00){
-		var msg=new Uint8Array(event.bytes_buf);
-		chrome.serial.send(connid, msg, sendcb);
+	if(connected==true && event.bytes_buf[0] != 0x00 && currMidiOut){
+		currMidiOut.send(event.bytes_buf);
 		midi_state.progress=Player.getSongPercentRemaining();
 		redrawTop();
-	}else{
-		if(connected==false) {
-			Player.stop();
-			midi_state.state = 'stopped';
-		}
+	}else if(!connected) {
+		stopMidiFile();
 	}
+}
+
+function stopMidiFile() {
+	Player.stop();
+	midi_state.state = 'stopped';
+	clearMidiOutput();
 }
 
 
@@ -764,6 +765,80 @@ function redrawTrigger(){
   }
 }
 
+//MIDI IO
+var midiHandle = null;
+var currMidiOut = null;
+function startMidiIOCheck() {
+	if (navigator.requestMIDIAccess) {
+		navigator.requestMIDIAccess().then(initMidi, midiError);
+	} else {
+		t.io.println("No MIDI support in your browser.");
+	}
+}
+
+function initMidi(midi) {
+	var preferredIndex = 0;
+	midiHandle = midi;
+	selectMIDI=document.getElementById("midiOut");
+	midi.onstatechange = midiConnectionStateChange;
+	populateMidiOutSelect();
+	selectMIDI.onchange = selectMidiOut;
+}
+
+function midiError(err) {
+	t.io.println("Failed to load MIDI: "+err.code);
+}
+
+function populateMidiOutSelect() {	
+	selectMIDI.options.length = 0;
+	if (currMidiOut && currMidiOut.state=="disconnected")
+		currMidiOut=null;
+	selectMIDI.appendChild(new Option("None", "<This ID should not exist>", true, true));
+	var foundPreference = 0;
+	for ( let out of midiHandle.outputs.values()){
+		var name=out.name;
+		var preferred = (name.indexOf("UD3")>=0)?1:0;
+		// if we're rebuilding the list, but we already had this port open, reselect it.
+		if (currMidiOut && currMidiOut==out)
+			preferred = 2;
+		selectMIDI.appendChild(new Option(name, out.id, preferred, preferred));
+		if (preferred>foundPreference) {
+			foundPreference = preferred;
+			if (currMidiOut!=out) {
+				setMidiOut(out);
+			}
+		}
+	}
+}
+
+function midiConnectionStateChange(e) {
+	populateMidiOutSelect();
+}
+
+function selectMidiOut(ev) {
+	var id = ev.target[ev.target.selectedIndex].value;
+	setMidiOut(midiHandle.outputs.get(id));
+}
+
+function setMidiOut(out) {
+	if (out==currMidiOutput) {
+		return;
+	}
+	if (currMidiOut) {
+		clearMidiOutput();
+		currMidiOut.close();
+	}
+	currMidiOut = out;
+	currMidiOut.open();
+}
+
+function clearMidiOutput() {
+	if(currMidiOut){
+		currMidiOut.send([0xB0,0x7B,0x00]);
+	}
+}
+
+
 document.addEventListener('DOMContentLoaded', function () {
 
 	$(function () {
@@ -900,12 +975,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					midi_state.state = 'playing';
 				break;
 				case 'mnu_midi:Stop':
-					Player.stop();
-					midi_state.state = 'stopped';
-					if(connected==true){
-						var msg=new Uint8Array([0xB0,0x7B,0x00]);
-						chrome.serial.send(connid, msg, sendcb);
-					}
+					stopMidiFile();
 				break;
 				
 				
@@ -950,7 +1020,8 @@ document.addEventListener('DOMContentLoaded', function () {
 				'<input type="range" id="slider2" min="0" max="1000" value="0" class="slider" data-show-value="true"><label id="slider2_disp">0 ms</label>'+
 				'<br><br>Burst Off<br><br>'+
 				'<input type="range" id="slider3" min="0" max="1000" value="500" class="slider" data-show-value="true"><label id="slider3_disp">500 ms</label>'+
-				'</aside>'+ 
+				'<br><br><select id="midiOut"></select>'+
+				'</aside>'+
 				'</div>'
 				//'<canvas id="waveback" style= "position: absolute; left: 0; top: 0; width: 85%; background: black; z-index: 0;"></canvas>'+
 				//'<canvas id="wavecanvas" style= "position: absolute; left: 0; top: 0;width: 85%; z-index: 1;"></canvas>'+
@@ -1016,6 +1087,5 @@ document.addEventListener('DOMContentLoaded', function () {
 	tterm.trigger_block=0;
 	
 	gauge_buf[0]=0;
-
-	
+	startMidiIOCheck();
 });
