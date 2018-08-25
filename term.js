@@ -63,10 +63,24 @@ function sendcb(info){
 // Initialize player and register event handler
 var Player = new MidiPlayer.Player(process_midi);
 
+var expectedByteCounts = {0x80: 3,
+	0x90: 3,
+	0xA0: 3,
+	0xB0: 3,
+	0xC0: 2,
+	0xD0: 2,
+	0xE0: 3
+}
 
 function process_midi(event){
-	if(connected==true && event.bytes_buf[0] != 0x00 && currMidiOut){
-		currMidiOut.send(event.bytes_buf);
+	var firstByte = event.bytes_buf[0];
+	if(connected==true && firstByte != 0x00 && currMidiOut){
+		var expectedByteCount = expectedByteCounts[firstByte & 0xF0]
+		var bytes = event.bytes_buf
+		if (expectedByteCount && expectedByteCount<bytes.length) {
+			bytes = bytes.slice(0, expectedByteCount)
+		}
+		currMidiOut.send(bytes);
 		midi_state.progress=Player.getSongPercentRemaining();
 		redrawTop();
 	}else if(!connected) {
@@ -765,7 +779,7 @@ function redrawTrigger(){
   }
 }
 
-function stopTransientOut() {
+function stopTransientMode() {
 	send_command('tr stop\r');
 }
 
@@ -825,7 +839,7 @@ function selectMidiOut(ev) {
 }
 
 function setMidiOut(out) {
-	if (out==currMidiOutput) {
+	if (out==currMidiOut) {
 		return;
 	}
 	if (currMidiOut) {
