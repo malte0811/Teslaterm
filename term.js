@@ -884,7 +884,7 @@ function readmidi(file){
 var simpleIni;
 
 function readini(file){
-	chrome.runtime.getPackageDirectoryEntry(function(root) {
+	/*chrome.runtime.getPackageDirectoryEntry(function(root) {
 	root.getFile("config.ini", {}, function(fileEntry) {
     fileEntry.file(function(file) {
       var reader = new FileReader();
@@ -892,7 +892,7 @@ function readini(file){
       reader.readAsText(file);
     }, errorHandler);
   }, errorHandler);
-});
+});*/
 
 
 	/*
@@ -1836,11 +1836,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 	terminal.decorate(document.querySelector('#terminal'));
 	terminal.installKeyboard();
-	chrome.serial.onReceive.addListener(receive);
+	/*TODO chrome.serial.onReceive.addListener(receive);
 	
 	chrome.sockets.tcp.onReceive.addListener(receive);
 	
-	chrome.serial.onReceiveError.addListener(error);
+	chrome.serial.onReceiveError.addListener(error);*/
 	
 	document.getElementById('layout').addEventListener("drop", ondrop);
 	document.getElementById('layout').addEventListener("dragover", ondragover);
@@ -1882,7 +1882,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		meas.push({min: 0, max: 0, avg: 0});
 		
 	}
-	midiServer = new MidiIpServer(s=>terminal.io.println(s),
+	/*TODO midiServer = new MidiIpServer(s=>terminal.io.println(s),
 		()=> {
 			terminal.io.println("MIDI server at " + midiServer.port + " started!");
 			helper.changeMenuEntry('mnu_command', 'startStopMidi', 'Stop MIDI server');
@@ -1895,7 +1895,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			midiServer.sendRelativeOntime(ontimeUI.relativeVal, client);
 			terminal.io.println("Client instance \"" + client.name + "\" connected");
 		});
-	chrome.sockets.tcp.onReceive.addListener(onMIDIoverIP);
+	chrome.sockets.tcp.onReceive.addListener(onMIDIoverIP);*/
 	tterm.trigger=-1;
 	tterm.trigger_lvl= 0;
 	tterm.value_old= 0;
@@ -1924,6 +1924,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Allow multiple windows to be opened
-nw.App.on('open', function(args) {
+/*nw.App.on('open', function(args) {
 	var new_win = nw.Window.open('index.html', nw.App.manifest.window);
 });
+*/

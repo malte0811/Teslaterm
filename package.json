@@ -1,14 +1,18 @@
 {
-  "name": "Teslaterm",
-  "version": "0.1",
-  "main": "index.html",
-  "window": {
-    "width": 1024,
-    "height": 768
+  "name": "teslaterm",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "start": "npm run build && electron $NODE_DEBUG_OPTION ./Launch.js"
   },
-  "permissions": ["serial", {"fileSystem": ["write"]}],
-  "sockets": {
-    "tcp": {"connect": "*"},
-    "tcpServer": { "listen" : ":56789" }
+  "devDependencies": {
+    "electron": "^2.0.2",
+    "tslint": "^5.10.0",
+    "typescript": "^2.8.3"
+  },
+  "dependencies": {
+    "jquery": "^3.3.1"
   }
 }
