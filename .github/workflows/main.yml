@@ -13,30 +13,24 @@ jobs:
         uses: actions/checkout@master
       - name: Setup node
         uses: actions/setup-node@v1
+      - name: Install
+        run: |
+          npm install
       - name: Build project
         run: |
-          npm run dist
+          # TODO windows needs wine, but wine isn't installed by default
+          npm run dist-no-windows
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.sha }}
+          tag_name: tag-${{ github.sha }}
           release_name: Prerelease ${{ github.sha }}
           draft: false
           # TODO: full release on commits matching some pattern? Or maybe only build for those?
           prerelease: true
-      - name: Upload Windows build
-        id: upload-windows 
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/teslaterm-0.1.0-win-x64.zip
-          asset_name: teslaterm-0.1.0-win-x64.zip
-          asset_content_type: application/zip
       - name: Upload Linux build
         id: upload-linux 
         uses: actions/upload-release-asset@v1.0.1

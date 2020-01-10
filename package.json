@@ -59,6 +59,7 @@
   },
   "scripts": {
     "dist": "tsc && build --tasks linux-x64,win-x64,mac-x64 --mirror https://dl.nwjs.io/ .",
+    "dist-no-windows": "tsc && build --tasks linux-x64,mac-x64 --mirror https://dl.nwjs.io/ .",
     "dist-win-debug": "tsc && build --tasks win-x64 --mirror https://dl.nwjs.io/ .",
     "dist-linux-debug": "tsc && build --tasks linux-x64 --mirror https://dl.nwjs.io/ .",
     "start": "tsc && run --x64 --mirror https://dl.nwjs.io/ ."
