@@ -6,11 +6,13 @@
     "watch": "cross-var tsc -w",
     "lint": "cross-var tslint -c tslint.json -p tsconfig.json",
     "start-electron": "npm run build && cross-var electron . --no-sandbox",
-    "start-node": "npm run build && webpack && node js/main/main_node.js",
+    "start-node": "npm run build && node js/main/main_node.js",
     "install-electron": "cd node_modules/@serialport/bindings && prebuild-install --tag-prefix @serialport/bindings@ -r electron -t 8.3.1",
     "install-node": "cd node_modules/@serialport/bindings && prebuild-install --tag-prefix @serialport/bindings@ -r node",
     "package-electron": "cross-var electron-builder --linux zip --windows zip",
-    "package-node": "cross-var pkg --out-path=dist/node -t  node10-linux-x64,node10-windows-x64 package.json"
+    "pkg-node": "cross-var pkg --out-path=dist/node -t  node12-linux-x64,node12-windows-x64 package.json",
+    "pkg-rename": "cross-var mv dist/node/teslaterm-linux dist/node/ud3-node && cross-var mv dist/node/teslaterm-win.exe dist/node/ud3-node.exe",
+    "package-node": "npm run pkg-node && npm run pkg-rename"
   },
   "main": "js/main/main_electron.js",
   "bin": "js/main/main_node.js",
