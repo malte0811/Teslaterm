@@ -1,8 +1,9 @@
 import {SynthType} from "../../../common/CommonTypes";
+import {config} from "../../init";
 import * as microtime from "../../microtime";
 import SerialPort = require("serialport");
 import minprot = require('../../../../libs/min');
-import {Endianness, to_ud3_time, withTimeout} from "../../helper";
+import {convertBufferToString, Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
@@ -12,6 +13,7 @@ const MIN_ID_WD = 10;
 const MIN_ID_MEDIA = 20;
 const MIN_ID_SOCKET = 13;
 const MIN_ID_SYNTH = 14;
+const MIN_ID_FEATURE = 15;
 
 const SYNTH_CMD_FLUSH = 0x01;
 const SYNTH_CMD_SID = 0x02;
@@ -25,6 +27,7 @@ class MinSerialConnection extends BootloadableConnection {
     private min_wrapper: minprot | undefined;
     private readonly sidConnection: UD3FormattedConnection;
     private mediaFramesForBatching: Buffer[] = [];
+    private actualUDFeatures: Map<string, string>;
 
     constructor(port: string, baud: number) {
         super();
@@ -34,6 +37,7 @@ class MinSerialConnection extends BootloadableConnection {
             () => this.flushSynth(),
             (data) => this.sendMedia(data)
         );
+        this.actualUDFeatures = new Map(config.defaultUDFeatures.entries());
     }
 
     public async connect(): Promise<void> {
@@ -177,12 +181,21 @@ class MinSerialConnection extends BootloadableConnection {
                 "TT socket" +
                 String.fromCharCode(0),
                 'utf-8');
-            await this.min_wrapper.min_queue_frame(MIN_ID_SOCKET, infoBuffer);
+            let done = false;
+            let tries = 0;
+            while (!done && this.min_wrapper && tries < 256) {
+                try {
+                    await this.min_wrapper.min_queue_frame(MIN_ID_SOCKET, infoBuffer);
+                    done = true;
+                } catch (e) {
+                }
+                ++tries;
+            }
         }
     }
 
     public async init_min_wrapper(): Promise<void> {
-        this.min_wrapper = new minprot(() => to_ud3_time(microtime.now(), Endianness.BIG_ENDIAN));
+        this.min_wrapper = new minprot(() => this.toUD3Time(microtime.now()));
         this.min_wrapper.sendByte = (data) => {
             if (this.isBootloading()) {
                 return;
@@ -202,10 +215,16 @@ class MinSerialConnection extends BootloadableConnection {
                 } else {
                     console.error("Unexpected MEDIA MIN message");
                 }
+            } else if (id === MIN_ID_FEATURE) {
+                const asString = convertBufferToString(data, false);
+                const splitPoint = asString.indexOf("=");
+                if (splitPoint >= 0) {
+                    this.actualUDFeatures.set(asString.substring(0, splitPoint), asString.substring(splitPoint + 1));
+                }
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(new Buffer(data));
             } else {
-                console.warn("Unexpected ID in min: " + id);
+                console.warn("Unexpected MIN message at " + id + ": " + convertBufferToString(data));
             }
         };
     }
@@ -228,6 +247,10 @@ class MinSerialConnection extends BootloadableConnection {
 
     isMultiTerminal(): boolean {
         return true;
+    }
+
+    getFeatureValue(feature: string): string {
+        return this.actualUDFeatures.get(feature);
     }
 }
 

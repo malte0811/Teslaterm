@@ -1,4 +1,4 @@
-import {Endianness, to_ud3_time} from "../helper";
+import {getUD3Connection} from "../connection/connection";
 import {ISidConnection} from "./ISidConnection";
 import {FRAME_LENGTH, SidFrame} from "./sid_api";
 import * as microtime from "../microtime";
@@ -32,7 +32,7 @@ export class UD3FormattedConnection implements ISidConnection {
         for (let j = 0; j < FRAME_LENGTH; ++j) {
             data[j + 4] = frame.data[j];
         }
-        const ud_time = to_ud3_time(this.lastFrameTime, Endianness.BIG_ENDIAN);
+        const ud_time = getUD3Connection().toUD3Time(this.lastFrameTime);
         for (let j = 0; j < 4; ++j) {
             data[j + FRAME_LENGTH + 4] = ud_time[j];
         }

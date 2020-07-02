@@ -1,4 +1,7 @@
 import {SynthType} from "../../../common/CommonTypes";
+import {FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
+import {Endianness, to_ud3_time} from "../../helper";
+import {config} from "../../init";
 import {TerminalIPC} from "../../ipc/terminal";
 import {ISidConnection} from "../../sid/ISidConnection";
 
@@ -71,5 +74,19 @@ export abstract class UD3Connection {
     async closeTerminal(handle: TerminalHandle): Promise<void> {
         this.terminalCallbacks.delete(handle);
         await TerminalIPC.onSlotsAvailable(false);
+    }
+
+    public getFeatureValue(feature: string): string {
+        return config.defaultUDFeatures.get(feature);
+    }
+
+    public toUD3Time(now: number) {
+        const timebase = Number(this.getFeatureValue(FEATURE_TIMEBASE));
+        let direction = this.getFeatureValue(FEATURE_TIMECOUNT);
+        if (direction === "up" || direction === "down") {
+            return to_ud3_time(now, timebase, direction, Endianness.BIG_ENDIAN);
+        } else {
+            return to_ud3_time(now, timebase, "down", Endianness.BIG_ENDIAN);
+        }
     }
 }

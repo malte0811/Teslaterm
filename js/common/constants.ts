@@ -22,6 +22,9 @@ export const TYPE_STRING = 4;
 export const DATA_TYPE = 0;
 export const DATA_NUM = 1;
 
+export const FEATURE_TIMEBASE = "timebase";
+export const FEATURE_TIMECOUNT = "time_count";
+
 // Connection types
 export const eth_node = "eth";
 export const serial_min = "min";

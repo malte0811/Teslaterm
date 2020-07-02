@@ -12,5 +12,6 @@ export class TTConfig {
     public productID: string;
     public vendorID: string;
 
-    public udConfigPages: { [option: string]: number };
+    public readonly udConfigPages: Map<string, number> = new Map();
+    public readonly defaultUDFeatures: Map<string, string> = new Map();
 }

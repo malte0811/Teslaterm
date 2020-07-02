@@ -15,7 +15,7 @@ export function ud_settings(uconfig: string[][]) {
     const tfields = [];
     const trecords = {};
     for (const data of uconfig) {
-        let inipage: number = config.udConfigPages[data[0]];
+        let inipage: number = config.udConfigPages.get(data[0]);
         if (!inipage) {
             inipage = 0;
         }

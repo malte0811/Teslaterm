@@ -15,15 +15,19 @@ export function bytes_to_signed(lsb: number, msb: number): number {
     }
 }
 
-export function to_ud3_time_number(time_us: number): number {
+export function to_ud3_time_number(time_us: number, timebase: number, direction: "up" | "down"): number {
     const activeBits = 0xFF_FF_FF_FF;
-    const us_per_tick = 3.125;
-    const time_ticks = Math.floor(time_us / us_per_tick);
-    return (0x1_00_00_00_00 - (time_ticks & activeBits)) & activeBits;
+    const time_ticks = Math.floor(time_us / timebase);
+    const baseTime = time_ticks & activeBits;
+    if (direction == "down") {
+        return (0x1_00_00_00_00 - baseTime) & activeBits;
+    } else {
+        return baseTime;
+    }
 }
 
-export function to_ud3_time(time_us: number, end: Endianness): number[] {
-    return to_32_bit_bytes(to_ud3_time_number(time_us), end);
+export function to_ud3_time(time_us: number, timebase: number, direction: "up" | "down", end: Endianness): number[] {
+    return to_32_bit_bytes(to_ud3_time_number(time_us, timebase, direction), end);
 }
 
 export function to_32_bit_bytes(num: number, end: Endianness): number[] {

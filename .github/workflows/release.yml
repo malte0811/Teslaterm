@@ -51,6 +51,7 @@ jobs:
           path: dist/node/ud3-node-win.zip
           name: ud3-node-win.zip
       - name: Create release
+        id: create_release
         if: env.release == 'true'
         uses: actions/create-release@v1
         env:
