@@ -15,6 +15,7 @@ const MIN_ID_SID = 21;
 const MIN_ID_SOCKET = 13;
 const MIN_ID_SYNTH = 14;
 const MIN_ID_FEATURE = 15;
+const MIN_ID_DEBUG = 42;
 
 const SYNTH_CMD_FLUSH = 0x01;
 const SYNTH_CMD_SID = 0x02;

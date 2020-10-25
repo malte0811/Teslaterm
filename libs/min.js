@@ -462,7 +462,7 @@ module.exports = class minprot {
 							oldest = this.transport_fifo.frames[i].last_send;
 						}
 					}
-					if (resend_frame_num > -1 && (this.now - this.transport_fifo.frames[resend_frame_num].last_send) >= this.TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
+               		if (resend_frame_num > -1 && (this.now - this.transport_fifo.frames[resend_frame_num].last_send) >= this.TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
 						let wire_size = this.on_wire_size(this.transport_fifo.frames[resend_frame_num].length);
 						if (wire_size < this.remote_rx_space) {
 							if (this.debug) console.log("SEQB=" + this.transport_fifo.frames[resend_frame_num].seq);
@@ -477,6 +477,7 @@ module.exports = class minprot {
 								this.transport_fifo.last_sent_seq_cnt = 0;
 							} else {
 								this.on_wire_bytes(this.transport_fifo.frames[resend_frame_num].min_id | 0x80, this.transport_fifo.frames[resend_frame_num].seq, this.transport_fifo.frames[resend_frame_num].payload);
+                                this.transport_fifo.frames[resend_frame_num].last_send = this.now;
 							}
 						}
 					}
