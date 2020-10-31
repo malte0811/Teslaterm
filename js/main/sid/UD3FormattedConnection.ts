@@ -44,9 +44,15 @@ export class UD3FormattedConnection implements ISidConnection {
     }
 
     processFrame(frame: SidFrame): Promise<void> {
-        console.assert(this.lastFrameTime);
+        if (!this.lastFrameTime) {
+            console.error("Processing a frame, but do not have last frame time!");
+            this.lastFrameTime = microtime.now();
+        } else if (this.lastFrameTime < microtime.now() - 1e6) {
+            console.warn("SID playback fell behind by over 1 second, resetting timestamp");
+            this.lastFrameTime = microtime.now();
+        }
         const ud_time = getUD3Connection().toUD3Time(this.lastFrameTime);
-        const frameSize = this.ffPrefixBytes + FRAME_LENGTH + FRAME_UDTIME_LENGTH + ( this.needsZeroSuffix ? 1 : 0);
+        const frameSize = this.ffPrefixBytes + FRAME_LENGTH + FRAME_UDTIME_LENGTH + (this.needsZeroSuffix ? 1 : 0);
         const data = Buffer.alloc(frameSize);
         let byteCount = 0;
 

@@ -50,6 +50,7 @@ export class Connected implements IConnectionState {
             TerminalIPC.println("\n\rLost connection, will attempt to reconnect");
             this.active_connection.disconnect();
             TerminalIPC.onConnectionClosed();
+            Connected.killMedia();
             return new Reconnecting(this.active_connection);
         }
 
@@ -73,14 +74,18 @@ export class Connected implements IConnectionState {
 
     private async disconnectInternal() {
         try {
-            if (media.media_state.state == PlayerActivity.playing) {
-                media.media_state.stopPlaying();
-            }
+            Connected.killMedia();
             await commands.stop();
         } catch (e) {
             console.error("Failed to send stop command:", e);
         }
         await this.active_connection.disconnect();
+    }
+
+    private static killMedia() {
+        if (media.media_state.state == PlayerActivity.playing) {
+            media.media_state.stopPlaying();
+        }
     }
 
     getAutoTerminal(): TerminalHandle | undefined {
