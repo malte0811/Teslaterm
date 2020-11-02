@@ -1,3 +1,4 @@
+import * as dgram from "dgram";
 import {
     baudrate,
     connection_type,
@@ -8,9 +9,11 @@ import {
     telnet_port, udp_min_port,
 } from "../../../common/ConnectionOptions";
 import {connection_types, eth_node, serial_min, serial_plain, udp_min} from "../../../common/constants";
+import {convertArrayBufferToString, sleep} from "../../helper";
 import {ConnectionUIIPC} from "../../ipc/ConnectionUI";
 import {TerminalIPC} from "../../ipc/terminal";
 import {config} from "../../init";
+import {createBroadcastSocket} from "../tcp_helper";
 import {createEthernetConnection} from "../types/ethernet";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
@@ -54,7 +57,7 @@ export class Idle implements IConnectionState {
             case eth_node:
                 return createEthernetConnection(options[remote_ip], options[telnet_port], options[midi_port], options[sid_port]);
             case udp_min:
-                return createMinUDPConnection(options[udp_min_port], options[remote_ip]);
+                return createMinUDPConnection(options[udp_min_port], Idle.addressFromString(options[remote_ip]));
             default:
                 TerminalIPC.println("Connection type \"" + connection_types.get(type) +
                     "\" (" + type + ") is currently not supported");
@@ -62,11 +65,61 @@ export class Idle implements IConnectionState {
         }
     }
 
+    private static addressFromString(input: string): string {
+        const suffixStart = input.lastIndexOf(" (");
+        if (suffixStart >= 0 && input[input.length - 1] == ")") {
+            return input.substring(suffixStart + 2, input.length - 1);
+        } else {
+            return input;
+        }
+    }
+
     private static async connectInternal(window: object): Promise<UD3Connection | undefined> {
         try {
-            const options = await ConnectionUIIPC.openConnectionUI(window);
+            let udpCandidates: string[] = [];
+            const udpSocket = await createBroadcastSocket();
+            udpSocket.send("FINDReq=1;", 50022, "255.255.255.255");
+            udpSocket.on('message', (msg, rinfo) => {
+                const asString = convertArrayBufferToString(msg);
+                if (asString.startsWith("FIND=1;")) {
+                    const parts = asString.split(";");
+                    let name = undefined;
+                    let isUD3 = false;
+                    for (const field of parts) {
+                        const eq = field.indexOf("=");
+                        if (eq >= 0) {
+                            const fieldName = field.substring(0, eq);
+                            const fieldValue = field.substring(eq + 1);
+                            if (fieldName === "deviceType") {
+                                isUD3 = fieldValue === "UD3";
+                            } else if (fieldName === "DeviceName") {
+                                name = fieldValue;
+                            }
+                        }
+                    }
+                    if (isUD3) {
+                        if (this.name) {
+                            udpCandidates.push(name + " (" + rinfo.address + ")");
+                        } else {
+                            udpCandidates.push(rinfo.address);
+                        }
+                    }
+                }
+            });
+            let serialPorts: string[] = [];
+            for (const port of await SerialPort.list()) {
+                serialPorts.push(port.path);
+            }
+            //TODO send the "fast" data right away and send FIND replies as they arrive
+            await sleep(250);
+            const options = await ConnectionUIIPC.openConnectionUI(window, {
+                serialPorts: serialPorts,
+                udpCandidates: udpCandidates
+            });
+            udpSocket.close();
             return Idle.connectWithOptions(options);
         } catch (e) {
+            console.error(e);
             return Promise.resolve(undefined);
         }
     }

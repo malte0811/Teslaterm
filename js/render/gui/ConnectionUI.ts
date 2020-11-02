@@ -5,22 +5,31 @@ import {
     serial_port, sid_port, telnet_port, udp_min_port
 } from "../../common/ConnectionOptions";
 import {connection_types, eth_node, serial_min, serial_plain, udp_min} from "../../common/constants";
+import {ConnectionCandidates} from "../../common/IPCConstantsToRenderer";
 import {config} from "../ipc/Misc";
 import * as ui_helper from "./ui_helper";
 import ChangeEvent = W2UI.ChangeEvent;
 
-export async function openUI(): Promise<any> {
+interface ScreenInfo {
+    candidates: ConnectionCandidates;
+    resolve: (cfg: object) => void;
+    reject: (e: any) => void;
+}
+
+export async function openUI(candidates: ConnectionCandidates): Promise<any> {
     await ui_helper.openPopup({
         body: '<div id="form" style="width: 100%; height: 100%;"></div>',
         style: 'padding: 15px 0px 0px 0px',
         title: 'Connection UI',
     });
     return new Promise<any>((res, rej) => {
-        recreateForm(undefined, res, rej);
+        recreateForm(undefined, {
+            candidates: candidates, resolve: res, reject: rej
+        });
     });
 }
 
-function recreateForm(selected_type: string | undefined, resolve: (cfg: object) => void, reject: (e: any) => void) {
+function recreateForm(selected_type: string | undefined, info: ScreenInfo) {
     let defaultValues = getDefaultConnectOptions(false, config);
     if (!defaultValues[connection_type]) {
         defaultValues[connection_type] = selected_type;
@@ -44,20 +53,38 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
     ];
     switch (selected_type) {
         case serial_min:
-        case serial_plain:
-            addField(fields, serial_port, "Serial port", "text", "Autoconnect");
+        case serial_plain: {
+            let portSuggestions: W2UI.Suggestion[] = [];
+            for (const port of info.candidates.serialPorts) {
+                portSuggestions.push({
+                    id: portSuggestions.length,
+                    text: port,
+                });
+            }
+            addWithSuggestions(fields, serial_port, "Serial port", portSuggestions, "Autoconnect");
             addField(fields, baudrate, "Baudrate", "int");
             break;
+        }
         case eth_node:
             addField(fields, remote_ip, "Remote IP");
             addField(fields, telnet_port, "Telnet port", "int");
             addField(fields, midi_port, "MIDI port", "int");
             addField(fields, sid_port, "SID port", "int");
             break;
-        case udp_min:
-            addField(fields, remote_ip, "Remote IP");
+        case udp_min: {
+            let suggestions: W2UI.Suggestion[] = [];
+            for (const candidate of info.candidates.udpCandidates) {
+                suggestions.push({
+                    id: suggestions.length,
+                    text: candidate.toString(),
+                });
+                console.log(candidate.toString());
+                console.log(candidate);
+            }
+            addWithSuggestions(fields, remote_ip, "Remote IP", suggestions);
             addField(fields, udp_min_port, "Remote port");
             break;
+        }
         default:
             throw new Error("Unknown connection type: " + selected_type);
     }
@@ -69,7 +96,7 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
         actions: {
             Cancel: () => {
                 w2popup.close();
-                reject("Cancelled");
+                info.reject("Cancelled");
             },
             Connect: () => {
                 w2popup.close();
@@ -81,7 +108,7 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
                         ret[key] = value;
                     }
                 }
-                resolve(ret);
+                info.resolve(ret);
             }
         }
     });
@@ -96,19 +123,25 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
     });
     selector.data("selected", {id: selected_type, text: connection_types.get(selected_type)});
     selector.change();
-    w2ui.connection_ui.on("change", ev => onChange(ev, resolve, reject));
+    for (const field of fields) {
+        if (field["items"]) {
+            const fieldObj = $("input[name=" + field["name"] + "]");
+            fieldObj.w2field(field.type, {items: field["items"]});
+        }
+    }
+    w2ui.connection_ui.on("change", ev => onChange(ev, info));
 }
 
-function onChange(event: ChangeEvent, resolve: (cfg: object) => void, reject: (e: any) => void) {
+function onChange(event: ChangeEvent, info: ScreenInfo) {
     if (event.target === connection_type) {
         if (!event.value_old || event.value_new !== event.value_old) {
-            recreateForm(event.value_new.id, resolve, reject);
+            recreateForm(event.value_new.id, info);
         }
     }
 }
 
-function addField(fields: any[], id: string, title: string, type: string = "text", placeholder?: string) {
-    fields[fields.length] = {
+function addField(fields: any[], id: string, title: string, type: string = "text", placeholder?: string): any {
+    const added = {
         name: id,
         type: type,
         autoFormat: false,
@@ -117,4 +150,11 @@ function addField(fields: any[], id: string, title: string, type: string = "text
             attr: placeholder ? ("placeholder=" + placeholder) : undefined
         }
     };
+    fields.push(added);
+    return added;
+}
+
+function addWithSuggestions(fields: any[], id: string, title: string, suggestions: W2UI.Suggestion[], placeholder?: string) {
+    const added = addField(fields, id, title, "combo", placeholder);
+    added.items = suggestions;
 }

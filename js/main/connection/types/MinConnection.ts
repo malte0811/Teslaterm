@@ -59,7 +59,9 @@ export abstract class MinConnection extends BootloadableConnection {
                 }
             }
             for (const id of toDisconnect) {
-                this.closeTerminal(id);
+                this.closeTerminal(id).catch((e) => {
+                    console.log("While disconnecting terminal id " + id + ":", e);
+                });
             }
         } catch (e) {
             console.error("Failed to disconnect cleanly", e);
@@ -92,7 +94,7 @@ export abstract class MinConnection extends BootloadableConnection {
     }
 
     async closeTerminal(handle: TerminalHandle): Promise<void> {
-        await withTimeout(this.send_min_socket(false, handle), 500);
+        await withTimeout(this.send_min_socket(false, handle), 500, "Close MIN socket");
         await super.closeTerminal(handle);
     }
 
@@ -170,7 +172,7 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    public async send_min_socket(connect: boolean, id: TerminalHandle) {
+    private async send_min_socket(connect: boolean, id: TerminalHandle) {
         if (this.min_wrapper) {
             const infoBuffer = Buffer.from(
                 String.fromCharCode(id) +
@@ -192,7 +194,7 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    public async init_min_wrapper(): Promise<void> {
+    private async init_min_wrapper(): Promise<void> {
         this.min_wrapper = new minprot(() => this.toUD3Time(microtime.now()));
         this.min_wrapper.sendByte = (data) => {
             if (this.isBootloading()) {

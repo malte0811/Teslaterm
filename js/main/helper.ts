@@ -94,9 +94,10 @@ export async function readFileAsync(file: fs.PathLike): Promise<Uint8Array> {
     });
 }
 
-export async function withTimeout<T>(base: Promise<T>, timeout: number): Promise<T> {
+export async function withTimeout<T>(base: Promise<T>, timeout: number, name?: string): Promise<T> {
+    const message = "Timeout expired" + (name ? ": " + name : "");
     return new Promise<T>((res, rej) => {
-        setTimeout(rej, timeout);
+        setTimeout(rej, timeout, message);
         base.then(res);
     });
 }

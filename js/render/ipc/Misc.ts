@@ -1,6 +1,6 @@
 import {processIPC} from "./IPCProvider";
-import {ConnectionReply, IPCConstantsToMain} from "../../common/IPCConstantsToMain";
-import {IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
+import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
+import {ConnectionCandidates, IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {openUI} from "../gui/ConnectionUI";
 import {terminal} from "../gui/constants";
@@ -20,10 +20,10 @@ export namespace MiscIPC {
         processIPC.on(IPCConstantsToRenderer.udConfig, (cfg: string[][]) => {
             ud_settings(cfg);
         });
-        processIPC.on(IPCConstantsToRenderer.openConnectionUI, async () => {
+        processIPC.on(IPCConstantsToRenderer.openConnectionUI, async (candidates: ConnectionCandidates) => {
             let reply: Object | null;
             try {
-                reply = await openUI();
+                reply = await openUI(candidates);
             } catch (e) {
                 reply = null;
             }

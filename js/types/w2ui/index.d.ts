@@ -27,6 +27,11 @@ declare namespace W2UI {
     export interface W2Field {
         data(type: string, options: Object): W2Field;
     }
+
+    export interface Suggestion {
+        id: number;
+        text: string;
+    }
 }
 
 interface JQuery {

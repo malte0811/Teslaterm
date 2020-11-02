@@ -166,3 +166,8 @@ export class SliderState {
         return this.ontimeAbs * this.ontimeRel / 100;
     }
 }
+
+export interface ConnectionCandidates {
+    serialPorts: string[];
+    udpCandidates: string[];
+}
