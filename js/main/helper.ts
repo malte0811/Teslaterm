@@ -73,9 +73,10 @@ function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array | ArrayBu
     }
 }
 
-export async function withTimeout<T>(base: Promise<T>, timeout: number): Promise<T> {
+export async function withTimeout<T>(base: Promise<T>, timeout: number, name?: string): Promise<T> {
+    const message = "Timeout expired" + (name ? ": " + name : "");
     return new Promise<T>((res, rej) => {
-        setTimeout(() => rej("Reached timeout"), timeout);
+        setTimeout(() => rej("Reached timeout"), timeout, message);
         base.then(res);
     });
 }

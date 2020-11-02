@@ -14,10 +14,6 @@ declare namespace W2UI {
         items: W2MenuItem[];
     }
 
-    export interface KeyDownListener {
-        originalEvent: KeyboardEvent;
-    }
-
     export interface ChangeEvent {
         target: string;
         value_new: { id: string, text: string };
@@ -26,6 +22,19 @@ declare namespace W2UI {
 
     export interface W2Field {
         data(type: string, options: Object): W2Field;
+    }
+
+    export interface W2FieldData {
+        html?: any;
+        name: string;
+        type: string;
+        autoFormat?: boolean;
+        items?: Suggestion[];
+    }
+
+    export interface Suggestion {
+        id: number;
+        text: string;
     }
 }
 

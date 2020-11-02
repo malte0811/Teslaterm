@@ -2,6 +2,11 @@ import {MediaFileType, PlayerActivity} from "./CommonTypes";
 import {CommandRole} from "./TTConfig";
 
 export const IPC_CONSTANTS_TO_RENDERER = {
+    connect: {
+        addUDPSuggestion: "suggest-udp",
+        openUI: "connection-ui",
+        setSerialSuggestions: "suggest-serial",
+    },
     menu: {
         connectionButtonText: "menu-connection-text",
         setMediaTitle: "menu-media-title",
@@ -12,7 +17,6 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         configure: "meter-config",
         setValue: "meter-set-value",
     },
-    openConnectionUI: "connection-ui",
     scope: {
         addValues: "scope-values",
         configure: "scope-config",
@@ -208,4 +212,9 @@ export class SliderState {
         }
         return changed;
     }
+}
+
+export interface IUDPConnectionSuggestion {
+    remoteIP: string;
+    desc?: string;
 }

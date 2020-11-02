@@ -1,7 +1,7 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
-import {openUI} from "../gui/ConnectionUI";
+import {addUDPSuggestion, openUI, setSerialSuggestions} from "../gui/ConnectionUI";
 import {terminal} from "../gui/constants";
 import {ud_settings} from "../gui/UDConfig";
 import {processIPC} from "./IPCProvider";
@@ -20,7 +20,7 @@ export namespace MiscIPC {
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.udConfig, (cfg: string[][]) => {
             ud_settings(cfg);
         });
-        processIPC.on(IPC_CONSTANTS_TO_RENDERER.openConnectionUI, async () => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.connect.openUI, async () => {
             let reply: any | null;
             try {
                 reply = await openUI();
@@ -28,6 +28,12 @@ export namespace MiscIPC {
                 reply = null;
             }
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, reply);
+        });
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.connect.addUDPSuggestion, (s: IUDPConnectionSuggestion) => {
+            addUDPSuggestion(s);
+        });
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, (ports: string[]) => {
+            setSerialSuggestions(ports);
         });
         processIPC.send(IPC_CONSTANTS_TO_MAIN.rendererReady);
     }

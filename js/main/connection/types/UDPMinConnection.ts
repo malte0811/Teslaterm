@@ -1,33 +1,33 @@
+import {createUDPSocket} from "../tcp_helper";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
 import * as dgram from 'dgram';
+import {ipcs} from "../../ipc/IPCProvider";
 
-class MinSerialConnection extends MinConnection {
+class UDPMinConnection extends MinConnection {
     public readonly remotePort: number;
     public readonly remoteAddress: string;
     private socket: dgram.Socket;
 
     constructor(remotePort: number, remoteAddress: string) {
         super();
+        if (!(remotePort >= 0 && remotePort < 65536)) {
+            throw new Error("Invalid port " + remotePort);
+        }
         this.remotePort = remotePort;
         this.remoteAddress = remoteAddress;
     }
 
     public async connect(): Promise<void> {
-        return new Promise<void>((res, rej) => {
-            this.socket = dgram.createSocket("udp4");
-            this.socket.on('end', () => {
-            });
-            this.socket.on('error', rej);
-            this.socket.connect(this.remotePort, this.remoteAddress, () => res());
-        })
-            .then(() => super.connect())
-            .catch((e) => {
-                if (this.socket) {
-                    this.socket.close();
-                }
-                throw e;
-            });
+        try {
+            this.socket = await createUDPSocket(this.remotePort, this.remoteAddress);
+            await super.connect();
+        } catch (e) {
+            if (this.socket) {
+                this.socket.close();
+            }
+            throw e;
+        }
     }
 
     public async disconnect() {
@@ -52,5 +52,5 @@ class MinSerialConnection extends MinConnection {
 }
 
 export function createMinUDPConnection(port: number, address: string): UD3Connection {
-    return new MinSerialConnection(port, address);
+    return new UDPMinConnection(port, address);
 }

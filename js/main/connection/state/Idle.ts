@@ -1,3 +1,5 @@
+import * as dgram from "dgram";
+import {SerialPort} from "serialport";
 import {
     baudrate,
     connection_type,
@@ -8,41 +10,21 @@ import {
     telnet_port, udp_min_port,
 } from "../../../common/ConnectionOptions";
 import {connection_types, dummy, eth_node, serial_min, serial_plain, udp_min} from "../../../common/constants";
-import {ipcs} from "../../ipc/IPCProvider";
+import {convertArrayBufferToString, sleep} from "../../helper";
 import {config} from "../../init";
+import {ipcs} from "../../ipc/IPCProvider";
+import {createBroadcastSocket} from "../tcp_helper";
 import {DummyConnection} from "../types/DummyConnection";
 import {createEthernetConnection} from "../types/ethernet";
-import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
-import {createMinSerialConnection} from "../types/SerialMinConnection";
 import {createPlainSerialConnection} from "../types/serial_plain";
+import {createMinSerialConnection} from "../types/SerialMinConnection";
+import {sendConnectionSuggestions} from "../types/Suggestions";
+import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {createMinUDPConnection} from "../types/UDPMinConnection";
 import {Connecting} from "./Connecting";
 import {IConnectionState} from "./IConnectionState";
-import {SerialPort} from "serialport";
 
 export class Idle implements IConnectionState {
-    public getActiveConnection(): UD3Connection | undefined {
-        return undefined;
-    }
-
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return undefined;
-    }
-
-    public getButtonText(): string {
-        return "Connect";
-    }
-
-    public async pressButton(window: object): Promise<IConnectionState> {
-        return new Connecting(Idle.connectInternal(window), this);
-    }
-
-    public tickFast(): IConnectionState {
-        return this;
-    }
-
-    public tickSlow() {
-    }
 
     public static async connectWithOptions(options: any): Promise<UD3Connection | undefined> {
         const type = options[connection_type];
@@ -54,7 +36,7 @@ export class Idle implements IConnectionState {
             case eth_node:
                 return createEthernetConnection(options[remote_ip], options[telnet_port], options[midi_port], options[sid_port]);
             case udp_min:
-                return createMinUDPConnection(options[udp_min_port], options[remote_ip]);
+                return createMinUDPConnection(options[udp_min_port], Idle.addressFromString(options[remote_ip]));
             case dummy:
                 return new DummyConnection();
             default:
@@ -64,11 +46,22 @@ export class Idle implements IConnectionState {
         }
     }
 
+    private static addressFromString(input: string): string {
+        const suffixStart = input.lastIndexOf(" (");
+        if (suffixStart >= 0 && input[input.length - 1] == ")") {
+            return input.substring(suffixStart + 2, input.length - 1);
+        } else {
+            return input;
+        }
+    }
+
     private static async connectInternal(window: object): Promise<UD3Connection | undefined> {
         try {
-            const options = await ipcs.connectionUI.openConnectionUI(window);
-            return Idle.connectWithOptions(options);
+            const options = ipcs.connectionUI.openConnectionUI(window);
+            sendConnectionSuggestions(window);
+            return await Idle.connectWithOptions(await options);
         } catch (e) {
+            console.error(e);
             return Promise.resolve(undefined);
         }
     }
@@ -94,5 +87,27 @@ export class Idle implements IConnectionState {
         }
         ipcs.terminal.println("Did not find port to auto-connect to");
         return undefined;
+    }
+    public getActiveConnection(): UD3Connection | undefined {
+        return undefined;
+    }
+
+    public getAutoTerminal(): TerminalHandle | undefined {
+        return undefined;
+    }
+
+    public getButtonText(): string {
+        return "Connect";
+    }
+
+    public async pressButton(window: object): Promise<IConnectionState> {
+        return new Connecting(Idle.connectInternal(window), this);
+    }
+
+    public tickFast(): IConnectionState {
+        return this;
+    }
+
+    public tickSlow() {
     }
 }
