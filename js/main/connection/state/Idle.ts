@@ -78,7 +78,7 @@ export class Idle implements IConnectionState {
         try {
             let udpCandidates: string[] = [];
             const udpSocket = await createBroadcastSocket();
-            udpSocket.send("FINDReq=1;", 50022, "255.255.255.255");
+            udpSocket.send("FINDReq=1;\0", 50022, "255.255.255.255");
             udpSocket.on('message', (msg, rinfo) => {
                 const asString = convertArrayBufferToString(msg);
                 if (asString.startsWith("FIND=1;")) {
