@@ -78,8 +78,6 @@ function recreateForm(selected_type: string | undefined, info: ScreenInfo) {
                     id: suggestions.length,
                     text: candidate.toString(),
                 });
-                console.log(candidate.toString());
-                console.log(candidate);
             }
             addWithSuggestions(fields, remote_ip, "Remote IP", suggestions);
             addField(fields, udp_min_port, "Remote port");
@@ -154,7 +152,31 @@ function addField(fields: any[], id: string, title: string, type: string = "text
     return added;
 }
 
+/**
+ * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
+ *
+ * @param {String} text The text to be rendered.
+ * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
+ *
+ * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
+ */
+let canvas;
+
+function getTextWidth(text, font) {
+    // re-use canvas object for better performance
+    canvas = canvas || document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    context.font = font;
+    const metrics = context.measureText(text);
+    return metrics.width;
+}
+
 function addWithSuggestions(fields: any[], id: string, title: string, suggestions: W2UI.Suggestion[], placeholder?: string) {
     const added = addField(fields, id, title, "combo", placeholder);
+    let maxLength = 161;
+    for (const suggestion of suggestions) {
+        maxLength = Math.max(maxLength, getTextWidth(suggestion.text, "12px Arial") + 10);
+    }
+    added.html.attr += " style=\"width: " + maxLength.toString() + "px\"";
     added.items = suggestions;
 }
