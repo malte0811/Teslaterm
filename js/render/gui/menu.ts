@@ -30,9 +30,11 @@ export function onCtrlMenuClick(event) {
             break;
         case "mnu_command:bus":
             if (ud3State.busActive) {
-                commands.busOff();
+                commands.setBusState(false);
             } else {
-                ui_helper.warn("WARNING!<br>The coil will be energized.", () => commands.busOn());
+                ui_helper.warn(
+                    "WARNING!<br>The coil will be energized.", () => commands.setBusState(true),
+                );
             }
             break;
         case "mnu_command:transient":
@@ -46,8 +48,7 @@ export function onCtrlMenuClick(event) {
                 commands.eepromSave);
             break;
         case "mnu_command:Save EEPROM-Config":
-            ui_helper.warn("WARNING!<br>Are you sure to save the configuration to EEPROM?",
-                commands.eepromSave);
+            ui_helper.warn("WARNING!<br>Are you sure to save the configuration to EEPROM?", commands.saveEEPROM);
             break;
         case "mnu_midi:Play":
             MenuIPC.startPlaying();
@@ -62,10 +63,10 @@ export function onCtrlMenuClick(event) {
             ScriptingIPC.stopScript();
             break;
         case "kill_set":
-            commands.setKill();
+            commands.setKillState(true);
             break;
         case "kill_reset":
-            commands.resetKill();
+            commands.setKillState(false);
             break;
     }
 }

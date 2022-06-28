@@ -22,14 +22,26 @@ export const manualCommands = new CommandInterface(
     },
 );
 
-export const commands = new CommandInterface(
-    (c) => {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.automaticCommand, c);
-        // TODO?
-        return Promise.resolve();
-    },
-    () => {},
-    () => {
-        throw new Error();
-    },
-);
+class CommandsIPC {
+    public saveEEPROM() {
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM);
+    }
+
+    public setBusState(enabled: boolean) {
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setBusState, enabled);
+    }
+
+    public setKillState(killSet: boolean) {
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setKillState, killSet);
+    }
+
+    public setParms(parms: Map<string, string>) {
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setParms, parms);
+    }
+
+    public setTransientEnabled(enabled: boolean) {
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setTRState, enabled);
+    }
+}
+
+export const commands = new CommandsIPC();

@@ -2,12 +2,14 @@ import {TYPE_CHAR, TYPE_FLOAT, TYPE_SIGNED, TYPE_STRING, TYPE_UNSIGNED} from "..
 import {commands} from "../ipc/commands";
 import {config} from "../ipc/Misc";
 
-async function saveAndClose(form) {
+function saveAndClose(form) {
+    const changes = new Map<string, string>();
     for (const change of Object.keys(form.getChanges())) {
         form.record[change] = form.record[change].replace(',', '.');
-        await commands.setParam(change, form.record[change]);
+        changes.set(change, form.record[change]);
         form.original[change] = form.record[change];
     }
+    commands.setParms(changes);
     w2popup.close();
 }
 
@@ -85,12 +87,12 @@ export function ud_settings(uconfig: string[][]) {
     if (!w2ui.udconfigui) {
         $().w2form({
             actions: {
-                async "Save"() {
-                    await saveAndClose(this);
+                "Save"() {
+                    saveAndClose(this);
                 },
-                async "Save EEPROM"() {
-                    await saveAndClose(this);
-                    await commands.eepromSave();
+                "Save EEPROM"() {
+                    saveAndClose(this);
+                    commands.saveEEPROM();
                 },
             },
             fields: tfields,

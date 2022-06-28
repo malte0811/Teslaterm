@@ -1,3 +1,4 @@
+import {CommandIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
 import {MenuIPC} from "./Menu";
@@ -29,6 +30,14 @@ export class MultiWindowIPC {
 
     public on(channel: string, callback: (source: object, ...data: any[]) => void) {
         this.addListener(channel, callback, false);
+    }
+
+    public onAsync(channel: string, callback: (source: object, ...data: any[]) => Promise<any>) {
+        this.on(channel, (source, ...data) => {
+            callback(source, ...data).catch((err) => {
+                console.error("While processing message on", channel, "from", source, ", payload", data, ":", err);
+            });
+        });
     }
 
     public once(channel: string, callback: (source: object, ...data: any[]) => void) {
@@ -132,6 +141,7 @@ export class MultiWindowIPC {
 }
 
 export class IPCCollection {
+    public readonly commands: CommandIPC;
     public readonly connectionUI: ConnectionUIIPC;
     public readonly fileUpload: FileUploadIPC;
     public readonly menu: MenuIPC;
@@ -143,6 +153,7 @@ export class IPCCollection {
     public readonly terminal: TerminalIPC;
 
     constructor(process: MultiWindowIPC) {
+        this.commands = new CommandIPC(process);
         this.connectionUI = new ConnectionUIIPC(process);
         this.fileUpload = new FileUploadIPC(process);
         this.menu = new MenuIPC(process);

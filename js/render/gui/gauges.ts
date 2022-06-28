@@ -25,6 +25,10 @@ export class Meter {
         }
     }
 
+    public setValue(value: number): void {
+        this.meter_buf = value / this.scale;
+    }
+
     public setText(new_text: string): void {
         this.gauge.txtLabel.attr({text: new_text});
     }

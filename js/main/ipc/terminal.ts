@@ -29,9 +29,6 @@ export class TerminalIPC {
                 console.log("Error while sending: ", x);
             }
         });
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.automaticCommand, (source: object, cmd: string) => {
-            commands.sendCommand(cmd);
-        });
         setInterval(() => this.tick(), 20);
     }
 

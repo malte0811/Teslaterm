@@ -1,5 +1,11 @@
 export const IPC_CONSTANTS_TO_MAIN = {
-    automaticCommand: "automatic-command",
+    commands: {
+        saveEEPROM: "save-eeprom",
+        setBusState: "set-bus-state",
+        setKillState: "set-tr-state",
+        setParms: "set-parms",
+        setTRState: "set-kill-state",
+    },
     connect: "connect-to-ud3",
     loadFile: "load-file",
     manualCommand: "manual-command",
