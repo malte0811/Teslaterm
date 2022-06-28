@@ -36,7 +36,7 @@ export class SlidersIPC {
 
     public async setRelativeOntime(val: number, key?: object) {
         this.state.ontimeRel = val;
-        await commands.setOntimeRelative(this.state.ontimeRel);
+        await commands.setOntime(this.state.ontime);
         this.sendSliderSync(key);
     }
 

@@ -1,32 +1,10 @@
-export const maxOntime = 400;
-export const maxBPS = 1000;
-export const maxBurstOntime = 1000;
-export const maxBurstOfftime = 1000;
+import {commandServer} from "../init";
+import {getAutoTerminal, getUD3Connection, hasUD3Connection} from "./connection";
 
 export class CommandInterface {
-    public readonly sendCommand: (c: string) => Promise<void>;
-    public readonly setRelativeOntime: (value: number) => void;
-    private readonly preClear: () => void;
-
-    constructor(
-        sendCommand: (c: string) => Promise<void>,
-        preClear: () => void,
-        setRelativeOntime: (value: number) => void,
-    ) {
-        this.sendCommand = sendCommand;
-        this.preClear = preClear;
-        this.setRelativeOntime = setRelativeOntime;
-    }
-
-    public async clear() {
-        this.preClear();
-        await this.sendCommand('cls\r');
-    }
-
     public async stop() {
         await this.sendCommand('tterm stop\rcls\r');
     }
-
 
     public async startTelemetry() {
         await this.sendCommand('tterm start\r');
@@ -56,10 +34,6 @@ export class CommandInterface {
         await this.sendCommand('set pw ' + ontime.toFixed(0) + '\r');
     }
 
-    public async setOntimeRelative(ontime: number) {
-        await this.sendCommand('set pwp ' + ontime.toFixed(1) + '\r');
-    }
-
     public async setBurstOntime(ontime: number) {
         await this.sendCommand('set bon ' + ontime.toFixed(0) + '\r');
     }
@@ -83,5 +57,19 @@ export class CommandInterface {
 
     public async setTransientEnabled(enable: boolean) {
         await this.sendCommand('tr ' + (enable ? 'start' : 'stop') + '\r');
+    }
+
+    public async sendCommand(c: string) {
+        try {
+            if (commandServer) {
+                // TODO remote and replace by command-specific transmissions
+                commandServer.sendTelnet(Buffer.from(c));
+            }
+            if (hasUD3Connection()) {
+                await getUD3Connection().sendTelnet(Buffer.from(c), getAutoTerminal());
+            }
+        } catch (x) {
+            console.log("Error while sending: ", x);
+        }
     }
 }

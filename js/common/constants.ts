@@ -30,6 +30,12 @@ export const FEATURE_TIMECOUNT = "time_count";
 export const FEATURE_NOTELEMETRY = "notelemetry_supported";
 export const FEATURE_MINSID = "min_sid_support";
 
+// TODO replace by data synced from UD3
+export const maxOntime = 400;
+export const maxBPS = 1000;
+export const maxBurstOntime = 1000;
+export const maxBurstOfftime = 1000;
+
 // Connection types
 export const eth_node = "eth";
 export const udp_min = "udpmin";

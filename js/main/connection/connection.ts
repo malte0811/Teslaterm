@@ -1,9 +1,9 @@
-import {CommandInterface} from "../../common/commands";
 import {getDefaultConnectOptions} from "../../common/ConnectionOptions";
-import {commandServer, config} from "../init";
+import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {BootloadableConnection} from "./bootloader/bootloadable_connection";
+import {CommandInterface} from "./commands";
 import {Bootloading} from "./state/Bootloading";
 import {Connecting} from "./state/Connecting";
 import {IConnectionState} from "./state/IConnectionState";
@@ -11,26 +11,7 @@ import {Idle} from "./state/Idle";
 import {TerminalHandle, UD3Connection} from "./types/UD3Connection";
 
 export let connectionState: IConnectionState = new Idle();
-
-export const commands = new CommandInterface(
-    async (c: string) => {
-        try {
-            if (commandServer) {
-                commandServer.sendTelnet(Buffer.from(c));
-            }
-            if (hasUD3Connection()) {
-                await getUD3Connection().sendTelnet(Buffer.from(c), getAutoTerminal());
-            }
-        } catch (x) {
-            console.log("Error while sending: ", x);
-        }
-    },
-    () => {
-        // \033=\u1B
-        ipcs.terminal.print('\u001B[2J\u001B[0;0H');
-    },
-    (val) => ipcs.sliders.setRelativeOntime(val),
-);
+export const commands = new CommandInterface();
 
 export async function startConf() {
     await commands.sendCommand('\r');

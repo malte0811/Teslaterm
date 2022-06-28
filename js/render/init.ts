@@ -1,4 +1,4 @@
-import {maxBPS, maxBurstOfftime, maxBurstOntime, maxOntime} from "../common/commands";
+import {maxBPS, maxBurstOfftime, maxBurstOntime, maxOntime} from "../common/constants";
 import {terminal} from './gui/constants';
 import * as constants from './gui/constants';
 import {NUM_GAUGES} from "./gui/gauges";

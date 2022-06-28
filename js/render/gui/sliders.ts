@@ -1,4 +1,4 @@
-import {maxOntime} from "../../common/commands";
+import {maxOntime} from "../../common/constants";
 import {SliderState, UD3State} from "../../common/IPCConstantsToRenderer";
 import {SlidersIPC} from "../ipc/sliders";
 import {terminal} from "./constants";
