@@ -1,4 +1,4 @@
-import {sendManualCommand} from "../ipc/commands";
+import {commands} from "../ipc/commands";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {terminal} from "./constants";
 import * as gauges from "./gauges";
@@ -10,7 +10,7 @@ export function init(): void {
     terminal.onTerminalReady = () => {
         const io = terminal.io.push();
 
-        terminal.processInput = sendManualCommand;
+        terminal.processInput = (input) => commands.sendManualCommand(input);
         io.onVTKeystroke = terminal.processInput;
 
         io.sendString = terminal.processInput;

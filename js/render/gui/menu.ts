@@ -1,5 +1,5 @@
 import {UD3State} from "../../common/IPCConstantsToRenderer";
-import {commands, manualCommands} from "../ipc/commands";
+import {commands} from "../ipc/commands";
 import {MenuIPC} from "../ipc/Menu";
 import {ScriptingIPC} from "../ipc/Scripting";
 import * as sliders from "./sliders";
@@ -26,7 +26,7 @@ export function onCtrlMenuClick(event) {
             MenuIPC.connectButton();
             break;
         case "cls":
-            manualCommands.clear();
+            commands.clearManualTerminal();
             break;
         case "mnu_command:bus":
             if (ud3State.busActive) {
