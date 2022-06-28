@@ -1,4 +1,4 @@
-import {IPCConstantsToRenderer, MeterConfig, SetMeters} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, MeterConfig, SetMeters} from "../../common/IPCConstantsToRenderer";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class MetersIPC {
@@ -18,13 +18,13 @@ export class MetersIPC {
 
     public configure(id: number, min: number, max: number, div: number, name: string) {
         const config = new MeterConfig(id, min, max, div, name);
-        this.processIPC.sendToAll(IPCConstantsToRenderer.meters.configure, config);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.configure, config);
         this.configs.set(id, config);
     }
 
     public sendConfig(source: object) {
         for (const cfg of this.configs.values()) {
-            this.processIPC.sendToWindow(IPCConstantsToRenderer.meters.configure, source, cfg);
+            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.configure, source, cfg);
         }
     }
 
@@ -37,7 +37,7 @@ export class MetersIPC {
             }
         }
         if (Object.keys(update).length > 0) {
-            this.processIPC.sendToAll(IPCConstantsToRenderer.meters.setValue, new SetMeters(update));
+            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.setValue, new SetMeters(update));
         }
     }
 }

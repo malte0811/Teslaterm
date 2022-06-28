@@ -1,4 +1,4 @@
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {processIPC} from "./IPCProvider";
 
 export namespace FileUploadIPC {
@@ -8,6 +8,6 @@ export namespace FileUploadIPC {
     }
 
     export function upload(name: string, data: ArrayBuffer) {
-        processIPC.send(IPCConstantsToMain.loadFile, name, [...new Uint8Array(data)]);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFile, name, [...new Uint8Array(data)]);
     }
 }

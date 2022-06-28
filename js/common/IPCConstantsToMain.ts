@@ -1,39 +1,29 @@
-export const IPCConstantsToMain = {
+export const IPC_CONSTANTS_TO_MAIN = {
+    automaticCommand: "automatic-command",
     connect: "connect-to-ud3",
     loadFile: "load-file",
-    automaticCommand: "automatic-command",
     manualCommand: "manual-command",
-    sliders: {
-        setOntimeRelative: "slider-set-ontime-rel",
-        setOntimeAbsolute: "slider-set-ontime-abs",
-        setBPS: "slider-set-bps",
-        setBurstOntime: "slider-set-burst-ontime",
-        setBurstOfftime: "slider-set-burst-offtime",
-    },
     menu: {
-        startMedia: "start-media",
-        stopMedia: "stop-media",
         connectButton: "press-connect-button",
         requestUDConfig: "ud-config",
+        startMedia: "start-media",
+        stopMedia: "stop-media",
     },
+    midiMessage: "midi-message",
+    rendererReady: "renderer-ready",
     script: {
+        confirmOrDeny: "script-confirm",
         startScript: "start-script",
         stopScript: "stop-script",
-        confirmOrDeny: "script-confirm",
     },
-    rendererReady: "renderer-ready",
-    midiMessage: "midi-message",
+    sliders: {
+        setBPS: "slider-set-bps",
+        setBurstOfftime: "slider-set-burst-offtime",
+        setBurstOntime: "slider-set-burst-ontime",
+        setOntimeAbsolute: "slider-set-ontime-abs",
+        setOntimeRelative: "slider-set-ontime-rel",
+    },
 };
-
-export class ConnectionReply {
-    public readonly cancel: boolean;
-    public readonly options: Object | null;
-
-    constructor(cancel: boolean, options: Object | null) {
-        this.cancel = cancel;
-        this.options = options;
-    }
-}
 
 export class TransmittedFile {
     public readonly name: string;

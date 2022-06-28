@@ -1,6 +1,6 @@
 import {FEATURE_NOTELEMETRY} from "../../common/constants";
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
-import {IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {commands, getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {receive_main} from "../connection/telemetry";
 import {TerminalHandle} from "../connection/types/UD3Connection";
@@ -20,7 +20,7 @@ export class TerminalIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        processIPC.on(IPCConstantsToMain.manualCommand, async (source: object, msg: string) => {
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.manualCommand, async (source: object, msg: string) => {
             try {
                 if (hasUD3Connection() && this.terminals.has(source)) {
                     await getUD3Connection().sendTelnet(Buffer.from(msg), this.terminals.get(source));
@@ -29,7 +29,7 @@ export class TerminalIPC {
                 console.log("Error while sending: ", x);
             }
         });
-        processIPC.on(IPCConstantsToMain.automaticCommand, (source: object, cmd: string) => {
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.automaticCommand, (source: object, cmd: string) => {
             commands.sendCommand(cmd);
         });
         setInterval(() => this.tick(), 20);
@@ -102,9 +102,9 @@ export class TerminalIPC {
     private tick() {
         for (const [key, text] of this.buffers) {
             if (key) {
-                this.processIPC.sendToWindow(IPCConstantsToRenderer.terminal, key, text);
+                this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.terminal, key, text);
             } else {
-                this.processIPC.sendToAll(IPCConstantsToRenderer.terminal, text);
+                this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.terminal, text);
             }
         }
         this.buffers.clear();

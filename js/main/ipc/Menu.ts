@@ -1,5 +1,5 @@
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
-import {IPCConstantsToRenderer, UD3State} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_RENDERER, UD3State} from "../../common/IPCConstantsToRenderer";
 import {commands, pressButton} from "../connection/connection";
 import {configRequestQueue} from "../connection/telemetry/TelemetryFrame";
 import {media_state} from "../media/media_player";
@@ -13,10 +13,10 @@ export class MenuIPC {
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
-        processIPC.on(IPCConstantsToMain.menu.startMedia, () => media_state.startPlaying());
-        processIPC.on(IPCConstantsToMain.menu.stopMedia, () => media_state.stopPlaying());
-        processIPC.on(IPCConstantsToMain.menu.connectButton, pressButton);
-        processIPC.on(IPCConstantsToMain.menu.requestUDConfig, async (source) => {
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, () => media_state.startPlaying());
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.connectButton, pressButton);
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, async (source) => {
             configRequestQueue.push(source);
             try {
                 await commands.sendCommand("config_get\r");
@@ -32,29 +32,29 @@ export class MenuIPC {
         const newState = new UD3State(busActive, busControllable, transientActive, killBitSet);
         if (!newState.equals(this.lastUD3State)) {
             this.lastUD3State = newState;
-            this.processIPC.sendToAll(IPCConstantsToRenderer.menu.ud3State, this.lastUD3State);
+            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, this.lastUD3State);
         }
     }
 
     public setConnectionButtonText(newText: string) {
-        this.processIPC.sendToAll(IPCConstantsToRenderer.menu.connectionButtonText, newText);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.connectionButtonText, newText);
         this.lastConnectText = newText;
     }
 
     public setScriptName(scriptName: string) {
         this.lastScriptName = "Script: " + scriptName;
-        this.processIPC.sendToAll(IPCConstantsToRenderer.menu.setScriptName, this.lastScriptName);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, this.lastScriptName);
     }
 
     public setMediaName(buttonText: string) {
-        this.processIPC.sendToAll(IPCConstantsToRenderer.menu.setMediaTitle, buttonText);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, buttonText);
         this.lastMediaName = buttonText;
     }
 
     public sendFullState(target: object) {
-        this.processIPC.sendToWindow(IPCConstantsToRenderer.menu.ud3State, target, this.lastUD3State);
-        this.processIPC.sendToWindow(IPCConstantsToRenderer.menu.connectionButtonText, target, this.lastConnectText);
-        this.processIPC.sendToWindow(IPCConstantsToRenderer.menu.setScriptName, target, this.lastScriptName);
-        this.processIPC.sendToWindow(IPCConstantsToRenderer.menu.setMediaTitle, target, this.lastMediaName);
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, target, this.lastUD3State);
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.connectionButtonText, target, this.lastConnectText);
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, target, this.lastScriptName);
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, target, this.lastMediaName);
     }
 }

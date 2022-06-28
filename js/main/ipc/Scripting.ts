@@ -1,5 +1,5 @@
-import {ConfirmReply, IPCConstantsToMain, TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ConfirmationRequest, IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
+import {ConfirmReply, IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
+import {ConfirmationRequest, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
@@ -12,14 +12,14 @@ export class ScriptingIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        processIPC.on(IPCConstantsToMain.script.confirmOrDeny, (src, msg: ConfirmReply) => {
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny, (src, msg: ConfirmReply) => {
             if (msg.requestID === this.activeConfirmationID && this.confirmationResolve) {
                 this.confirmationResolve(msg.confirmed);
                 this.confirmationReject = this.confirmationResolve = undefined;
             }
         });
-        processIPC.on(IPCConstantsToMain.script.startScript, (src) => this.startScript(src));
-        processIPC.on(IPCConstantsToMain.script.stopScript, () => this.stopScript());
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.startScript, (src) => this.startScript(src));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.stopScript, () => this.stopScript());
     }
 
     public async startScript(source: object) {
@@ -60,7 +60,7 @@ export class ScriptingIPC {
                 this.confirmationResolve = resolve;
                 this.confirmationReject = reject;
                 this.processIPC.sendToWindow(
-                    IPCConstantsToRenderer.script.requestConfirm,
+                    IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
                     key,
                     new ConfirmationRequest(this.activeConfirmationID, msg, title),
                 );

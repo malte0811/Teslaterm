@@ -1,5 +1,5 @@
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
-import {IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class ConnectionUIIPC {
@@ -12,14 +12,14 @@ export class ConnectionUIIPC {
 
     public async openConnectionUI(key: object): Promise<any> {
         return new Promise<any>((res, rej) => {
-            this.processIPC.once(IPCConstantsToMain.connect, (source: object, args: any) => {
+            this.processIPC.once(IPC_CONSTANTS_TO_MAIN.connect, (source: object, args: any) => {
                 if (args !== null) {
                     res(args);
                 } else {
                     rej("Cancelled");
                 }
             });
-            this.processIPC.sendToWindow(IPCConstantsToRenderer.openConnectionUI, key);
+            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.openConnectionUI, key);
         });
     }
 }

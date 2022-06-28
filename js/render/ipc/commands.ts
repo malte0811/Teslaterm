@@ -1,11 +1,11 @@
 import {CommandInterface} from "../../common/commands";
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {terminal} from "../gui/constants";
 import {processIPC} from "./IPCProvider";
 
 export function sendManualCommand(cmd: string) {
     // TODO async?
-    processIPC.send(IPCConstantsToMain.manualCommand, cmd);
+    processIPC.send(IPC_CONSTANTS_TO_MAIN.manualCommand, cmd);
 }
 
 export const manualCommands = new CommandInterface(
@@ -24,7 +24,7 @@ export const manualCommands = new CommandInterface(
 
 export const commands = new CommandInterface(
     (c) => {
-        processIPC.send(IPCConstantsToMain.automaticCommand, c);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.automaticCommand, c);
         // TODO?
         return Promise.resolve();
     },

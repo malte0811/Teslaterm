@@ -1,34 +1,34 @@
 import {MediaFileType, PlayerActivity} from "./CommonTypes";
 
-export const IPCConstantsToRenderer = {
-    terminal: "terminal",
-    ttConfig: "tt-config",
-    udConfig: "ud-config",
-    openConnectionUI: "connection-ui",
-    sliders: {
-        syncSettings: "slider-sync"
-    },
-    meters: {
-        setValue: "meter-set-value",
-        configure: "meter-config",
-    },
+export const IPC_CONSTANTS_TO_RENDERER = {
     menu: {
-        ud3State: "menu-ud3-state",
         connectionButtonText: "menu-connection-text",
         setMediaTitle: "menu-media-title",
         setScriptName: "menu-script-name",
+        ud3State: "menu-ud3-state",
     },
-    script: {
-        requestConfirm: "script-request-confirm"
+    meters: {
+        configure: "meter-config",
+        setValue: "meter-set-value",
     },
+    openConnectionUI: "connection-ui",
     scope: {
-        configure: "scope-config",
         addValues: "scope-values",
-        startControlled: "scope-start-controlled",
+        configure: "scope-config",
         drawLine: "scope-draw-line",
         drawString: "scope-draw-string",
         redrawMedia: "scope-draw-media",
+        startControlled: "scope-start-controlled",
     },
+    script: {
+        requestConfirm: "script-request-confirm",
+    },
+    sliders: {
+        syncSettings: "slider-sync",
+    },
+    terminal: "terminal",
+    ttConfig: "tt-config",
+    udConfig: "ud-config",
 };
 
 export class SetMeters {
@@ -99,9 +99,9 @@ export class ScopeTraceConfig {
 }
 
 export class ScopeValues {
-    public readonly values: { [key: number]: number }[];
+    public readonly values: Array<{ [key: number]: number }>;
 
-    constructor(values: { [key: number]: number }[]) {
+    constructor(values: Array<{ [key: number]: number }>) {
         this.values = values;
     }
 }

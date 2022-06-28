@@ -1,5 +1,3 @@
-import {MediaFileType, SynthType} from "./CommonTypes";
-
 export const maxOntime = 400;
 export const maxBPS = 1000;
 export const maxBurstOntime = 1000;
@@ -44,10 +42,6 @@ export class CommandInterface {
 
     public async eepromSave() {
         await this.sendCommand('eeprom save\r');
-    }
-
-    public async eepromLoad() {
-        await this.sendCommand('eeprom load\r');
     }
 
     public async setKill() {

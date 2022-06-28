@@ -1,5 +1,5 @@
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
-import {IPCConstantsToRenderer, SliderState} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_RENDERER, SliderState} from "../../common/IPCConstantsToRenderer";
 import {commands} from "../connection/connection";
 import {MultiWindowIPC} from "./IPCProvider";
 
@@ -8,11 +8,11 @@ export class SlidersIPC {
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
-        processIPC.on(IPCConstantsToMain.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
-        processIPC.on(IPCConstantsToMain.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
-        processIPC.on(IPCConstantsToMain.sliders.setBPS, this.callSwapped(this.setBPS));
-        processIPC.on(IPCConstantsToMain.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
-        processIPC.on(IPCConstantsToMain.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, this.callSwapped(this.setBPS));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
         this.processIPC = processIPC;
     }
 
@@ -64,7 +64,7 @@ export class SlidersIPC {
     }
 
     public sendSliderSync(connection?: object) {
-        this.processIPC.sendToAllExcept(IPCConstantsToRenderer.sliders.syncSettings, connection, this.state);
+        this.processIPC.sendToAllExcept(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, connection, this.state);
     }
 
     private callSwapped(f: (val: number, key: object) => Promise<any>) {

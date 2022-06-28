@@ -1,4 +1,4 @@
-import {IPCConstantsToMain, TransmittedFile} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
 import {startBootloading} from "../connection/connection";
 import * as media_player from "../media/media_player";
 import {BlockSender} from "./block";
@@ -25,7 +25,7 @@ export class FileUploadIPC {
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
-        processIPC.on(IPCConstantsToMain.loadFile, (source, name, data) => FileUploadIPC.loadFile(name, data));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.loadFile, (source, name, data) => FileUploadIPC.loadFile(name, data));
         this.processIPC = processIPC;
     }
 }

@@ -1,5 +1,5 @@
 import {
-    IPCConstantsToRenderer, MediaState,
+    IPC_CONSTANTS_TO_RENDERER, MediaState,
     ScopeLine,
     ScopeText,
     ScopeTraceConfig, ScopeValues,
@@ -17,11 +17,11 @@ import {processIPC} from "./IPCProvider";
 
 export namespace ScopeIPC {
     export function init() {
-        processIPC.on(IPCConstantsToRenderer.scope.configure, (cfg: ScopeTraceConfig) => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.configure, (cfg: ScopeTraceConfig) => {
             traces[cfg.id].configure(cfg.min, cfg.max, cfg.offset, cfg.div, cfg.unit, cfg.name);
             redrawInfo();
         });
-        processIPC.on(IPCConstantsToRenderer.scope.addValues, (cfg: ScopeValues) => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.addValues, (cfg: ScopeValues) => {
             for (const tick of cfg.values) {
                 for (const [id, val] of Object.entries(tick)) {
                     traces[id].addValue(val);
@@ -29,16 +29,16 @@ export namespace ScopeIPC {
                 drawChart();
             }
         });
-        processIPC.on(IPCConstantsToRenderer.scope.startControlled, () => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, () => {
             beginControlledDraw();
         });
-        processIPC.on(IPCConstantsToRenderer.scope.drawLine, (cfg: ScopeLine) => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.drawLine, (cfg: ScopeLine) => {
             drawLine(cfg.x1, cfg.y1, cfg.x2, cfg.y2, cfg.color);
         });
-        processIPC.on(IPCConstantsToRenderer.scope.drawString, (cfg: ScopeText) => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.drawString, (cfg: ScopeText) => {
             drawString(cfg.x, cfg.y, cfg.color, cfg.size, cfg.str, cfg.center);
         });
-        processIPC.on(IPCConstantsToRenderer.scope.redrawMedia, (state: MediaState) => {
+        processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia, (state: MediaState) => {
             redrawMediaInfo(state);
         });
     }
