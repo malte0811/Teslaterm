@@ -40,9 +40,8 @@ export async function startConf() {
     await commands.setBurstOntime(SlidersIPC.state.burstOntime);
     await commands.setBurstOfftime(SlidersIPC.state.burstOfftime);
     await getUD3Connection().setSynthByFiletype(media_state.type, false);
-    await commands.sendCommand('kill reset\r');
-    await commands.sendCommand('tterm start\r');
-    await commands.sendCommand('cls\r');
+    await commands.resetKill();
+    await commands.startTelemetry();
 }
 
 export async function pressButton(window: object) {

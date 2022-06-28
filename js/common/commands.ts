@@ -30,7 +30,7 @@ export class CommandInterface {
     }
 
 
-    public async reconnect() {
+    public async startTelemetry() {
         await this.sendCommand('tterm start\r');
     }
 
