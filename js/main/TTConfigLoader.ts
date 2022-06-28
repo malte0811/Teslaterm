@@ -8,7 +8,7 @@ import {
 } from "../common/constants";
 import {TTConfig} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
-import {TerminalIPC} from "./ipc/terminal";
+import {ipcs} from "./ipc/IPCProvider";
 import * as fs from "fs";
 import * as ini from "ini";
 
@@ -236,9 +236,9 @@ export function loadConfig(filename: string): TTConfig {
     }
     fs.writeFile(filename, configToString(config), (err) => {
         if (err) {
-            TerminalIPC.println("Failed to write new config!");
+            ipcs.terminal.println("Failed to write new config!");
         } else {
-            TerminalIPC.println("Successfully updated config");
+            ipcs.terminal.println("Successfully updated config");
         }
     });
     return ret;

@@ -1,5 +1,5 @@
 import {PlayerActivity} from "../../../common/CommonTypes";
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import * as media from "../../media/media_player";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {commands} from "../connection";
@@ -35,7 +35,7 @@ export class Connected implements IConnectionState {
     public async pressButton(window: object): Promise<IConnectionState> {
         try {
             await this.disconnectInternal();
-            TerminalIPC.onConnectionClosed();
+            ipcs.terminal.onConnectionClosed();
         } catch (err) {
             console.error("While disconnecting:", err);
         }
@@ -46,9 +46,9 @@ export class Connected implements IConnectionState {
         this.active_connection.tick();
 
         if (this.isConnectionLost()) {
-            TerminalIPC.println("\n\rLost connection, will attempt to reconnect");
+            ipcs.terminal.println("\n\rLost connection, will attempt to reconnect");
             this.active_connection.disconnect();
-            TerminalIPC.onConnectionClosed();
+            ipcs.terminal.onConnectionClosed();
             return new Reconnecting(this.active_connection);
         }
 

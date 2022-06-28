@@ -13,24 +13,25 @@ class IPC implements ISingleWindowIPC {
         this.socket = socket;
     }
 
-    on(channel: string, callback: (...args: any[]) => void) {
+    public on(channel: string, callback: (...args: any[]) => void) {
         this.socket.on(channel, callback);
     }
 
-    once(channel: string, callback: (...args: any[]) => void) {
+    public once(channel: string, callback: (...args: any[]) => void) {
         this.socket.once(channel, callback);
     }
 
-    send(channel: string, ...args: any[]) {
+    public send(channel: string, ...args: any[]) {
         this.socket.emit(channel, ...args);
     }
 }
+
+init();
 
 const app = createServer(httpHandler);
 const io = new Server(app);
 // TODO config
 app.listen(2525);
-init();
 
 io.sockets.on('connection', (socket: Socket) => {
     console.log("New websocket connection from " + socket.id);

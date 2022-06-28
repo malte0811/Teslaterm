@@ -1,3 +1,4 @@
+import {ipcs} from "../../ipc/IPCProvider";
 import {MenuIPC} from "../../ipc/Menu";
 
 export let busActive: boolean = false;
@@ -10,5 +11,5 @@ export function updateStateFromTelemetry(packedData) {
     transientActive = (packedData & 2) !== 0;
     busControllable = (packedData & 4) !== 0;
     killBitSet = (packedData & 8) !== 0;
-    MenuIPC.setUD3State(busActive, busControllable, transientActive, killBitSet);
+    ipcs.menu.setUD3State(busActive, busControllable, transientActive, killBitSet);
 }

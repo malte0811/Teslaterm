@@ -8,8 +8,7 @@ import {
     telnet_port, udp_min_port,
 } from "../../../common/ConnectionOptions";
 import {connection_types, dummy, eth_node, serial_min, serial_plain, udp_min} from "../../../common/constants";
-import {ConnectionUIIPC} from "../../ipc/ConnectionUI";
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import {config} from "../../init";
 import {DummyConnection} from "../types/DummyConnection";
 import {createEthernetConnection} from "../types/ethernet";
@@ -59,7 +58,7 @@ export class Idle implements IConnectionState {
             case dummy:
                 return new DummyConnection();
             default:
-                TerminalIPC.println("Connection type \"" + connection_types.get(type) +
+                ipcs.terminal.println("Connection type \"" + connection_types.get(type) +
                     "\" (" + type + ") is currently not supported");
                 return undefined;
         }
@@ -67,7 +66,7 @@ export class Idle implements IConnectionState {
 
     private static async connectInternal(window: object): Promise<UD3Connection | undefined> {
         try {
-            const options = await ConnectionUIIPC.openConnectionUI(window);
+            const options = await ipcs.connectionUI.openConnectionUI(window);
             return Idle.connectWithOptions(options);
         } catch (e) {
             return Promise.resolve(undefined);
@@ -89,11 +88,11 @@ export class Idle implements IConnectionState {
         const all = await SerialPort.list();
         for (const port of all) {
             if (port.vendorId === config.serial.vendorID && port.productId === config.serial.productID) {
-                TerminalIPC.println("Auto connecting to " + port.path);
+                ipcs.terminal.println("Auto connecting to " + port.path);
                 return create(port.path, baudrate);
             }
         }
-        TerminalIPC.println("Did not find port to auto-connect to");
+        ipcs.terminal.println("Did not find port to auto-connect to");
         return undefined;
     }
 }

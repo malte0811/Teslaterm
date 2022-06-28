@@ -1,4 +1,4 @@
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connecting} from "./Connecting";
 import {IConnectionState} from "./IConnectionState";
@@ -33,14 +33,14 @@ export class Reconnecting implements IConnectionState {
 
     tickFast(): IConnectionState {
         if (this.failedAttempts >= Reconnecting.MAX_RETRIES) {
-            TerminalIPC.println("Aborting attempts to reconnect");
+            ipcs.terminal.println("Aborting attempts to reconnect");
             return new Idle();
         }
         ++this.ticksSinceLastFailure;
         if (this.ticksSinceLastFailure > Reconnecting.TICKS_BETWEEN_RETRIES) {
             ++this.failedAttempts;
             this.ticksSinceLastFailure = 0;
-            TerminalIPC.println("Attempting to reconnect (attempt " +
+            ipcs.terminal.println("Attempting to reconnect (attempt " +
                 this.failedAttempts.toString(10) + " of " + Reconnecting.MAX_RETRIES.toString(10) + ")...");
             return new Connecting(Promise.resolve(this.connectionToReestablish), this);
         } else {

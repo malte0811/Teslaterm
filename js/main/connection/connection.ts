@@ -1,8 +1,7 @@
 import {CommandInterface} from "../../common/commands";
 import {getDefaultConnectOptions} from "../../common/ConnectionOptions";
 import {commandServer, config} from "../init";
-import {SlidersIPC} from "../ipc/sliders";
-import {TerminalIPC} from "../ipc/terminal";
+import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {BootloadableConnection} from "./bootloader/bootloadable_connection";
 import {Bootloading} from "./state/Bootloading";
@@ -28,17 +27,17 @@ export const commands = new CommandInterface(
     },
     () => {
         // \033=\u1B
-        TerminalIPC.print('\u001B[2J\u001B[0;0H');
+        ipcs.terminal.print('\u001B[2J\u001B[0;0H');
     },
-    SlidersIPC.setRelativeOntime,
+    (val) => ipcs.sliders.setRelativeOntime(val),
 );
 
 export async function startConf() {
     await commands.sendCommand('\r');
-    await SlidersIPC.setAbsoluteOntime(0);
-    await commands.setBPS(SlidersIPC.state.bps);
-    await commands.setBurstOntime(SlidersIPC.state.burstOntime);
-    await commands.setBurstOfftime(SlidersIPC.state.burstOfftime);
+    await ipcs.sliders.setAbsoluteOntime(0);
+    await commands.setBPS(ipcs.sliders.bps);
+    await commands.setBurstOntime(ipcs.sliders.burstOntime);
+    await commands.setBurstOfftime(ipcs.sliders.burstOfftime);
     await getUD3Connection().setSynthByFiletype(media_state.type, false);
     await commands.resetKill();
     await commands.startTelemetry();

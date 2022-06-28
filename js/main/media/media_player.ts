@@ -1,14 +1,10 @@
-//TODO MIDI
-//TODO slider messages
 import * as path from "path";
-import {mapDefined} from "tslint/lib/utils";
 import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {commands, getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {transientActive} from "../connection/telemetry/UD3State";
 import {config} from "../init";
-import {ScopeIPC} from "../ipc/Scope";
-import {TerminalIPC} from "../ipc/terminal";
+import {ipcs} from "../ipc/IPCProvider";
 import {loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
 import {loadSidFile} from "../sid/sid";
@@ -69,11 +65,11 @@ export class PlayerState {
 
     public async startPlaying(): Promise<void> {
         if (this.currentFile === null) {
-            TerminalIPC.println("Please select a media file using drag&drop");
+            ipcs.terminal.println("Please select a media file using drag&drop");
             return;
         }
         if (this.state !== PlayerActivity.idle) {
-            TerminalIPC.println("A media file is currently playing, stop it before starting it again");
+            ipcs.terminal.println("A media file is currently playing, stop it before starting it again");
             return;
         }
         if (this.startCallback) {
@@ -84,14 +80,14 @@ export class PlayerState {
 
     public stopPlaying(): void {
         if (this.currentFile === null || this.state !== PlayerActivity.playing) {
-            TerminalIPC.println("No media file is currently playing");
+            ipcs.terminal.println("No media file is currently playing");
             return;
         }
         if (this.stopCallback) {
             this.stopCallback();
         }
         this.stateInt = PlayerActivity.idle;
-        ScopeIPC.updateMediaInfo();
+        ipcs.scope.updateMediaInfo();
         scripting.onMediaStopped();
     }
 }
@@ -118,7 +114,7 @@ export function isMediaFile(filename: string): boolean {
 
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     if (config.command.state === "client") {
-        TerminalIPC.println("Cannot load media files on command client!");
+        ipcs.terminal.println("Cannot load media files on command client!");
         return;
     }
     if (media_state.state === PlayerActivity.playing) {
@@ -130,6 +126,6 @@ export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     } else if (extension === "dmp" || extension === "sid") {
         await loadSidFile(file);
     } else {
-        TerminalIPC.println("Unknown extension: " + extension);
+        ipcs.terminal.println("Unknown extension: " + extension);
     }
 }

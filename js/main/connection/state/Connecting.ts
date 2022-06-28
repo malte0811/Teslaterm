@@ -1,10 +1,10 @@
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import {startConf} from "../connection";
+import * as telemetry from "../telemetry";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connected} from "./Connected";
 import {IConnectionState} from "./IConnectionState";
 import {Idle} from "./Idle";
-import * as telemetry from "../telemetry";
 
 enum State {
     waiting_for_ud_connection,
@@ -36,14 +36,14 @@ export class Connecting implements IConnectionState {
                         await c.startTerminal(this.autoTerminal);
                         this.state = State.initializing;
                         await startConf();
-                        await TerminalIPC.onSlotsAvailable(true);
+                        await ipcs.terminal.onSlotsAvailable(true);
                         this.state = State.connected;
                     }
                 } catch (x) {
                     error = x;
                 }
                 if (error) {
-                    TerminalIPC.println("Failed to connect");
+                    ipcs.terminal.println("Failed to connect");
                     console.log("While connecting: ", error);
                     c.disconnect();
                     this.state = State.failed;

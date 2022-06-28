@@ -1,7 +1,7 @@
 import * as dgram from "dgram";
 import * as net from "net";
 import {SynthType} from "../../../common/CommonTypes";
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {NetworkSIDClient} from "../../sid/NetworkSIDClient";
 import {connectTCPSocket} from "../tcp_helper";
@@ -104,7 +104,7 @@ function createUDPSocket(
     return new Promise<dgram.Socket>((res, rej) => {
         const ret = dgram.createSocket("udp4");
         ret.on('end', () => {
-            TerminalIPC.println("Socket " + desc + " disconnected");
+            ipcs.terminal.println("Socket " + desc + " disconnected");
         });
         ret.on('listening', () => res(ret));
         ret.on('error', rej);

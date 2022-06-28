@@ -1,7 +1,7 @@
 import {Socket} from "net";
 import {SynthType} from "../../common/CommonTypes";
 import {getAutoTerminal, getOptionalUD3Connection, getUD3Connection, hasUD3Connection} from "../connection/connection";
-import {TerminalIPC} from "../ipc/terminal";
+import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
 import {playMidiData} from "../midi/midi";
 import {UD3FormattedConnection} from "../sid/UD3FormattedConnection";
@@ -25,7 +25,7 @@ export class CommandClient {
     public constructor(remoteName: string, port: number) {
         this.socket = new Socket();
         this.socket.addListener("data", (data) => this.parser.onData(data));
-        this.socket.addListener("error", (err) => TerminalIPC.println("Failed to connect to command server: " + err));
+        this.socket.addListener("error", (err) => ipcs.terminal.println("Failed to connect to command server: " + err));
         this.socket.connect(port, remoteName);
     }
 

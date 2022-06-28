@@ -10,9 +10,7 @@ import {
     TT_STATE_SYNC, UNITS,
 } from "../../../common/constants";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
-import {MetersIPC} from "../../ipc/meters";
-import {MiscIPC} from "../../ipc/Misc";
-import {ScopeIPC} from "../../ipc/Scope";
+import {ipcs} from "../../ipc/IPCProvider";
 import {updateStateFromTelemetry} from "./UD3State";
 
 export let configRequestQueue: object[] = [];
@@ -42,10 +40,10 @@ export class TelemetryFrame {
         const num = this.data[DATA_NUM];
         switch (type) {
             case TT_GAUGE:
-                MetersIPC.setValue(num, bytes_to_signed(this.data[2], this.data[3]));
+                ipcs.meters.setValue(num, bytes_to_signed(this.data[2], this.data[3]));
                 break;
             case TT_GAUGE32:
-                MetersIPC.setValue(num, from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN));
+                ipcs.meters.setValue(num, from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN));
                 break;
             case TT_GAUGE_CONF: {
                 const index = num;
@@ -53,7 +51,7 @@ export class TelemetryFrame {
                 const gauge_max = bytes_to_signed(this.data[4], this.data[5]);
                 this.data.splice(0, 6);
                 str = convertBufferToString(this.data);
-                MetersIPC.configure(index, gauge_min, gauge_max, 1, str);
+                ipcs.meters.configure(index, gauge_min, gauge_max, 1, str);
                 break;
             }
             case TT_GAUGE32_CONF: {
@@ -63,7 +61,7 @@ export class TelemetryFrame {
                 const div = from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN);
                 this.data.splice(0, 14);
                 str = convertBufferToString(this.data);
-                MetersIPC.configure(index, min, max, div, str);
+                ipcs.meters.configure(index, min, max, div, str);
                 break;
             }
             case TT_CHART32_CONF: {
@@ -75,7 +73,7 @@ export class TelemetryFrame {
                 const unit = UNITS[this.data[18]];
                 this.data.splice(0, 19);
                 const name = convertBufferToString(this.data);
-                ScopeIPC.configure(traceId, min, max, offset, div, unit, name);
+                ipcs.scope.configure(traceId, min, max, offset, div, unit, name);
                 break;
             }
             case TT_CHART_CONF: {
@@ -86,25 +84,25 @@ export class TelemetryFrame {
                 const unit = UNITS[this.data[8]];
                 this.data.splice(0, 9);
                 const name = convertBufferToString(this.data);
-                ScopeIPC.configure(traceId, min, max, offset, 1, unit, name);
+                ipcs.scope.configure(traceId, min, max, offset, 1, unit, name);
                 break;
             }
             case TT_CHART: {
                 const val = bytes_to_signed(this.data[2], this.data[3]);
                 const chart_num = num.valueOf();
-                ScopeIPC.addValue(chart_num, val);
+                ipcs.scope.addValue(chart_num, val);
                 break;
             }
             case TT_CHART32:
                 const val = from_32_bit_bytes(this.data.slice(2) , Endianness.LITTLE_ENDIAN);
                 const chart_num = num.valueOf();
-                ScopeIPC.addValue(chart_num, val);
+                ipcs.scope.addValue(chart_num, val);
                 break;
             case TT_CHART_DRAW:
-                ScopeIPC.drawChart();
+                ipcs.scope.drawChart();
                 break;
             case TT_CHART_CLEAR:
-                ScopeIPC.startControlledDraw(source);
+                ipcs.scope.startControlledDraw(source);
                 break;
             case TT_CHART_LINE:
                 const x1 = bytes_to_signed(this.data[1], this.data[2]);
@@ -112,7 +110,7 @@ export class TelemetryFrame {
                 const x2 = bytes_to_signed(this.data[5], this.data[6]);
                 const y2 = bytes_to_signed(this.data[7], this.data[8]);
                 const color = this.data[9].valueOf();
-                ScopeIPC.drawLine(x1, y1, x2, y2, color, source);
+                ipcs.scope.drawLine(x1, y1, x2, y2, color, source);
                 break;
             case TT_CHART_TEXT:
                 drawString(this.data, false, source);
@@ -131,7 +129,7 @@ export class TelemetryFrame {
                         source = configRequestQueue.shift();
                     }
                     if (source) {
-                        MiscIPC.openUDConfig(udconfig, source);
+                        ipcs.misc.openUDConfig(udconfig, source);
                     }
                     udconfig = [];
                 } else {
@@ -154,6 +152,6 @@ function drawString(dat: number[], center: boolean, source?: object) {
     }
     dat.splice(0, 7);
     const str = convertBufferToString(dat);
-    ScopeIPC.drawText(x, y, color, size, str, center, source);
+    ipcs.scope.drawText(x, y, color, size, str, center, source);
 }
 

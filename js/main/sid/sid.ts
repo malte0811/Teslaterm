@@ -2,8 +2,7 @@ import * as path from "path";
 import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import * as connection from "../connection/connection";
-import {MenuIPC} from "../ipc/Menu";
-import {ScopeIPC} from "../ipc/Scope";
+import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, isSID, media_state} from "../media/media_player";
 import {ISidSource} from "./sid_api";
 import {DumpSidSource} from "./sid_dump";
@@ -24,7 +23,7 @@ async function stopPlayingSID() {
 export async function loadSidFile(file: TransmittedFile) {
     const extension = path.extname(file.name).substr(1).toLowerCase();
     const name = path.basename(file.name);
-    MenuIPC.setMediaName("SID-File: " + name);
+    ipcs.menu.setMediaName("SID-File: " + name);
     if (extension === "dmp") {
         current_sid_source = new DumpSidSource(file.contents);
         await media_state.loadFile(file, MediaFileType.sid_dmp, name, startPlayingSID, stopPlayingSID);
@@ -41,7 +40,7 @@ export async function loadSidFile(file: TransmittedFile) {
     } else {
         throw new Error("Unknown extension " + extension);
     }
-    ScopeIPC.updateMediaInfo();
+    ipcs.scope.updateMediaInfo();
 }
 
 export function update() {
@@ -66,6 +65,6 @@ export function update() {
         if (current_sid_source.isDone()) {
             media_state.stopPlaying();
         }
-        ScopeIPC.updateMediaInfo();
+        ipcs.scope.updateMediaInfo();
     }
 }

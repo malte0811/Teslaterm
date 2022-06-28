@@ -1,5 +1,5 @@
 import * as net from "net";
-import {TerminalIPC} from "../ipc/terminal";
+import {ipcs} from "../ipc/IPCProvider";
 
 export function connectTCPSocket(
     ipaddr: string,
@@ -9,14 +9,14 @@ export function connectTCPSocket(
 ): Promise<net.Socket> {
     return new Promise<net.Socket>((res, rej) => {
         const ret = net.createConnection({port, host: ipaddr}, () => {
-            TerminalIPC.println("Connected socket " + desc);
+            ipcs.terminal.println("Connected socket " + desc);
             res(ret);
         });
         ret.on('end', () => {
-            TerminalIPC.println("Socket " + desc + " disconnected");
+            ipcs.terminal.println("Socket " + desc + " disconnected");
         });
         ret.addListener('error', (e: Error) => {
-            TerminalIPC.println("Error on " + desc + " socket!");
+            ipcs.terminal.println("Error on " + desc + " socket!");
             console.error(e);
             rej(e);
         });

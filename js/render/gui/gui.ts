@@ -1,4 +1,4 @@
-import {commands, sendManualCommand} from "../ipc/commands";
+import {sendManualCommand} from "../ipc/commands";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {terminal} from "./constants";
 import * as gauges from "./gauges";

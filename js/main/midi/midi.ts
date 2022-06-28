@@ -3,7 +3,7 @@ import * as rtpmidi from "rtpmidi";
 import {MediaFileType, PlayerActivity, SynthType} from "../../common/CommonTypes";
 import {getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {commandServer, config, simulated} from "../init";
-import {ScopeIPC} from "../ipc/Scope";
+import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
 
@@ -14,12 +14,12 @@ export const player = new MidiPlayer.Player(processMidiFromPlayer);
 
 export async function startCurrentMidiFile() {
     player.play();
-    ScopeIPC.updateMediaInfo();
+    ipcs.scope.updateMediaInfo();
 }
 
 export function stopMidiFile() {
     player.stop();
-    ScopeIPC.drawChart();
+    ipcs.scope.drawChart();
     stopMidiOutput();
     scripting.onMediaStopped();
 }
@@ -34,7 +34,7 @@ function processMidiFromPlayer(event: MidiPlayer.Event) {
     } else if (!simulated && !hasUD3Connection()) {
         stopMidiFile();
     }
-    ScopeIPC.updateMediaInfo();
+    ipcs.scope.updateMediaInfo();
 }
 
 const expectedByteCounts = {
@@ -107,7 +107,7 @@ export function update(): void {
             received_event = false;
             player.playLoop(false);
         }
-    } else if (media_state.state == PlayerActivity.playing && media_state.type == MediaFileType.midi) {
+    } else if (media_state.state === PlayerActivity.playing && media_state.type === MediaFileType.midi) {
         media_state.stopPlaying();
     }
 }
@@ -122,7 +122,7 @@ export function init() {
         session.on("message", async (delta, data) => {
             if (hasUD3Connection()) {
                 await getUD3Connection().setSynth(SynthType.MIDI, true);
-                if (media_state.state == PlayerActivity.playing) {
+                if (media_state.state === PlayerActivity.playing) {
                     media_state.stopPlaying();
                 }
                 playMidiData(data);

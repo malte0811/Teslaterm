@@ -6,22 +6,23 @@ import {ISingleWindowIPC, processIPC} from "./ipc/IPCProvider";
 export let mainWindow: BrowserWindow;
 
 class ElectronIPC implements ISingleWindowIPC {
-    on(channel: string, callback: (...args: any[]) => void) {
+    public on(channel: string, callback: (...args: any[]) => void) {
         ipcMain.on(channel, (ev, ...args) => callback(...args));
     }
 
-    send(channel: string, ...args: any[]) {
+    public send(channel: string, ...args: any[]) {
         if (mainWindow && mainWindow.webContents) {
             mainWindow.webContents.send(channel, ...args);
         }
     }
 
-    once(channel: string, callback: (...args: any[]) => void) {
+    public once(channel: string, callback: (...args: any[]) => void) {
         ipcMain.once(channel, (ev, ...args) => callback(...args));
     }
 }
 
 function createWindow() {
+    init();
     // Create the browser window.
     mainWindow = new BrowserWindow({
         webPreferences: {
@@ -44,7 +45,6 @@ function createWindow() {
         mainWindow = null;
     });
     processIPC.addWindow(mainWindow, new ElectronIPC());
-    init();
 }
 
 app.on("ready", createWindow);

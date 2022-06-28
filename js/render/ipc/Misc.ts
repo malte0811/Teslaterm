@@ -1,5 +1,5 @@
 import {processIPC} from "./IPCProvider";
-import {ConnectionReply, IPCConstantsToMain} from "../../common/IPCConstantsToMain";
+import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
 import {IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {openUI} from "../gui/ConnectionUI";

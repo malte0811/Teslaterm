@@ -1,65 +1,79 @@
 import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
 import {IPCConstantsToRenderer, SliderState} from "../../common/IPCConstantsToRenderer";
 import {commands} from "../connection/connection";
-import {processIPC} from "./IPCProvider";
+import {MultiWindowIPC} from "./IPCProvider";
 
-export module SlidersIPC {
-    export let state = new SliderState();
+export class SlidersIPC {
+    private readonly state = new SliderState();
+    private readonly processIPC: MultiWindowIPC;
 
-    export async function setAbsoluteOntime(val: number, key?: object) {
-        state.ontimeAbs = val;
-        await commands.setOntime(state.ontime);
-        sendSliderSync(key);
+    constructor(processIPC: MultiWindowIPC) {
+        processIPC.on(IPCConstantsToMain.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
+        processIPC.on(IPCConstantsToMain.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
+        processIPC.on(IPCConstantsToMain.sliders.setBPS, this.callSwapped(this.setBPS));
+        processIPC.on(IPCConstantsToMain.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
+        processIPC.on(IPCConstantsToMain.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
+        this.processIPC = processIPC;
     }
 
-    export async function setRelativeOntime(val: number, key?: object) {
-        state.ontimeRel = val;
-        await commands.setOntimeRelative(state.ontimeRel);
-        sendSliderSync(key);
+    public get bps() {
+        return this.state.bps;
     }
 
-    export async function setBPS(val: number, key?: object) {
-        state.bps = val;
+    public get burstOntime() {
+        return this.state.burstOntime;
+    }
+
+    public get burstOfftime() {
+        return this.state.burstOfftime;
+    }
+
+    public async setAbsoluteOntime(val: number, key?: object) {
+        this.state.ontimeAbs = val;
+        await commands.setOntime(this.state.ontime);
+        this.sendSliderSync(key);
+    }
+
+    public async setRelativeOntime(val: number, key?: object) {
+        this.state.ontimeRel = val;
+        await commands.setOntimeRelative(this.state.ontimeRel);
+        this.sendSliderSync(key);
+    }
+
+    public async setBPS(val: number, key?: object) {
+        this.state.bps = val;
         await commands.setBPS(val);
-        sendSliderSync(key);
+        this.sendSliderSync(key);
     }
 
-    export async function setBurstOntime(val: number, key?: object) {
-        state.burstOntime = val;
+    public async setBurstOntime(val: number, key?: object) {
+        this.state.burstOntime = val;
         await commands.setBurstOntime(val);
-        sendSliderSync(key);
+        this.sendSliderSync(key);
     }
 
-    export async function setBurstOfftime(val: number, key?: object) {
-        state.burstOfftime = val;
+    public async setBurstOfftime(val: number, key?: object) {
+        this.state.burstOfftime = val;
         await commands.setBurstOfftime(val);
-        sendSliderSync(key);
+        this.sendSliderSync(key);
     }
 
-    export function setRelativeAllowed(allowed: boolean, key?: object) {
-        state.relativeAllowed = allowed;
-        sendSliderSync(key);
+    public setRelativeAllowed(allowed: boolean, key?: object) {
+        this.state.relativeAllowed = allowed;
+        this.sendSliderSync(key);
     }
 
-    function sendSliderSync(connection?: object) {
-        //TODO s delta, if this proves to be too slow
-        processIPC.sendToAllExcept(IPCConstantsToRenderer.sliders.syncSettings, connection, state);
+    public sendSliderSync(connection?: object) {
+        this.processIPC.sendToAllExcept(IPCConstantsToRenderer.sliders.syncSettings, connection, this.state);
     }
 
-    function callSwapped(f: (val: number, key: object) => Promise<any>) {
-        return (key: object, val: number) => {
-            f(val, key)
-                .catch((r) => {
-                    console.log("Error while sending command: ", r);
-                });
+    private callSwapped(f: (val: number, key: object) => Promise<any>) {
+        return async (key: object, val: number) => {
+            try {
+                await f.call(this, val, key);
+            } catch (r) {
+                console.log("Error while sending command: ", r);
+            }
         };
-    }
-
-    export function init() {
-        processIPC.on(IPCConstantsToMain.sliders.setOntimeAbsolute, callSwapped(setAbsoluteOntime));
-        processIPC.on(IPCConstantsToMain.sliders.setOntimeRelative, callSwapped(setRelativeOntime));
-        processIPC.on(IPCConstantsToMain.sliders.setBPS, callSwapped(setBPS));
-        processIPC.on(IPCConstantsToMain.sliders.setBurstOntime, callSwapped(setBurstOntime));
-        processIPC.on(IPCConstantsToMain.sliders.setBurstOfftime, callSwapped(setBurstOfftime));
     }
 }

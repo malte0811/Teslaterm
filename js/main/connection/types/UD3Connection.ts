@@ -2,7 +2,7 @@ import {MediaFileType, SynthType, synthTypeFor} from "../../../common/CommonType
 import {FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
 import {Endianness, to_ud3_time} from "../../helper";
 import {config} from "../../init";
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import {ISidConnection} from "../../sid/ISidConnection";
 
 export function toCommandID(type: SynthType): number {
@@ -74,7 +74,7 @@ export abstract class UD3Connection {
 
     public async closeTerminal(handle: TerminalHandle): Promise<void> {
         this.terminalCallbacks.delete(handle);
-        await TerminalIPC.onSlotsAvailable(false);
+        await ipcs.terminal.onSlotsAvailable(false);
     }
 
     public getFeatureValue(feature: string): string {

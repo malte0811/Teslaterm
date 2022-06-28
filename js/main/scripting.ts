@@ -2,10 +2,8 @@ import * as JSZip from "jszip";
 import * as vm from 'vm';
 import {TransmittedFile} from "../common/IPCConstantsToMain";
 import {commands} from "./connection/connection";
-import {ScriptingIPC} from "./ipc/Scripting";
-import {SlidersIPC} from "./ipc/sliders";
-import {TerminalIPC} from "./ipc/terminal";
-import {isMediaFile, media_state} from "./media/media_player";
+import {ipcs} from "./ipc/IPCProvider";
+import {isMediaFile} from "./media/media_player";
 import * as media_player from './media/media_player';
 
 const maxQueueLength = 1000;
@@ -39,13 +37,13 @@ export class Script {
             playMediaAsync: this.wrapForSandboxNonPromise(() => media_player.media_state.startPlaying()),
             playMediaBlocking: this.wrapForSandbox(() => this.playMediaBlocking()),
             println: this.wrapForSandbox((s) => {
-                TerminalIPC.println(s);
+                ipcs.terminal.println(s);
                 return Promise.resolve();
             }),
-            setBPS: this.wrapForSandboxNonPromise(d => SlidersIPC.setBPS(d)),
-            setBurstOfftime: this.wrapForSandboxNonPromise(d => SlidersIPC.setBurstOfftime(d)),
-            setBurstOntime: this.wrapForSandboxNonPromise(d => SlidersIPC.setBurstOntime(d)),
-            setOntime: this.wrapForSandboxNonPromise(d => SlidersIPC.setRelativeOntime(d)),
+            setBPS: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBPS(d)),
+            setBurstOfftime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBurstOfftime(d)),
+            setBurstOntime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBurstOntime(d)),
+            setOntime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setRelativeOntime(d)),
             setTransientMode: this.wrapForSandboxNonPromise(enabled => commands.setTransientEnabled(enabled)),
             stopMedia: this.wrapForSandboxNonPromise(() => media_player.media_state.stopPlaying()),
             waitForConfirmation: this.wrapForSandbox((msg, title) => this.waitForConfirmation(msg, title)),
@@ -94,29 +92,29 @@ export class Script {
 
     public async start(starterKey: object) {
         if (this.running) {
-            TerminalIPC.println("The script is already running.");
+            ipcs.terminal.println("The script is already running.");
             return;
         }
         this.starterKey = starterKey;
-        SlidersIPC.setRelativeAllowed(false);
+        ipcs.sliders.setRelativeAllowed(false);
         this.running = true;
         try {
             for (const entry of this.queue) {
                 if (!this.isRunning()) {
-                    TerminalIPC.println("Cancelled script");
+                    ipcs.terminal.println("Cancelled script");
                     break;
                 }
                 await entry.run();
             }
             if (this.isRunning()) {
-                TerminalIPC.println("Script finished normally");
+                ipcs.terminal.println("Script finished normally");
             }
         } catch (x) {
-            TerminalIPC.println("Script finished with error: " + x);
+            ipcs.terminal.println("Script finished with error: " + x);
             console.error(x);
         }
         this.running = false;
-        SlidersIPC.setRelativeAllowed(true);
+        ipcs.sliders.setRelativeAllowed(true);
     }
 
     private wrapForSandboxNonPromise(func: (...args: any[]) => void): (...args: any[]) => void {
@@ -188,7 +186,7 @@ export class Script {
     }
 
     private async waitForConfirmation(text, title): Promise<any> {
-        const confirmed = await ScriptingIPC.requestConfirmation(this.starterKey, text, title);
+        const confirmed = await ipcs.scripting.requestConfirmation(this.starterKey, text, title);
         if (!confirmed) {
             throw new Error("User did not confirm");
         }

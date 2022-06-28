@@ -1,72 +1,72 @@
 import {ConfirmReply, IPCConstantsToMain, TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ConfirmationRequest, IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
-import {processIPC} from "./IPCProvider";
-import {MenuIPC} from "./Menu";
-import {TerminalIPC} from "./terminal";
+import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
-export module ScriptingIPC {
-    let currentScript: Script | null = null;
-    let activeConfirmationID = 0;
-    let confirmationResolve: (confirmed: boolean) => void;
-    let confirmationReject: () => void;
+export class ScriptingIPC {
+    private currentScript: Script | null = null;
+    private activeConfirmationID = 0;
+    private confirmationResolve: (confirmed: boolean) => void;
+    private confirmationReject: () => void;
+    private readonly processIPC: MultiWindowIPC;
 
-    export async function startScript(source: object) {
-        if (currentScript === null) {
-            TerminalIPC.println("Please select a script file using drag&drop first");
+    constructor(processIPC: MultiWindowIPC) {
+        this.processIPC = processIPC;
+        processIPC.on(IPCConstantsToMain.script.confirmOrDeny, (src, msg: ConfirmReply) => {
+            if (msg.requestID === this.activeConfirmationID && this.confirmationResolve) {
+                this.confirmationResolve(msg.confirmed);
+                this.confirmationReject = this.confirmationResolve = undefined;
+            }
+        });
+        processIPC.on(IPCConstantsToMain.script.startScript, (src) => this.startScript(src));
+        processIPC.on(IPCConstantsToMain.script.stopScript, () => this.stopScript());
+    }
+
+    public async startScript(source: object) {
+        if (this.currentScript === null) {
+            ipcs.terminal.println("Please select a script file using drag&drop first");
         } else {
-            await currentScript.start(source);
+            await this.currentScript.start(source);
         }
     }
 
-    export function stopScript() {
-        if (currentScript === null) {
-            TerminalIPC.println("Please select a script file using drag&drop first");
-        } else if (!currentScript.isRunning()) {
-            TerminalIPC.println("The script can not be stopped since it isn't running");
+    public stopScript() {
+        if (this.currentScript === null) {
+            ipcs.terminal.println("Please select a script file using drag&drop first");
+        } else if (!this.currentScript.isRunning()) {
+            ipcs.terminal.println("The script can not be stopped since it isn't running");
         } else {
-            currentScript.cancel();
+            this.currentScript.cancel();
         }
     }
 
-    export async function loadScript(file: TransmittedFile) {
+    public async loadScript(file: TransmittedFile) {
         try {
-            currentScript = await Script.create(file.contents);
-            MenuIPC.setScriptName(file.name);
+            this.currentScript = await Script.create(file.contents);
+            ipcs.menu.setScriptName(file.name);
         } catch (e) {
-            TerminalIPC.println("Failed to load script: " + e);
+            ipcs.terminal.println("Failed to load script: " + e);
             console.log(e);
         }
     }
 
-    export function requestConfirmation(key: object, msg: string, title?: string): Promise<boolean> {
+    public requestConfirmation(key: object, msg: string, title?: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
-            if (confirmationReject) {
-                confirmationReject();
+            if (this.confirmationReject) {
+                this.confirmationReject();
             }
-            if (processIPC.isValidWindow(key)) {
-                ++activeConfirmationID;
-                confirmationResolve = resolve;
-                confirmationReject = reject;
-                processIPC.sendToWindow(
+            if (this.processIPC.isValidWindow(key)) {
+                ++this.activeConfirmationID;
+                this.confirmationResolve = resolve;
+                this.confirmationReject = reject;
+                this.processIPC.sendToWindow(
                     IPCConstantsToRenderer.script.requestConfirm,
                     key,
-                    new ConfirmationRequest(activeConfirmationID, msg, title)
+                    new ConfirmationRequest(this.activeConfirmationID, msg, title),
                 );
             } else {
                 reject();
             }
         });
-    }
-
-    export function init() {
-        processIPC.on(IPCConstantsToMain.script.confirmOrDeny, (src, msg: ConfirmReply) => {
-            if (msg.requestID == activeConfirmationID && confirmationResolve) {
-                confirmationResolve(msg.confirmed);
-                confirmationReject = confirmationResolve = undefined;
-            }
-        });
-        processIPC.on(IPCConstantsToMain.script.startScript, startScript);
-        processIPC.on(IPCConstantsToMain.script.stopScript, stopScript);
     }
 }

@@ -1,5 +1,5 @@
 import {sleep} from "../../helper";
-import {TerminalIPC} from "../../ipc/terminal";
+import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {Bootloader} from "../bootloader/bootloader";
 import {commands} from "../connection";
@@ -22,7 +22,7 @@ export class Bootloading implements IConnectionState {
             .catch(
                 (e) => {
                     console.error(e);
-                    TerminalIPC.println("Error while bootloading: " + e);
+                    ipcs.terminal.println("Error while bootloading: " + e);
                 }
             )
             .then(
@@ -73,25 +73,25 @@ export class Bootloading implements IConnectionState {
             await ldr.loadCyacd(file);
             // Ignore result: The UD3 won't ACK this command since it immediately goes into bootloader mode
             commands.sendCommand('\rbootloader\r').catch(() => {});
-            TerminalIPC.println("Waiting for bootloader to start...");
+            ipcs.terminal.println("Waiting for bootloader to start...");
             await sleep(3000);
             this.connection.enterBootloaderMode((data) => {
                 ldr.onDataReceived(data);
             });
             this.inBootloadMode = true;
-            TerminalIPC.println("Connecting to bootloader...");
-            ldr.set_info_cb((str: string) => TerminalIPC.println(str));
+            ipcs.terminal.println("Connecting to bootloader...");
+            ldr.set_info_cb((str: string) => ipcs.terminal.println(str));
             ldr.set_progress_cb((percentage) => {
-                TerminalIPC.print('\x1B[2K');
-                TerminalIPC.print('\r|');
+                ipcs.terminal.print('\x1B[2K');
+                ipcs.terminal.print('\r|');
                 for (let i = 0; i < 50; i++) {
                     if (percentage >= (i * 2)) {
-                        TerminalIPC.print('=');
+                        ipcs.terminal.print('=');
                     } else {
-                        TerminalIPC.print('.');
+                        ipcs.terminal.print('.');
                     }
                 }
-                TerminalIPC.print('| ' + percentage + '%');
+                ipcs.terminal.print('| ' + percentage + '%');
             });
             ldr.set_write_cb((data) => {
                 return this.connection.sendBootloaderData(data);
@@ -99,7 +99,7 @@ export class Bootloading implements IConnectionState {
             await ldr.connectAndProgram();
         } catch (e) {
             console.error(e);
-            TerminalIPC.println("Error while bootloading: " + e);
+            ipcs.terminal.println("Error while bootloading: " + e);
         }
         if (this.inBootloadMode) {
             this.connection.leaveBootloaderMode();

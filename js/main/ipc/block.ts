@@ -1,6 +1,6 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {getUD3Connection} from "../connection/connection";
-import {TerminalIPC} from "./terminal";
+import {ipcs} from "./IPCProvider";
 
 
 export namespace BlockSender {
@@ -32,9 +32,9 @@ export namespace BlockSender {
 
     export async function loadBlocks(file: TransmittedFile) {
         try {
-             TerminalIPC.println("Load VMS file: " + file.name);
+             ipcs.terminal.println("Load VMS file: " + file.name);
              const blocks = interpret((utf8ArrayToString(file.contents).split('\r\n')));
-             TerminalIPC.println("Found " + blocks[1].blocks.length + " blocks");
+             ipcs.terminal.println("Found " + blocks[1].blocks.length + " blocks");
              progNumber = 0;
              blocks[1].blocks.forEach((block) => {
                  if (block.uid !== -1) {
@@ -54,7 +54,7 @@ export namespace BlockSender {
              // getUD3Connection().sendVMSFrames(buf);
 
         } catch (e) {
-            TerminalIPC.println("Failed to load blocks: " + e);
+            ipcs.terminal.println("Failed to load blocks: " + e);
             console.log(e);
         }
     }

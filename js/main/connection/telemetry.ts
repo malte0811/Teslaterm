@@ -1,4 +1,4 @@
-import {TerminalIPC} from "../ipc/terminal";
+import {ipcs} from "../ipc/IPCProvider";
 import {resetResponseTimeout} from "./state/Connected";
 import {TelemetryChannel} from "./telemetry/TelemetryChannel";
 
@@ -14,7 +14,7 @@ export function receive_main(data: Buffer, source?: object) {
     let print: (s: string) => void;
 
     if (source) {
-        print = (s) => TerminalIPC.print(s, source);
+        print = (s) => ipcs.terminal.print(s, source);
     } else {
         print = (s) => {
             if (s === '\n' || s === '\r') {

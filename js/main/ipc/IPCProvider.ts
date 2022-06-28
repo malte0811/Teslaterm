@@ -1,4 +1,12 @@
+import {ConnectionUIIPC} from "./ConnectionUI";
+import {FileUploadIPC} from "./FileUpload";
 import {MenuIPC} from "./Menu";
+import {MetersIPC} from "./Meters";
+import {MiscIPC} from "./Misc";
+import {ScopeIPC} from "./Scope";
+import {ScriptingIPC} from "./Scripting";
+import {SlidersIPC} from "./sliders";
+import {TerminalIPC} from "./terminal";
 
 export interface ISingleWindowIPC {
     on(channel: string, callback: (data: object) => void);
@@ -8,16 +16,16 @@ export interface ISingleWindowIPC {
     send(channel: string, ...data: any[]);
 }
 
-interface Callback {
+interface IIPCCallback {
     cb: (source: object, ...data: any[]) => void;
     once: boolean;
 }
 
 export class MultiWindowIPC {
     private windows: Map<object, ISingleWindowIPC> = new Map();
-    private callbacks: Map<string, Callback[]> = new Map();
+    private callbacks: Map<string, IIPCCallback[]> = new Map();
     private activeSingleCallbacks: Map<object, Set<string>> = new Map();
-    private disconnectCallbacks: Map<object, (() => void)[]> = new Map();
+    private disconnectCallbacks: Map<object, Array<() => void>> = new Map();
 
     public on(channel: string, callback: (source: object, ...data: any[]) => void) {
         this.addListener(channel, callback, false);
@@ -60,7 +68,7 @@ export class MultiWindowIPC {
             console.trace("Tried to send to all except invalid window " + key);
         } else {
             for (const k of this.windows.keys()) {
-                if (k != key) {
+                if (k !== key) {
                     this.sendToWindow(channel, k, ...data);
                 }
             }
@@ -95,11 +103,8 @@ export class MultiWindowIPC {
                 this.addSingleCallback(channel, key);
             }
         }
-        let arr = this.callbacks.get(channel);
-        arr[arr.length] = {
-            cb: callback,
-            once
-        };
+        const arr = this.callbacks.get(channel);
+        arr.push({cb: callback, once});
     }
 
     private addSingleCallback(channel: string, key: object) {
@@ -126,4 +131,34 @@ export class MultiWindowIPC {
     }
 }
 
-export const processIPC = new MultiWindowIPC();
+export class IPCCollection {
+    public readonly connectionUI: ConnectionUIIPC;
+    public readonly fileUpload: FileUploadIPC;
+    public readonly menu: MenuIPC;
+    public readonly meters: MetersIPC;
+    public readonly misc: MiscIPC;
+    public readonly scope: ScopeIPC;
+    public readonly scripting: ScriptingIPC;
+    public readonly sliders: SlidersIPC;
+    public readonly terminal: TerminalIPC;
+
+    constructor(process: MultiWindowIPC) {
+        this.connectionUI = new ConnectionUIIPC(process);
+        this.fileUpload = new FileUploadIPC(process);
+        this.menu = new MenuIPC(process);
+        this.meters = new MetersIPC(process);
+        this.misc = new MiscIPC(process);
+        this.scope = new ScopeIPC(process);
+        this.scripting = new ScriptingIPC(process);
+        this.sliders = new SlidersIPC(process);
+        this.terminal = new TerminalIPC(process);
+    }
+}
+
+export let processIPC: MultiWindowIPC;
+export let ipcs: IPCCollection;
+
+export function init() {
+    processIPC = new MultiWindowIPC();
+    ipcs = new IPCCollection(processIPC);
+}
