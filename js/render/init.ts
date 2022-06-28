@@ -83,7 +83,6 @@ export function init() {
                         icon: 'fa fa-table', id: 'mnu_command', items: [
                             {text: 'TR Start', icon: 'fa fa-bolt', id: 'transient'},
                             {text: 'Save EEPROM-Config', icon: 'fa fa-microchip'},
-                            {text: 'Load EEPROM-Config', icon: 'fa fa-microchip'},
                             {text: 'Settings', id: 'settings', icon: 'fa fa-table'},
                         ], text: 'Commands', type: 'menu',
                     },

@@ -43,10 +43,6 @@ export function onCtrlMenuClick(event) {
         case "mnu_command:settings":
             MenuIPC.requestUDConfig();
             break;
-        case "mnu_command:Load EEPROM-Config":
-            ui_helper.warn("WARNING!<br>Are you sure to load the configuration from EEPROM?",
-                commands.eepromSave);
-            break;
         case "mnu_command:Save EEPROM-Config":
             ui_helper.warn("WARNING!<br>Are you sure to save the configuration to EEPROM?", commands.saveEEPROM);
             break;
