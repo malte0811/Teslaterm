@@ -1,7 +1,7 @@
-import {processIPC} from "./IPCProvider";
 import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
-import {IPCConstantsToRenderer, SliderState} from "../../common/IPCConstantsToRenderer";
-import {ontime, updateSliderState} from "../gui/sliders";
+import {IPCConstantsToRenderer} from "../../common/IPCConstantsToRenderer";
+import {updateSliderState} from "../gui/sliders";
+import {processIPC} from "./IPCProvider";
 
 export namespace SlidersIPC {
     export function init() {

@@ -1,6 +1,6 @@
-import {processIPC} from "./IPCProvider";
 import {IPCConstantsToRenderer, MeterConfig, SetMeters} from "../../common/IPCConstantsToRenderer";
 import {meters} from "../gui/gauges";
+import {processIPC} from "./IPCProvider";
 
 export namespace MetersIPC {
     export function init() {

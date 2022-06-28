@@ -1,6 +1,6 @@
 import {MediaFileType, PlayerActivity} from "../../../common/CommonTypes";
 import {MediaState} from "../../../common/IPCConstantsToRenderer";
-import {CONTROL_SPACE, INFO_SPACE, MEAS_POSITION, MEAS_SPACE, TOP_SPACE, TRIGGER_SPACE} from "../constants";
+import {CONTROL_SPACE, INFO_SPACE, MEAS_SPACE, TOP_SPACE, TRIGGER_SPACE} from "../constants";
 import {NUM_GAUGES} from "../gauges";
 import {Trace} from "./trace";
 
@@ -75,10 +75,6 @@ export function onResize(): void {
     }
 }
 
-export function addValue(chart_num: number, val: number): void {
-    traces[chart_num].addValue(val);
-}
-
 export function init(): void {
     waveCanvas = (document.getElementById("waveCanvas") as HTMLCanvasElement);
     backCanvas = (document.getElementById("backCanvas") as HTMLCanvasElement);
@@ -150,7 +146,7 @@ function transform_text_size(old_size: number): number {
 }
 
 function checkControlled() {
-    if (drawMode != DrawMode.controlled) {
+    if (drawMode !== DrawMode.controlled) {
         beginControlledDraw();
     }
 }

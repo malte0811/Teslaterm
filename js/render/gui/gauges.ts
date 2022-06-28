@@ -1,5 +1,3 @@
-import {terminal} from "./constants";
-
 export class Meter {
     private meter_buf_old: number;
     private meter_buf: number;
@@ -25,10 +23,6 @@ export class Meter {
             this.gauge.refresh(this.meter_buf);
             this.meter_buf_old = this.meter_buf;
         }
-    }
-
-    public setValue(value: number): void {
-        this.meter_buf = value / this.scale;
     }
 
     public setText(new_text: string): void {
@@ -60,12 +54,4 @@ export function refresh_all(): void {
     for (const meter of meters) {
         meter.refresh();
     }
-}
-
-export function getMeter(id: number): Meter {
-    if (id >= NUM_GAUGES || id < 0) {
-        terminal.io.println("Meter " + id + " not found");
-        return undefined;
-    }
-    return meters[id];
 }

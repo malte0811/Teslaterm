@@ -106,13 +106,13 @@ const bpsName = "slider1";
 const burstOntimeName = "slider2";
 const burstOfftimeName = "slider3";
 
-export function updateSliderState(state: SliderState) {
-    ontime.setAbsoluteOntime(state.ontimeAbs, false);
-    ontime.setRelativeOntime(state.ontimeRel, false);
-    ontime.setRelativeAllowed(state.relativeAllowed);
-    bpsSlider(state.bps);
-    burstOntimeSlider(state.burstOntime);
-    burstOfftimeSlider(state.burstOfftime);
+export function updateSliderState(newState: SliderState) {
+    ontime.setAbsoluteOntime(newState.ontimeAbs, false);
+    ontime.setRelativeOntime(newState.ontimeRel, false);
+    ontime.setRelativeAllowed(newState.relativeAllowed);
+    bpsSlider(newState.bps);
+    burstOntimeSlider(newState.burstOntime);
+    burstOfftimeSlider(newState.burstOfftime);
 }
 
 export function updateSliderAvailability(ud3State: UD3State) {

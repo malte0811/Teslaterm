@@ -1,5 +1,4 @@
 import {CommandInterface} from "../../common/commands";
-import {SynthType} from "../../common/CommonTypes";
 import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
 import {terminal} from "../gui/constants";
 import {processIPC} from "./IPCProvider";
@@ -10,7 +9,7 @@ export function sendManualCommand(cmd: string) {
 }
 
 export const manualCommands = new CommandInterface(
-    c => {
+    (c) => {
         sendManualCommand(c);
         return Promise.resolve();
     },
@@ -20,18 +19,17 @@ export const manualCommands = new CommandInterface(
     },
     (val: number) => {
         throw new Error();
-    }
+    },
 );
 
 export const commands = new CommandInterface(
-    c => {
+    (c) => {
         processIPC.send(IPCConstantsToMain.automaticCommand, c);
-        //TODO?
+        // TODO?
         return Promise.resolve();
     },
+    () => {},
     () => {
-    },
-    (val: number) => {
         throw new Error();
-    }
+    },
 );

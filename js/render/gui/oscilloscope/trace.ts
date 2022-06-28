@@ -41,23 +41,7 @@ export class Trace {
         this.yPos = newYPos;
     }
 
-    public addValue(val: number): void {
-        val = val / this.div;
-        this.value_real = val;
-        this.value = (1 / this.span) * (val - this.offset);
-        if (this.value > 1) {
-            this.value = 1;
-        }
-        if (this.value < -1) {
-            this.value = -1;
-        }
-        this.stats.update(this.value_real);
-    }
-
-    public drawInfo(
-        waveContext: CanvasRenderingContext2D,
-        this_id: number
-    ): void {
+    public drawInfo(waveContext: CanvasRenderingContext2D, this_id: number): void {
         const line_height = 32;
         const x_res = waveContext.canvas.width;
         if (this.name) {

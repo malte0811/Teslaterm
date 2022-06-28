@@ -1,9 +1,8 @@
-import {processIPC} from "./IPCProvider";
 import {
     IPCConstantsToRenderer, MediaState,
     ScopeLine,
     ScopeText,
-    ScopeTraceConfig, ScopeValues
+    ScopeTraceConfig, ScopeValues,
 } from "../../common/IPCConstantsToRenderer";
 import {
     beginControlledDraw,
@@ -12,13 +11,14 @@ import {
     drawString,
     redrawInfo,
     redrawMediaInfo,
-    traces
+    traces,
 } from "../gui/oscilloscope/oscilloscope";
+import {processIPC} from "./IPCProvider";
 
 export namespace ScopeIPC {
     export function init() {
         processIPC.on(IPCConstantsToRenderer.scope.configure, (cfg: ScopeTraceConfig) => {
-            traces[cfg.id].configure(cfg.min, cfg.max, cfg.offset, cfg.div ,cfg.unit, cfg.name);
+            traces[cfg.id].configure(cfg.min, cfg.max, cfg.offset, cfg.div, cfg.unit, cfg.name);
             redrawInfo();
         });
         processIPC.on(IPCConstantsToRenderer.scope.addValues, (cfg: ScopeValues) => {

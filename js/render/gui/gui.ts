@@ -26,13 +26,12 @@ async function ondrop(e: DragEvent): Promise<void> {
         const file = files[0];
         FileUploadIPC.uploadFile(file);
     } else {
-        //Multiple files or a JS file => compress and treat as script
+        // Multiple files or a JS file => compress and treat as script
         let scriptName: string | null = null;
-        for (let i = 0; i < files.length; ++i) {
-            const file = files[i].name;
+        for (const file in files) {
             if (file.endsWith(".js")) {
                 if (scriptName) {
-                    //More than one script => Not able to run
+                    // More than one script => Not able to run
                     return;
                 } else {
                     scriptName = file;
@@ -44,11 +43,13 @@ async function ondrop(e: DragEvent): Promise<void> {
         }
         scriptName = scriptName.substr(0, scriptName.length - 2) + "zip";
         const zip = new JSZip();
+        // Not actually possible here!
+        // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < files.length; ++i) {
             const file = files[i];
             zip.file(file.name, await file.arrayBuffer());
         }
-        let zipContent = await zip.generateAsync({type: "uint8array"});
+        const zipContent = await zip.generateAsync({type: "uint8array"});
         FileUploadIPC.upload(scriptName, zipContent);
     }
 }

@@ -1,19 +1,19 @@
+import {maxBPS, maxBurstOfftime, maxBurstOntime, maxOntime} from "../common/commands";
 import {terminal} from './gui/constants';
+import * as constants from './gui/constants';
 import {NUM_GAUGES} from "./gui/gauges";
 import * as gauges from "./gui/gauges";
 import * as gui from './gui/gui';
 import * as menu from './gui/menu';
+import * as midi_ui from "./gui/midi_ui";
 import * as scope from './gui/oscilloscope/oscilloscope';
 import * as sliders from './gui/sliders';
-import * as constants from './gui/constants';
 import {MenuIPC} from "./ipc/Menu";
 import {MetersIPC} from "./ipc/meters";
-import {maxBPS, maxBurstOfftime, maxBurstOntime, maxOntime} from "../common/commands";
 import {MiscIPC} from "./ipc/Misc";
 import {ScopeIPC} from "./ipc/scope";
 import {ScriptingIPC} from "./ipc/Scripting";
 import {SlidersIPC} from "./ipc/sliders";
-import * as midi_ui from "./gui/midi_ui";
 
 
 export function init() {

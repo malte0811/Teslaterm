@@ -2,7 +2,7 @@ import {
     baudrate,
     connection_type,
     getDefaultConnectOptions, midi_port, remote_ip,
-    serial_port, sid_port, telnet_port, udp_min_port
+    serial_port, sid_port, telnet_port, udp_min_port,
 } from "../../common/ConnectionOptions";
 import {connection_types, dummy, eth_node, serial_min, serial_plain, udp_min} from "../../common/constants";
 import {config} from "../ipc/Misc";
@@ -21,7 +21,7 @@ export async function openUI(): Promise<any> {
 }
 
 function recreateForm(selected_type: string | undefined, resolve: (cfg: object) => void, reject: (e: any) => void) {
-    let defaultValues = getDefaultConnectOptions(false, config);
+    const defaultValues = getDefaultConnectOptions(false, config);
     if (!defaultValues[connection_type]) {
         defaultValues[connection_type] = selected_type;
     } else if (!selected_type) {
@@ -33,15 +33,13 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
         }
         w2ui.connection_ui.destroy();
     }
-    let fields = [
-        {
-            name: connection_type,
-            type: "list",
-            html: {
-                caption: "Connection type",
-            }
-        }
-    ];
+    const fields = [{
+        html: {
+            caption: "Connection type",
+        },
+        name: connection_type,
+        type: "list",
+    }];
     switch (selected_type) {
         case serial_min:
         case serial_plain:
@@ -63,10 +61,6 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
             throw new Error("Unknown connection type: " + selected_type);
     }
     $().w2form({
-        name: "connection_ui",
-        fields: fields,
-        focus: 1,
-        record: defaultValues,
         actions: {
             Cancel: () => {
                 w2popup.close();
@@ -74,21 +68,25 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
             },
             Connect: () => {
                 w2popup.close();
-                let ret = {};
+                const ret = {};
                 for (const [key, value] of Object.entries(w2ui.connection_ui.record)) {
                     if (key === connection_type) {
-                        ret[key] = value["id"];
+                        ret[key] = (value as any).id;
                     } else {
                         ret[key] = value;
                     }
                 }
                 resolve(ret);
-            }
-        }
+            },
+        },
+        fields,
+        focus: 1,
+        name: "connection_ui",
+        record: defaultValues,
     });
     $('#w2ui-popup #form').w2render('connection_ui');
     const selector = $("input[name=" + connection_type + "]");
-    const selectorItems: { id: string, text: string }[] = [];
+    const selectorItems: Array<{ id: string, text: string }> = [];
     for (const [id, text] of connection_types.entries()) {
         // Disable eth_node connection type if command server is in use: Eth-node is not compatible with absolute SID
         // timestamps.
@@ -101,7 +99,7 @@ function recreateForm(selected_type: string | undefined, resolve: (cfg: object) 
     });
     selector.data("selected", {id: selected_type, text: connection_types.get(selected_type)});
     selector.change();
-    w2ui.connection_ui.on("change", ev => onChange(ev, resolve, reject));
+    w2ui.connection_ui.on("change", (ev) => onChange(ev, resolve, reject));
 }
 
 function onChange(event: ChangeEvent, resolve: (cfg: object) => void, reject: (e: any) => void) {
@@ -114,12 +112,12 @@ function onChange(event: ChangeEvent, resolve: (cfg: object) => void, reject: (e
 
 function addField(fields: any[], id: string, title: string, type: string = "text", placeholder?: string) {
     fields[fields.length] = {
-        name: id,
-        type: type,
         autoFormat: false,
         html: {
+            attr: placeholder ? ("placeholder=" + placeholder) : undefined,
             caption: title,
-            attr: placeholder ? ("placeholder=" + placeholder) : undefined
-        }
+        },
+        name: id,
+        type,
     };
 }

@@ -1,7 +1,7 @@
-import {processIPC} from "./IPCProvider";
 import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
 import {IPCConstantsToRenderer, UD3State} from "../../common/IPCConstantsToRenderer";
 import {updateConnectionButton, updateUD3State} from "../gui/menu";
+import {processIPC} from "./IPCProvider";
 
 export let ud3State: UD3State;
 

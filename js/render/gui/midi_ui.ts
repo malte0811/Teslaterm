@@ -1,4 +1,3 @@
-import {IPCConstantsToMain} from "../../common/IPCConstantsToMain";
 import {MiscIPC} from "../ipc/Misc";
 
 interface IMidiInput {
