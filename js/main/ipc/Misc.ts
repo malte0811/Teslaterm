@@ -19,6 +19,7 @@ export class MiscIPC {
             ipcs.menu.sendFullState(source);
             ipcs.scope.sendConfig(source);
             ipcs.meters.sendConfig(source);
+            ipcs.sliders.sendSliderSync();
             this.syncTTConfig(config, source);
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (source: object, msg: Uint8Array) => {

@@ -101,7 +101,7 @@ export class OntimeUI {
 }
 
 export let ontime: OntimeUI;
-export let state: SliderState = new SliderState();
+export let state: SliderState = new SliderState("disable");
 const bpsName = "slider1";
 const burstOntimeName = "slider2";
 const burstOfftimeName = "slider3";

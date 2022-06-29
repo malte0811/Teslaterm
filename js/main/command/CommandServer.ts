@@ -1,13 +1,26 @@
 import {createServer, Server, Socket} from "net";
+import {config} from "../init";
 import {now} from "../microtime";
-import {MessageType, timeout_us, toBytes} from "./CommandMessages";
+import {BoolOptionCommand, Message, MessageType, NumberOptionCommand, timeout_us, toBytes} from "./CommandMessages";
 
 interface IConnectedClient {
     lastMessageMicrotime: number;
     socket: Socket;
 }
 
-export class CommandServer {
+export interface ICommandServer {
+    tick();
+
+    sendSIDFrame(data: Uint8Array, absoluteTime: number);
+
+    sendMIDI(data: Buffer);
+
+    setBoolOption(option: BoolOptionCommand, value: boolean);
+
+    setNumberOption(option: NumberOptionCommand, value: number);
+}
+
+class CommandServer implements ICommandServer {
     private telnetSocket: Server | undefined;
     private clients: IConnectedClient[] = [];
 
@@ -24,27 +37,32 @@ export class CommandServer {
                 this.clients.splice(i);
                 console.log("Client timed out!");
             } else {
-                client.socket.write(toBytes({type: MessageType.time, time}));
                 ++i;
             }
         }
+        this.sendToAll({type: MessageType.time, time});
     }
 
     public sendSIDFrame(data: Uint8Array, absoluteTime: number) {
-        for (const client of this.clients) {
-            client.socket.write(toBytes({type: MessageType.sid_frame, data, absoluteServerTime: absoluteTime}));
-        }
+        this.sendToAll({type: MessageType.sid_frame, data, absoluteServerTime: absoluteTime});
     }
 
     public sendMIDI(data: Buffer) {
-        for (const client of this.clients) {
-            client.socket.write(toBytes({type: MessageType.midi_message, message: data}));
-        }
+        this.sendToAll({type: MessageType.midi_message, message: data});
     }
 
-    public sendTelnet(data: Buffer) {
+    public setBoolOption(option: BoolOptionCommand, value: boolean) {
+        this.sendToAll({type: MessageType.bool_command, option, value});
+    }
+
+    public setNumberOption(option: NumberOptionCommand, value: number) {
+        this.sendToAll({type: MessageType.number_command, option, value});
+    }
+
+    private sendToAll(msg: Message) {
+        const bytes = toBytes(msg);
         for (const client of this.clients) {
-            client.socket.write(toBytes({type: MessageType.telnet, message: data}));
+            client.socket.write(bytes);
         }
     }
 
@@ -52,8 +70,31 @@ export class CommandServer {
         const client = {lastMessageMicrotime: now(), socket};
         this.clients.push(client);
         console.log("Got new client!");
-        socket.on("data", (data) => {
-            client.lastMessageMicrotime = now();
-        });
+        socket.on("data", () => client.lastMessageMicrotime = now());
+    }
+}
+
+class DummyCommandServer implements ICommandServer {
+    public sendMIDI(data: Buffer) {
+    }
+
+    public sendSIDFrame(data: Uint8Array, absoluteTime: number) {
+    }
+
+    public setBoolOption(option: BoolOptionCommand, value: boolean) {
+    }
+
+    public setNumberOption(option: NumberOptionCommand, value: number) {
+    }
+
+    public tick() {
+    }
+}
+
+export function makeCommandServer(): ICommandServer {
+    if (config.command.state === "server") {
+        return new CommandServer(config.command.port);
+    } else {
+        return new DummyCommandServer();
     }
 }

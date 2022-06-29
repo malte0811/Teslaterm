@@ -1,10 +1,12 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, SliderState} from "../../common/IPCConstantsToRenderer";
+import {NumberOptionCommand} from "../command/CommandMessages";
 import {commands} from "../connection/connection";
+import {commandServer, config} from "../init";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class SlidersIPC {
-    private readonly state = new SliderState();
+    private readonly state = new SliderState(config.command.state);
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
@@ -37,6 +39,7 @@ export class SlidersIPC {
     public async setRelativeOntime(val: number, key?: object) {
         this.state.ontimeRel = val;
         await commands.setOntime(this.state.ontime);
+        commandServer.setNumberOption(NumberOptionCommand.relative_ontime, val);
         this.sendSliderSync(key);
     }
 
@@ -63,8 +66,8 @@ export class SlidersIPC {
         this.sendSliderSync(key);
     }
 
-    public sendSliderSync(connection?: object) {
-        this.processIPC.sendToAllExcept(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, connection, this.state);
+    public sendSliderSync(excluded?: object) {
+        this.processIPC.sendToAllExcept(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, excluded, this.state);
     }
 
     private callSwapped(f: (val: number, key: object) => Promise<any>) {

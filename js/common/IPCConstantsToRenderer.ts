@@ -1,4 +1,6 @@
 import {MediaFileType, PlayerActivity} from "./CommonTypes";
+import {maxOntime} from "./constants";
+import {CommandRole} from "./TTConfig";
 
 export const IPC_CONSTANTS_TO_RENDERER = {
     menu: {
@@ -168,12 +170,18 @@ export class ConfirmationRequest {
 }
 
 export class SliderState {
-    public ontimeAbs: number = 0;
-    public ontimeRel: number = 100;
+    public ontimeAbs: number;
+    public ontimeRel: number;
     public bps: number = 20;
     public burstOntime: number = 0;
     public burstOfftime: number = 500;
     public relativeAllowed: boolean = true;
+
+    constructor(role: CommandRole) {
+        this.ontimeAbs = role !== "disable" ? maxOntime : 0;
+        this.ontimeRel = role !== "disable" ? 0 : 100;
+        this.relativeAllowed = role !== "client";
+    }
 
     public get ontime() {
         return this.ontimeAbs * this.ontimeRel / 100;

@@ -26,6 +26,7 @@ export class MetersIPC {
         for (const cfg of this.configs.values()) {
             this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.configure, source, cfg);
         }
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.setValue, source, new SetMeters(this.lastState));
     }
 
     private tick() {

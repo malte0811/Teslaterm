@@ -1,6 +1,6 @@
 import {TTConfig} from "../common/TTConfig";
 import {CommandClient} from "./command/CommandClient";
-import {CommandServer} from "./command/CommandServer";
+import {ICommandServer, makeCommandServer} from "./command/CommandServer";
 import * as connection from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
 import * as IPC from "./ipc/IPCProvider";
@@ -13,7 +13,7 @@ export let config: TTConfig;
 export const simulated = false;
 let sidServer: NetworkSIDServer;
 let commandClient: CommandClient;
-export let commandServer: CommandServer;
+export let commandServer: ICommandServer;
 
 export function init() {
     config = loadConfig("config.ini");
@@ -26,9 +26,8 @@ export function init() {
     if (config.netsid.enabled) {
         sidServer = new NetworkSIDServer(config.netsid.port);
     }
-    if (config.command.state === "server") {
-        commandServer = new CommandServer(config.command.port);
-    } else if (config.command.state === "client") {
+    commandServer = makeCommandServer();
+    if (config.command.state === "client") {
         initCommandClient();
     }
 }
@@ -39,9 +38,8 @@ function initCommandClient() {
 
 function tick200() {
     connection.updateSlow();
-    if (commandServer) {
-        commandServer.tick();
-    } else if (commandClient && commandClient.tickSlow()) {
+    commandServer.tick();
+    if (commandClient && commandClient.tickSlow()) {
         ipcs.terminal.println("Command server timed out, reconnecting");
         initCommandClient();
     }

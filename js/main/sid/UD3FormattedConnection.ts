@@ -73,9 +73,7 @@ export class UD3FormattedConnection implements ISidConnection {
         if (this.needsZeroSuffix) {
             data[byteCount] = 0;
         }
-        if (commandServer) {
-            commandServer.sendSIDFrame(frameData, absoluteTime);
-        }
+        commandServer.sendSIDFrame(frameData, absoluteTime);
         return this.sendToUD(data);
     }
 

@@ -1,3 +1,4 @@
+import {BoolOptionCommand, NumberOptionCommand} from "../command/CommandMessages";
 import {commandServer} from "../init";
 import {getAutoTerminal, getUD3Connection, hasUD3Connection} from "./connection";
 
@@ -12,10 +13,12 @@ export class CommandInterface {
 
     public async busOff() {
         await this.sendCommand('bus off\r');
+        commandServer.setBoolOption(BoolOptionCommand.bus, false);
     }
 
     public async busOn() {
         await this.sendCommand('bus on\r');
+        commandServer.setBoolOption(BoolOptionCommand.bus, true);
     }
 
     public async eepromSave() {
@@ -24,26 +27,31 @@ export class CommandInterface {
 
     public async setKill() {
         await this.sendCommand('kill set\r');
+        commandServer.setBoolOption(BoolOptionCommand.kill, true);
     }
 
     public async resetKill() {
         await this.sendCommand('kill reset\r');
+        commandServer.setBoolOption(BoolOptionCommand.kill, false);
     }
 
     public async setOntime(ontime: number) {
-        await this.sendCommand('set pw ' + ontime.toFixed(0) + '\r');
+        await this.setParam('pw', ontime.toFixed(0));
     }
 
     public async setBurstOntime(ontime: number) {
-        await this.sendCommand('set bon ' + ontime.toFixed(0) + '\r');
+        await this.setParam('bon', ontime.toFixed(0));
+        commandServer.setNumberOption(NumberOptionCommand.burst_on, ontime);
     }
 
     public async setBurstOfftime(offtime: number) {
-        await this.sendCommand('set boff ' + offtime.toFixed(0) + '\r');
+        await this.setParam('boff', offtime.toFixed(0));
+        commandServer.setNumberOption(NumberOptionCommand.burst_off, offtime);
     }
 
     public async setOfftime(offtime: number) {
-        await this.sendCommand('set pwd ' + offtime.toFixed(0) + '\r');
+        await this.setParam('pwd', offtime.toFixed(0));
+        commandServer.setNumberOption(NumberOptionCommand.offtime, offtime);
     }
 
     public async setBPS(bps: number) {
@@ -57,14 +65,11 @@ export class CommandInterface {
 
     public async setTransientEnabled(enable: boolean) {
         await this.sendCommand('tr ' + (enable ? 'start' : 'stop') + '\r');
+        commandServer.setBoolOption(BoolOptionCommand.transient, enable);
     }
 
     public async sendCommand(c: string) {
         try {
-            if (commandServer) {
-                // TODO remote and replace by command-specific transmissions
-                commandServer.sendTelnet(Buffer.from(c));
-            }
             if (hasUD3Connection()) {
                 await getUD3Connection().sendTelnet(Buffer.from(c), getAutoTerminal());
             }

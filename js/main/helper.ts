@@ -73,27 +73,6 @@ function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array | ArrayBu
     }
 }
 
-export function convertStringToArrayBuffer(str: string): ArrayBuffer {
-    const buf = new ArrayBuffer(str.length);
-    const bufView = new Uint8Array(buf);
-    for (let i = 0; i < str.length; i++) {
-        bufView[i] = str.charCodeAt(i);
-    }
-    return buf;
-}
-
-export async function readFileAsync(file: fs.PathLike): Promise<Uint8Array> {
-    return new Promise<Uint8Array>((res, rej) => {
-        fs.readFile(file, (err, data) => {
-            if (err) {
-                rej(err);
-            } else {
-                res(data);
-            }
-        });
-    });
-}
-
 export async function withTimeout<T>(base: Promise<T>, timeout: number): Promise<T> {
     return new Promise<T>((res, rej) => {
         setTimeout(() => rej("Reached timeout"), timeout);

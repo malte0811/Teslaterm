@@ -15,7 +15,11 @@ export const commands = new CommandInterface();
 
 export async function startConf() {
     await commands.sendCommand('\r');
-    await ipcs.sliders.setAbsoluteOntime(0);
+    if (config.command.state === "disable") {
+        await ipcs.sliders.setAbsoluteOntime(0);
+    } else {
+        await ipcs.sliders.setRelativeOntime(0);
+    }
     await commands.setBPS(ipcs.sliders.bps);
     await commands.setBurstOntime(ipcs.sliders.burstOntime);
     await commands.setBurstOfftime(ipcs.sliders.burstOfftime);

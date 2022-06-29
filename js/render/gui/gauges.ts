@@ -40,6 +40,7 @@ export class Meter {
         }
         this.scale = scale;
         this.gauge.refresh(min, max);
+        this.gauge.refresh(this.meter_buf);
     }
 }
 

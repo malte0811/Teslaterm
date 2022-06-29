@@ -1,4 +1,6 @@
 import {jspack} from "jspack";
+import {commands} from "../connection/connection";
+import {ipcs} from "../ipc/IPCProvider";
 
 export const timeout_us = 5_000_000;
 
@@ -7,7 +9,36 @@ export enum MessageType {
     keep_alive,
     sid_frame,
     midi_message,
-    telnet,
+    bool_command,
+    number_command,
+}
+
+export enum BoolOptionCommand {bus, kill, transient}
+
+export enum NumberOptionCommand {relative_ontime, offtime, burst_on, burst_off}
+
+export function setBoolOption(option: BoolOptionCommand, value: boolean) {
+    switch (option) {
+        case BoolOptionCommand.bus:
+            return (value ? commands.busOn() : commands.busOff());
+        case BoolOptionCommand.kill:
+            return (value ? commands.setKill() : commands.resetKill());
+        case BoolOptionCommand.transient:
+            return commands.setTransientEnabled(value);
+    }
+}
+
+export function setNumberOption(option: NumberOptionCommand, value: number) {
+    switch (option) {
+        case NumberOptionCommand.relative_ontime:
+            return ipcs.sliders.setRelativeOntime(value);
+        case NumberOptionCommand.offtime:
+            return commands.setOfftime(value);
+        case NumberOptionCommand.burst_on:
+            return commands.setBurstOntime(value);
+        case NumberOptionCommand.burst_off:
+            return commands.setBurstOfftime(value);
+    }
 }
 
 export type Message =
@@ -15,14 +46,15 @@ export type Message =
     {type: MessageType.keep_alive} |
     {type: MessageType.sid_frame, data: Uint8Array, absoluteServerTime: number} |
     {type: MessageType.midi_message, message: Buffer} |
-    {type: MessageType.telnet, message: Buffer};
+    {type: MessageType.bool_command, option: BoolOptionCommand, value: boolean} |
+    {type: MessageType.number_command, option: NumberOptionCommand, value: number};
 
 
-function readTime(data: Buffer | number[], offset: number): number {
+function readDouble(data: Buffer | number[], offset: number): number {
     return jspack.Unpack('d', data.slice(offset))[0];
 }
 
-function writeTime(time: number): number[] {
+function writeDouble(time: number): number[] {
     return jspack.Pack('d', [time]);
 }
 
@@ -33,17 +65,22 @@ export function toBytes(message: Message): Uint8Array {
             // NOP
             break;
         case MessageType.time:
-            buffer.push(...writeTime(message.time));
+            buffer.push(...writeDouble(message.time));
             break;
         case MessageType.sid_frame:
-            buffer.push(...writeTime(message.absoluteServerTime));
+            buffer.push(...writeDouble(message.absoluteServerTime));
             buffer.push(...message.data);
             break;
         case MessageType.midi_message:
             buffer.push(...message.message);
             break;
-        case MessageType.telnet:
-            buffer.push(...message.message);
+        case MessageType.bool_command:
+            buffer.push(message.option);
+            buffer.push(message.value ? 1 : 0);
+            break;
+        case MessageType.number_command:
+            buffer.push(message.option);
+            buffer.push(...writeDouble(message.value));
             break;
     }
     buffer = [buffer.length, message.type, ...buffer];
@@ -56,22 +93,24 @@ export class Parser {
         const type: MessageType = data[0];
         switch (type) {
             case MessageType.time:
-                return {type, time: readTime(data, 1)};
+                return {type, time: readDouble(data, 1)};
             case MessageType.keep_alive:
                 return {type};
             case MessageType.sid_frame:
-                return {type, absoluteServerTime: readTime(data, 1), data: new Uint8Array(data.slice(9))};
+                return {type, absoluteServerTime: readDouble(data, 1), data: new Uint8Array(data.slice(9))};
             case MessageType.midi_message:
                 return {type, message: Buffer.of(...data.slice(1))};
-            case MessageType.telnet:
-                return {type, message: Buffer.of(...data.slice(1))};
+            case MessageType.bool_command:
+                return {option: data[1], type, value: data[2] !== 0};
+            case MessageType.number_command:
+                return {option: data[1], type, value: readDouble(data, 2)};
         }
     }
 
-    private readonly consumer: (msg: Message) => void;
+    private readonly consumer: (msg: Message) => Promise<any>;
     private buffer: number[] = [];
 
-    public constructor(consumer: (msg: Message) => void) {
+    public constructor(consumer: (msg: Message) => Promise<any>) {
         this.consumer = consumer;
     }
 
@@ -86,7 +125,8 @@ export class Parser {
         if (this.buffer.length < actualLength) { return false; }
         const messageBytes = this.buffer.slice(1, actualLength);
         this.buffer = this.buffer.slice(actualLength);
-        this.consumer(Parser.fromBytes(messageBytes));
+        this.consumer(Parser.fromBytes(messageBytes))
+            .catch((err) => console.log("While processing command message: ", err));
         return true;
     }
 }

@@ -1,11 +1,11 @@
 import {Socket} from "net";
 import {SynthType} from "../../common/CommonTypes";
-import {getAutoTerminal, getOptionalUD3Connection, getUD3Connection, hasUD3Connection} from "../connection/connection";
+import {getOptionalUD3Connection,} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
 import {playMidiData} from "../midi/midi";
 import {UD3FormattedConnection} from "../sid/UD3FormattedConnection";
-import {Message, MessageType, Parser, timeout_us, toBytes} from "./CommandMessages";
+import {Message, MessageType, Parser, setBoolOption, setNumberOption, timeout_us, toBytes} from "./CommandMessages";
 
 const averagingOldFactor = 31 / 32;
 const averagingNewFactor = 1 - averagingOldFactor;
@@ -80,10 +80,11 @@ export class CommandClient {
             case MessageType.midi_message:
                 playMidiData(packet.message);
                 break;
-            case MessageType.telnet:
-                if (hasUD3Connection()) {
-                    await getUD3Connection().sendTelnet(packet.message, getAutoTerminal());
-                }
+            case MessageType.bool_command:
+                await setBoolOption(packet.option, packet.value);
+                break;
+            case MessageType.number_command:
+                await setNumberOption(packet.option, packet.value);
                 break;
         }
     }

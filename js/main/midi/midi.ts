@@ -85,9 +85,7 @@ export function playMidiData(data: number[] | Uint8Array): boolean {
         checkTransientDisabled();
         connection.sendMidi(msg);
         connection.setSynth(SynthType.MIDI, true);
-        if (commandServer) {
-            commandServer.sendMIDI(msg);
-        }
+        commandServer.sendMIDI(msg);
         return true;
     } else {
         return simulated && data[0] !== 0;
