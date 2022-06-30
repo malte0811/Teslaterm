@@ -10,11 +10,11 @@ import {SlidersIPC} from "./sliders";
 import {TerminalIPC} from "./terminal";
 
 export interface ISingleWindowIPC {
-    on(channel: string, callback: (data: object) => void);
+    on(channel: string, callback: (data: object) => void): void;
 
-    once(channel: string, callback: (data: object) => void);
+    once(channel: string, callback: (data: object) => void): void;
 
-    send(channel: string, ...data: any[]);
+    send(channel: string, ...data: any[]): void;
 }
 
 interface IIPCCallback {
