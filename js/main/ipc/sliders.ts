@@ -66,6 +66,18 @@ export class SlidersIPC {
         this.sendSliderSync(key);
     }
 
+    public async setSliderRanges(maxOntime: number, maxBPS: number) {
+        const oldOntime = this.state.ontime;
+        if (this.state.updateRanges(maxOntime, maxBPS)) {
+            this.sendSliderSync();
+        }
+        // The UD3 also adjusts the ontime if it exceeds the new maximum, but with relative ontime we may want to
+        // decrease to a lower level than the UD3 did
+        if (oldOntime !== this.state.ontime) {
+            await commands.setOntime(this.state.ontime);
+        }
+    }
+
     public sendSliderSync(excluded?: object) {
         this.processIPC.sendToAllExcept(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, excluded, this.state);
     }

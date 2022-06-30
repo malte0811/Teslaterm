@@ -1,4 +1,4 @@
-import {maxBPS, maxBurstOfftime, maxBurstOntime, maxOntime} from "../common/constants";
+import {maxBurstOfftime, maxBurstOntime} from "../common/constants";
 import {terminal} from './gui/constants';
 import * as constants from './gui/constants';
 import {NUM_GAUGES} from "./gui/gauges";
@@ -42,11 +42,11 @@ export function init() {
                             '</article>' +
                             '<aside>' +
                             '<div id="ontime">Ontime<br><br>' +
-                            '<input type="range" id="slider" min="0" max="' + maxOntime + '" value="0" class="slider-gray" data-show-value="true">' +
+                            '<input type="range" id="slider" min="0" max="0" value="0" class="slider-gray" data-show-value="true">' +
                             '<span id="total">0</span> µs (<span id="relative">100</span>% of <span id="absolute"><b>0</b></span> µs)' +
                             '<br><input type="checkbox" id="relativeSelect"><label for="relativeSelect">Relative</label></div>' +
                             '<br><br>Offtime<br><br>' +
-                            '<input type="range" id="slider1" min="20" max="' + maxBPS + '" value="1" class="slider-gray" data-show-value="true"><label id="slider1_disp">20 Hz</label>' +
+                            '<input type="range" id="slider1" min="20" max="20" value="1" class="slider-gray" data-show-value="true"><label id="slider1_disp">20 Hz</label>' +
                             '<br><br>Burst On<br><br>' +
                             '<input type="range" id="slider2" min="0" max="' + maxBurstOntime + '" value="0" class="slider-gray" data-show-value="true"><label id="slider2_disp">0 ms</label>' +
                             '<br><br>Burst Off<br><br>' +

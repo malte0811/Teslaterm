@@ -4,7 +4,7 @@ import {TelemetryFrame} from "./TelemetryFrame";
 enum TelemetryFrameState {
     idle,
     frame,
-    collect
+    collect,
 }
 
 export class TelemetryChannel {

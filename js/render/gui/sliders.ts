@@ -1,4 +1,3 @@
-import {maxOntime} from "../../common/constants";
 import {SliderState, UD3State} from "../../common/IPCConstantsToRenderer";
 import {SlidersIPC} from "../ipc/sliders";
 import {terminal} from "./constants";
@@ -10,9 +9,6 @@ export class OntimeUI {
     private total: HTMLSpanElement;
     private relative: HTMLSpanElement;
     private absolute: HTMLSpanElement;
-    private absoluteVal: number = 0;
-    private relativeVal: number = 100;
-    private totalVal: number = 0;
 
     public constructor() {
         this.slider = ($(".w2ui-panel-content .scopeview #ontime #slider")[0] as HTMLInputElement);
@@ -25,6 +21,7 @@ export class OntimeUI {
     }
 
     public setRelativeAllowed(allow: boolean) {
+        state.relativeAllowed = allow;
         if (allow) {
             this.relativeSelect.disabled = false;
         } else {
@@ -38,12 +35,12 @@ export class OntimeUI {
         if (!this.relativeSelect.checked) {
             setSliderValue(null, time, this.slider);
         }
-        time = Math.min(maxOntime, Math.max(0, time));
-        this.absoluteVal = time;
-        this.absolute.textContent = this.absoluteVal.toString();
-        this.ontimeChanged();
+        time = Math.min(state.maxOntime, Math.max(0, time));
+        state.ontimeAbs = time;
+        this.absolute.textContent = state.ontimeAbs.toFixed();
+        this.updateOntimeLabels();
         if (manual) {
-            SlidersIPC.setAbsoluteOntime(this.absoluteVal);
+            SlidersIPC.setAbsoluteOntime(state.ontimeAbs);
         }
     }
 
@@ -52,67 +49,74 @@ export class OntimeUI {
             setSliderValue(null, percentage, this.slider);
         }
         percentage = Math.min(100, Math.max(0, percentage));
-        this.relativeVal = percentage;
-        this.relative.textContent = this.relativeVal.toString();
-        this.ontimeChanged();
+        state.ontimeRel = percentage;
+        this.relative.textContent = state.ontimeRel.toFixed();
+        this.updateOntimeLabels();
         if (manual) {
-            SlidersIPC.setRelativeOntime(this.relativeVal);
+            SlidersIPC.setRelativeOntime(state.ontimeRel);
         }
     }
 
     public updateOntimeLabels() {
         if (this.relativeSelect.checked) {
-            this.relative.innerHTML = "<b>" + this.relativeVal + "</b>";
-            this.absolute.innerHTML = this.absoluteVal.toFixed();
+            this.relative.innerHTML = "<b>" + state.ontimeRel + "</b>";
+            this.absolute.innerHTML = state.ontimeAbs.toFixed();
         } else {
-            this.absolute.innerHTML = "<b>" + this.absoluteVal + "</b>";
-            this.relative.innerHTML = this.relativeVal.toFixed();
+            this.absolute.innerHTML = "<b>" + state.ontimeAbs + "</b>";
+            this.relative.innerHTML = state.ontimeRel.toFixed();
         }
-        this.total.innerHTML = this.totalVal.toFixed();
+        this.total.innerHTML = state.ontime.toFixed();
     }
 
     public onRelativeOntimeSelect() {
         if (this.relativeSelect.checked) {
             this.slider.max = "100";
-            this.slider.value = this.relativeVal.toFixed();
+            this.slider.value = state.ontimeRel.toFixed();
         } else {
-            this.slider.max = maxOntime.toFixed();
-            this.slider.value = this.absoluteVal.toFixed();
+            this.slider.max = state.maxOntime.toFixed();
+            this.slider.value = state.ontimeAbs.toFixed();
         }
         this.updateOntimeLabels();
     }
 
     public onSliderMoved() {
+        const newValue = parseInt(this.slider.value, 10);
         if (this.relativeSelect.checked) {
-            this.setRelativeOntime(parseInt(this.slider.value, 10), true);
+            this.setRelativeOntime(newValue, true);
         } else {
-            this.setAbsoluteOntime(parseInt(this.slider.value, 10), true);
+            this.setAbsoluteOntime(newValue, true);
         }
     }
 
-    public ontimeChanged() {
-        this.totalVal = Math.round(this.absoluteVal * this.relativeVal / 100.);
-        this.updateOntimeLabels();
+    public markEnabled(enabled: boolean) {
+        this.slider.className = enabled ? "slider" : "slider-gray";
     }
 
-    public markEnabled(enabled: boolean) {
-        ontime.slider.className = enabled ? "slider" : "slider-gray";
+    public setAbsoluteMaximum(maxOntime: number) {
+        if (!this.relativeSelect.checked) {
+            this.slider.max = maxOntime.toFixed();
+            this.updateOntimeLabels();
+        }
+        state.maxOntime = maxOntime;
     }
 }
 
 export let ontime: OntimeUI;
-export let state: SliderState = new SliderState("disable");
+const state: SliderState = new SliderState("disable");
 const bpsName = "slider1";
 const burstOntimeName = "slider2";
 const burstOfftimeName = "slider3";
 
 export function updateSliderState(newState: SliderState) {
+    ontime.setAbsoluteMaximum(newState.maxOntime);
+    ($("#" + bpsName)[0] as HTMLInputElement).max = newState.maxBPS.toFixed();
     ontime.setAbsoluteOntime(newState.ontimeAbs, false);
     ontime.setRelativeOntime(newState.ontimeRel, false);
     ontime.setRelativeAllowed(newState.relativeAllowed);
     bpsSlider(newState.bps);
     burstOntimeSlider(newState.burstOntime);
     burstOfftimeSlider(newState.burstOfftime);
+    state.maxBPS = newState.maxBPS;
 }
 
 export function updateSliderAvailability(ud3State: UD3State) {

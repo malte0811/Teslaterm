@@ -1,5 +1,4 @@
 import {MediaFileType, PlayerActivity} from "./CommonTypes";
-import {maxOntime} from "./constants";
 import {CommandRole} from "./TTConfig";
 
 export const IPC_CONSTANTS_TO_RENDERER = {
@@ -176,14 +175,37 @@ export class SliderState {
     public burstOntime: number = 0;
     public burstOfftime: number = 500;
     public relativeAllowed: boolean = true;
+    public maxOntime: number = 400;
+    public maxBPS: number = 1000;
 
     constructor(role: CommandRole) {
-        this.ontimeAbs = role !== "disable" ? maxOntime : 0;
+        this.ontimeAbs = role !== "disable" ? this.maxOntime : 0;
         this.ontimeRel = role !== "disable" ? 0 : 100;
         this.relativeAllowed = role !== "client";
     }
 
     public get ontime() {
         return this.ontimeAbs * this.ontimeRel / 100;
+    }
+
+    public updateRanges(maxOntime: number, maxBPS: number): boolean {
+        let changed = false;
+        if (maxOntime !== this.maxOntime) {
+            // First case: We had full range using the relative slider, we want to keep that
+            // Second case: Current ontime becomes illegal, clamp to new max (i.e. closest to old value we can get)
+            if (this.ontimeAbs === this.maxOntime || this.ontimeAbs > maxOntime) {
+                this.ontimeAbs = maxOntime;
+            }
+            this.maxOntime = maxOntime;
+            changed = true;
+        }
+        if (maxBPS !== this.maxBPS) {
+            if (this.bps > maxBPS) {
+                this.bps = maxBPS;
+            }
+            this.maxBPS = maxBPS;
+            changed = true;
+        }
+        return changed;
     }
 }

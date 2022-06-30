@@ -93,11 +93,12 @@ export class TelemetryFrame {
                 ipcs.scope.addValue(chart_num, val);
                 break;
             }
-            case TT_CHART32:
-                const val = from_32_bit_bytes(this.data.slice(2) , Endianness.LITTLE_ENDIAN);
+            case TT_CHART32: {
+                const val = from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN);
                 const chart_num = num.valueOf();
                 ipcs.scope.addValue(chart_num, val);
                 break;
+            }
             case TT_CHART_DRAW:
                 ipcs.scope.drawChart();
                 break;
@@ -120,6 +121,13 @@ export class TelemetryFrame {
                 break;
             case TT_STATE_SYNC:
                 updateStateFromTelemetry(this.data[1]);
+                if (this.data.length >= 6) {
+                    const maxPw = this.data[2] | (this.data[3] << 8);
+                    const maxPrf = this.data[4] | (this.data[5] << 8);
+                    ipcs.sliders.setSliderRanges(maxPw, maxPrf).catch(
+                        (err) => console.log("While updating slider ranges", err),
+                    );
+                }
                 break;
             case TT_CONFIG_GET:
                 this.data.splice(0, 1);
