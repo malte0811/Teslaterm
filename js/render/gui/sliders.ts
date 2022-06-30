@@ -150,7 +150,7 @@ function setSliderValue(name: string, value: number, slider?) {
 function bpsSlider(value?: number) {
     const slider = document.getElementById(bpsName) as HTMLInputElement;
     const slider_disp = document.getElementById("slider1_disp");
-    if (value) {
+    if (value !== undefined) {
         setSliderValue("", value, slider);
     } else {
         SlidersIPC.setBPS(Number(slider.value));
@@ -161,7 +161,7 @@ function bpsSlider(value?: number) {
 function burstOntimeSlider(value?: number) {
     const slider: HTMLInputElement = document.getElementById(burstOntimeName) as HTMLInputElement;
     const slider_disp = document.getElementById("slider2_disp");
-    if (value) {
+    if (value !== undefined) {
         setSliderValue("", value, slider);
     } else {
         SlidersIPC.setBurstOntime(Number(slider.value));
@@ -172,7 +172,7 @@ function burstOntimeSlider(value?: number) {
 function burstOfftimeSlider(value?: number) {
     const slider = document.getElementById(burstOfftimeName) as HTMLInputElement;
     const slider_disp = document.getElementById("slider3_disp");
-    if (value) {
+    if (value !== undefined) {
         setSliderValue("", value, slider);
     } else {
         SlidersIPC.setBurstOfftime(Number(slider.value));
