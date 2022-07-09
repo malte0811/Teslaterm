@@ -172,8 +172,8 @@ export class SliderState {
     public ontimeAbs: number;
     public ontimeRel: number;
     public bps: number = 20;
-    public burstOntime: number = 0;
-    public burstOfftime: number = 500;
+    public burstOntime: number = 500;
+    public burstOfftime: number = 0;
     public relativeAllowed: boolean = true;
     public maxOntime: number = 400;
     public maxBPS: number = 1000;
