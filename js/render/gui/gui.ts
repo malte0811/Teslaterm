@@ -1,20 +1,14 @@
 import {commands} from "../ipc/commands";
 import {FileUploadIPC} from "../ipc/FileUpload";
-import {terminal} from "./constants";
 import * as gauges from "./gauges";
+import {terminal} from "./constants";
 
 export function init(): void {
     document.getElementById("layout").addEventListener("drop", ondrop);
     document.getElementById("layout").addEventListener("dragover", ondragover);
 
-    terminal.onTerminalReady = () => {
-        const io = terminal.io.push();
-
-        terminal.processInput = (input) => commands.sendManualCommand(input);
-        io.onVTKeystroke = terminal.processInput;
-
-        io.sendString = terminal.processInput;
-    };
+    terminal.onKey((event) => commands.sendManualCommand(event.key));
+    // TODO paste etc?
     gauges.init();
 }
 

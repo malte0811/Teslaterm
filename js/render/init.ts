@@ -1,5 +1,5 @@
 import {maxBurstOfftime, maxBurstOntime} from "../common/constants";
-import {terminal} from './gui/constants';
+import {terminal, terminalFitter} from './gui/constants';
 import * as constants from './gui/constants';
 import {NUM_GAUGES} from "./gui/gauges";
 import * as gauges from "./gui/gauges";
@@ -70,8 +70,8 @@ export function init() {
             });
 
             constants.init();
-            terminal.decorate(document.querySelector('#terminal'));
-            terminal.installKeyboard();
+            terminal.open(document.querySelector('#terminal'));
+            terminalFitter.fit();
 
             gui.init();
             sliders.init();
@@ -121,6 +121,7 @@ export function init() {
 
             w2ui.layout.on({type: 'resize', execute: 'after'}, () => {
                 scope.onResize();
+                terminalFitter.fit();
             });
             setInterval(update, 20);
         });

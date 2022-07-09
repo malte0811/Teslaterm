@@ -141,7 +141,7 @@ function setSliderValue(name: string, value: number, slider?) {
         slider = document.getElementById(name);
     }
     if (value < slider.min || value > slider.max) {
-        terminal.io.println("Tried to set slider \"" + slider.id + "\" out of range (To " + value + ")!");
+        terminal.writeln("Tried to set slider \"" + slider.id + "\" out of range (To " + value + ")!");
         value = Math.min(slider.max, Math.max(slider.min, value));
     }
     slider.value = value;

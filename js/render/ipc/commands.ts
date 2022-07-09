@@ -28,7 +28,7 @@ class CommandsIPC {
     }
 
     public clearManualTerminal() {
-        terminal.io.print('\u001B[2J\u001B[0;0H');
+        terminal.clear();
         this.sendManualCommand('cls\r');
     }
 }

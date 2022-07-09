@@ -12,7 +12,7 @@ export namespace MiscIPC {
 
     export function init() {
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.terminal, (s: string) => {
-            terminal.io.print(s);
+            terminal.write(s);
         });
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg: TTConfig) => {
             config = cfg;

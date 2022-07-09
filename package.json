@@ -24,7 +24,9 @@
     "rtpmidi": "^1.0.0",
     "serialport": "10.4.0",
     "socket.io": "^4.5.1",
-    "socket.io-client": "^4.5.1"
+    "socket.io-client": "^4.5.1",
+    "xterm": "^4.19.0",
+    "xterm-addon-fit": "^0.5.0"
   },
   "devDependencies": {
     "@types/ini": "^1.3.31",
@@ -63,6 +65,7 @@
       "styles/*",
       "node_modules/raphael/raphael.js",
       "node_modules/jquery/dist/jquery.min.js",
+      "node_modules/xterm/css/xterm.css",
       "node_modules/@serialport/bindings-cpp/prebuilds/linux-x64/node.napi.glibc.node",
       "node_modules/@serialport/bindings-cpp/prebuilds/win32-x64/node.napi.node"
     ]
