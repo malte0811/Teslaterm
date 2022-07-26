@@ -1,6 +1,6 @@
 {
   "exclude": ["node_modules"],
-  "include": ["js/**/*"],
+  "include": ["js"],
   "compilerOptions": {
     "typeRoots": [
       "node_modules/@types",
@@ -16,6 +16,8 @@
       "es2015",
       "dom",
       "scripthost"
-    ]
+    ],
+    "esModuleInterop": true,
+    "jsx": "react-jsx"
   }
 }

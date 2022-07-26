@@ -1,6 +1,5 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, UD3State} from "../../common/IPCConstantsToRenderer";
-import {updateConnectionButton, updateUD3State} from "../gui/menu";
 import {processIPC} from "./IPCProvider";
 
 export let ud3State: UD3State;
@@ -23,7 +22,7 @@ export namespace MenuIPC {
     }
 
     export function init() {
-        processIPC.on(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state: UD3State) => {
+        /*processIPC.on(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state: UD3State) => {
             updateUD3State(state);
             ud3State = state;
         });
@@ -37,6 +36,6 @@ export namespace MenuIPC {
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, (newName: string) => {
             w2ui.toolbar.get('mnu_script').text = newName;
             w2ui.toolbar.refresh();
-        });
+        });*/
     }
 }

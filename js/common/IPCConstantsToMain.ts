@@ -7,6 +7,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setTRState: "set-kill-state",
     },
     connect: "connect-to-ud3",
+    requestConnectSuggestions: "request-connect-suggestions",
     loadFile: "load-file",
     manualCommand: "manual-command",
     menu: {
@@ -16,7 +17,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         stopMedia: "stop-media",
     },
     midiMessage: "midi-message",
-    rendererReady: "renderer-ready",
+    requestFullSync: "request-full-sync",
     script: {
         confirmOrDeny: "script-confirm",
         startScript: "start-script",

@@ -1,4 +1,3 @@
-import * as dgram from "dgram";
 import {SerialPort} from "serialport";
 import {
     baudrate,
@@ -8,6 +7,7 @@ import {
     udp_min_port,
 } from "../../../common/ConnectionOptions";
 import {connection_types, dummy, serial_min, serial_plain, udp_min} from "../../../common/constants";
+import {AutoSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {DummyConnection} from "../types/DummyConnection";
@@ -33,7 +33,7 @@ export class Idle implements IConnectionState {
             case dummy:
                 return new DummyConnection();
             default:
-                ipcs.terminal.println("Connection type \"" + connection_types.get(type) +
+                ipcs.connectionUI.sendConnectionError("Connection type \"" + connection_types.get(type) +
                     "\" (" + type + ") is currently not supported");
                 return undefined;
         }
@@ -45,17 +45,6 @@ export class Idle implements IConnectionState {
             return input.substring(suffixStart + 2, input.length - 1);
         } else {
             return input;
-        }
-    }
-
-    private static async connectInternal(window: object): Promise<UD3Connection | undefined> {
-        try {
-            const options = ipcs.connectionUI.openConnectionUI(window);
-            sendConnectionSuggestions(window);
-            return await Idle.connectWithOptions(await options);
-        } catch (e) {
-            console.error(e);
-            return Promise.resolve(undefined);
         }
     }
 
@@ -72,13 +61,22 @@ export class Idle implements IConnectionState {
                                            create: (port: string, baudrate: number) => UD3Connection)
         : Promise<UD3Connection | undefined> {
         const all = await SerialPort.list();
+        const options: AutoSerialPort[] = [];
         for (const port of all) {
             if (port.vendorId === config.serial.vendorID && port.productId === config.serial.productID) {
                 ipcs.terminal.println("Auto connecting to " + port.path);
                 return create(port.path, baudrate);
             }
+            if (port.vendorId && port.productId) {
+                options.push({
+                    path: port.path,
+                    manufacturer: port.manufacturer,
+                    vendorID: port.vendorId,
+                    productID: port.productId,
+                });
+            }
         }
-        ipcs.terminal.println("Did not find port to auto-connect to");
+        ipcs.connectionUI.sendAutoOptions(options);
         return undefined;
     }
     public getActiveConnection(): UD3Connection | undefined {
@@ -89,12 +87,13 @@ export class Idle implements IConnectionState {
         return undefined;
     }
 
-    public getButtonText(): string {
-        return "Connect";
+    public getConnectionStatus(): ConnectionStatus {
+        return ConnectionStatus.IDLE;
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {
-        return new Connecting(Idle.connectInternal(window), this);
+        //TODO
+        return this;
     }
 
     public tickFast(): IConnectionState {

@@ -1,14 +1,13 @@
 import {MediaFileType, PlayerActivity} from "./CommonTypes";
-import {CommandRole} from "./TTConfig";
 
 export const IPC_CONSTANTS_TO_RENDERER = {
     connect: {
-        addUDPSuggestion: "suggest-udp",
-        openUI: "connection-ui",
+        setUDPSuggestions: "suggest-udp",
         setSerialSuggestions: "suggest-serial",
+        connectionError: "connection-error",
+        showAutoPortOptions: "show-auto-ports",
     },
     menu: {
-        connectionButtonText: "menu-connection-text",
         setMediaTitle: "menu-media-title",
         setScriptName: "menu-script-name",
         ud3State: "menu-ud3-state",
@@ -31,9 +30,11 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     sliders: {
         syncSettings: "slider-sync",
     },
+    updateConnectionState: "update-connection-state",
     terminal: "terminal",
     ttConfig: "tt-config",
     udConfig: "ud-config",
+    openToast: "open-toast",
 };
 
 export class SetMeters {
@@ -60,7 +61,14 @@ export class MeterConfig {
     }
 }
 
-export class UD3State {
+export interface IUD3State {
+    readonly busActive: boolean;
+    readonly busControllable: boolean;
+    readonly transientActive: boolean;
+    readonly killBitSet: boolean;
+}
+
+export class UD3State implements IUD3State {
     public static DEFAULT_STATE = new UD3State(false, false, false, false);
 
     public readonly busActive: boolean;
@@ -116,21 +124,21 @@ export class ScopeLine {
     public readonly y1: number;
     public readonly x2: number;
     public readonly y2: number;
-    public readonly color: number;
+    public readonly traceColorIndex: number;
 
     constructor(x1: number, y1: number, x2: number, y2: number, color: number) {
         this.x1 = x1;
         this.y1 = y1;
         this.x2 = x2;
         this.y2 = y2;
-        this.color = color;
+        this.traceColorIndex = color;
     }
 }
 
 export class ScopeText {
     public readonly x: number;
     public readonly y: number;
-    public readonly color: number;
+    public readonly traceColorIndex: number;
     public readonly size: number;
     public readonly str: string;
     public readonly center: boolean;
@@ -139,7 +147,7 @@ export class ScopeText {
     constructor(x: number, y: number, color: number, size: number, str: string, center: boolean) {
         this.x = x;
         this.y = y;
-        this.color = color;
+        this.traceColorIndex = color;
         this.size = size;
         this.str = str;
         this.center = center;
@@ -172,49 +180,61 @@ export class ConfirmationRequest {
     }
 }
 
-export class SliderState {
-    public ontimeAbs: number;
-    public ontimeRel: number;
-    public bps: number = 20;
-    public burstOntime: number = 500;
-    public burstOfftime: number = 0;
-    public relativeAllowed: boolean = true;
-    public maxOntime: number = 400;
-    public maxBPS: number = 1000;
-
-    constructor(role: CommandRole) {
-        this.ontimeAbs = role !== "disable" ? this.maxOntime : 0;
-        this.ontimeRel = role !== "disable" ? 0 : 100;
-        this.relativeAllowed = role !== "client";
-    }
-
-    public get ontime() {
-        return this.ontimeAbs * this.ontimeRel / 100;
-    }
-
-    public updateRanges(maxOntime: number, maxBPS: number): boolean {
-        let changed = false;
-        if (maxOntime !== this.maxOntime) {
-            // First case: We had full range using the relative slider, we want to keep that
-            // Second case: Current ontime becomes illegal, clamp to new max (i.e. closest to old value we can get)
-            if (this.ontimeAbs === this.maxOntime || this.ontimeAbs > maxOntime) {
-                this.ontimeAbs = maxOntime;
-            }
-            this.maxOntime = maxOntime;
-            changed = true;
-        }
-        if (maxBPS !== this.maxBPS) {
-            if (this.bps > maxBPS) {
-                this.bps = maxBPS;
-            }
-            this.maxBPS = maxBPS;
-            changed = true;
-        }
-        return changed;
-    }
+export interface ISliderState {
+    readonly ontimeAbs: number;
+    readonly ontimeRel: number;
+    readonly bps: number;
+    readonly burstOntime: number;
+    readonly burstOfftime: number;
+    readonly relativeAllowed: boolean;
+    readonly maxOntime: number;
+    readonly maxBPS: number;
 }
 
 export interface IUDPConnectionSuggestion {
     remoteIP: string;
     desc?: string;
+}
+
+export enum ConnectionStatus {
+    IDLE,
+    CONNECTING,
+    CONNECTED,
+    RECONNECTING,
+    BOOTLOADING,
+}
+
+export enum UD3ConfigType {
+    TYPE_UNSIGNED,
+    TYPE_SIGNED,
+    TYPE_FLOAT,
+    TYPE_STRING,
+}
+
+export interface UD3ConfigOption {
+    type: UD3ConfigType;
+    name: string;
+    help: string;
+    min?: number;
+    max?: number;
+    current: string;
+}
+
+export enum ToastSeverity {
+    info,
+    warning,
+    error,
+}
+
+export interface ToastData {
+    title: string;
+    message: string;
+    level: ToastSeverity;
+}
+
+export interface AutoSerialPort {
+    path: string;
+    manufacturer: string;
+    vendorID: string;
+    productID: string;
 }

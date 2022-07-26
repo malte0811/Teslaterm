@@ -1,0 +1,80 @@
+.tt-scope {
+    height: 100%;
+    background: black;
+    display: grid;
+    grid-template-rows: 20px calc(100% - 40px) 20px;
+    grid-template-columns: 100%;
+}
+
+.tt-canvas {
+    margin: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.tt-controlled-draw {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 100%;
+    grid-template-columns: 100%;
+}
+
+.tt-trace-stats {
+    margin-right: 10px;
+    overflow: hidden;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.tt-trace-stat {
+    margin-right: 10px;
+    overflow: hidden;
+}
+
+.tt-media-progress {
+    color: white;
+    font-size: 12px;
+    height: 20px;
+}
+
+.tt-scope-stats {
+    height: 20px;
+    overflow: hidden;
+}
+
+.tt-scope-middle-row {
+    display: grid;
+    grid-template-columns: 85% 15%;
+    grid-template-rows: 100%;
+}
+
+.tt-scope-settings {
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.tt-scope-tab-toplevel {
+    height: 100%;
+    display: block;
+}
+
+.tt-tabs-full {
+    height: 100%;
+}
+
+.tt-tabs-top {
+    height: 45px;
+}
+
+.tt-tabs-body {
+    height: calc(100% - 45px);
+    /* TODO surely there's a better way to do this! */
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 100%;
+}
+
+.tt-tabs-body-inner {
+    height: 100%;
+}

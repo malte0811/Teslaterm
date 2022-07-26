@@ -1,4 +1,5 @@
 import {getDefaultConnectOptions} from "../../common/ConnectionOptions";
+import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
@@ -51,14 +52,15 @@ export function startBootloading(cyacd: Uint8Array): boolean {
     return false;
 }
 
-let lastButton: string;
+let lastStatus: ConnectionStatus = ConnectionStatus.IDLE;
 
-export function updateFast(): boolean {
+export function updateFast() {
     connectionState = connectionState.tickFast();
-    const newButton = connectionState.getButtonText();
-    const ret = newButton !== lastButton;
-    lastButton = newButton;
-    return ret;
+    const newStatus = connectionState.getConnectionStatus();
+    if (newStatus !== lastStatus) {
+        ipcs.misc.setConnectionState(newStatus);
+    }
+    lastStatus = newStatus;
 }
 
 export function updateSlow(): void {
@@ -85,3 +87,7 @@ export function hasUD3Connection(): boolean {
     return connectionState.getActiveConnection() !== undefined;
 }
 
+export function connectWithOptions(args: any) {
+    // TODO sort of a hack, I guess
+    connectionState = new Connecting(Idle.connectWithOptions(args), new Idle());
+}

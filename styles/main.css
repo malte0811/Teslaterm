@@ -1,112 +1,46 @@
-html, body
-{
-   height: 100%;
-   margin: 0px;
-   padding: 0px;
-}
-.output
-{
-	height:100%;
-   font-family: monospace;
-   font-size:10pt;
-	overflow-y:scroll;
-	overflow-x:hidden;
-   -webkit-user-select: text;
-}
-.heighttext{
-   font-family: monospace;
-   font-size:10pt;
-   width:100%;
-}
-.heighttext:focus {
-   outline:none;
-}
-div.smoothie-chart-tooltip {
-  background: #444;
-  padding: 1em;
-  margin-top: 20px;
-  font-family: consolas;
-  color: white;
-  font-size: 10px;
-  pointer-events: none;
-}
-.scopeview { 
-  height:40vh; 
-  display: grid; 
-  grid-template-rows: 100px; 
-  grid-template-columns: 76% 24%; 
-} 
-article { 
-  grid-column-start:1; 
-  grid-column-end:1; 
-  grid-row-start:1; 
-  grid-row-end:1; 
-} 
-aside { 
-  grid-column-start:2; 
-  grid-column-end:2; 
-  grid-row-start:1; 
-  grid-row-end:1; 
-} 
-.kill_status_ok, .kill_status_err {
-  width: 50px;
-  height: 20px;
-  font-size: 15px;
-  color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.kill_status_ok {
-    background: green;
-}
-.kill_status_err {
-    background: red;
-}
-.slider, .slider-gray {
-    -webkit-appearance: none;
-    width: 82%;
-    height: 10px;
-    border-radius: 5px;   
-    background: #d3d3d3;
-    outline: none;
-    opacity: 0.7;
-    -webkit-transition: .2s;
-    transition: opacity .2s;
+.tt-menu-bar {
+    height: 40px;
 }
 
-.slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #4CAF50;
-    cursor: pointer;
+.tt-scope-container {
+    display: grid;
+    grid-template-columns: 76% 24%;
+    grid-template-rows: 100%;
+    margin-bottom: 10px;
 }
 
-.slider-gray::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #a0a0a0;
-    cursor: pointer;
+.tt-terminal-container {
+    display: grid;
+    grid-template-rows: 50vh calc(50vh - 40px);
+    grid-template-columns: 100%;
+    width: 100%;
 }
 
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #4CAF50;
-    cursor: pointer;
+.tt-terminal-and-gauges {
+    display: grid;
+    grid-template-columns: calc(100% - 120px) 120px;
+    grid-template-rows: 100%;
 }
 
-.menu {
-    /*
-     * Hack: In recent Chrome versions, W2UIs menu shows scrollbars. This works around that.
-     * see vitmalina/w2ui#2041
-     */
-    overflow-y: unset !important;
+.tt-main-screen {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 40px calc(100% - 40px);
+    grid-template-columns: 100%;
+}
+
+.tt-connect-screen {
+    width: 100vw;
+    height: 100vh;
+}
+
+.tt-connect-form {
+    max-width: 600px;
+    margin: auto;
+    overflow-y: visible;
+}
+
+#root {
+    overflow: hidden;
 }

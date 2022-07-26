@@ -1,11 +1,10 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
-import {updateSliderState} from "../gui/sliders";
 import {processIPC} from "./IPCProvider";
 
 export namespace SlidersIPC {
     export function init() {
-        processIPC.on(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, updateSliderState);
+        //processIPC.on(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, updateSliderState);
     }
 
     export function setRelativeOntime(val: number) {

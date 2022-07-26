@@ -1,3 +1,4 @@
+import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connecting} from "./Connecting";
@@ -23,8 +24,8 @@ export class Reconnecting implements IConnectionState {
         return undefined;
     }
 
-    getButtonText(): string {
-        return "Abort reconnection attempt";
+    getConnectionStatus(): ConnectionStatus {
+        return ConnectionStatus.RECONNECTING;
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {
@@ -33,15 +34,18 @@ export class Reconnecting implements IConnectionState {
 
     tickFast(): IConnectionState {
         if (this.failedAttempts >= Reconnecting.MAX_RETRIES) {
-            ipcs.terminal.println("Aborting attempts to reconnect");
+            ipcs.misc.openToast('Reconnect', "Aborting attempts to reconnect", ToastSeverity.error);
             return new Idle();
         }
         ++this.ticksSinceLastFailure;
         if (this.ticksSinceLastFailure > Reconnecting.TICKS_BETWEEN_RETRIES) {
             ++this.failedAttempts;
             this.ticksSinceLastFailure = 0;
-            ipcs.terminal.println("Attempting to reconnect (attempt " +
-                this.failedAttempts.toString(10) + " of " + Reconnecting.MAX_RETRIES.toString(10) + ")...");
+            ipcs.misc.openToast(
+                'Reconnect',
+                "Attempting to reconnect (attempt " + this.failedAttempts + " of " + Reconnecting.MAX_RETRIES + ")...",
+                ToastSeverity.info
+            );
             return new Connecting(Promise.resolve(this.connectionToReestablish), this);
         } else {
             return this;

@@ -9,12 +9,13 @@ import {
     TT_GAUGE32, TT_GAUGE32_CONF, TT_GAUGE_CONF,
     TT_STATE_SYNC, UNITS,
 } from "../../../common/constants";
+import {UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {updateStateFromTelemetry} from "./UD3State";
 
 export let configRequestQueue: object[] = [];
-let udconfig: string[][] = [];
+let udconfig: UD3ConfigOption[] = [];
 
 export class TelemetryFrame {
     private readonly length: number;
@@ -142,13 +143,47 @@ export class TelemetryFrame {
                     udconfig = [];
                 } else {
                     const substrings = str.split(";");
-                    udconfig.push(substrings);
+                    const type = getOptionType(substrings[2]);
+                    if (type !== undefined) {
+                        udconfig.push({
+                            name: substrings[0],
+                            current: substrings[1],
+                            type: type,
+                            min: parseOptionMinMax(substrings[4]),
+                            max: parseOptionMinMax(substrings[5]),
+                            help: substrings[6],
+                        });
+                    } else {
+                        console.error("Unknown type in option ", str);
+                    }
                 }
                 break;
         }
     }
 }
 
+function parseOptionMinMax(value: string) {
+    if (value == 'NULL') {
+        return undefined;
+    } else {
+        return parseFloat(value);
+    }
+}
+
+function getOptionType(idStr: string): UD3ConfigType | undefined {
+    const id = parseInt(idStr);
+    switch (id) {
+        case 0:
+            return UD3ConfigType.TYPE_UNSIGNED;
+        case 1:
+            return UD3ConfigType.TYPE_SIGNED;
+        case 2:
+            return UD3ConfigType.TYPE_FLOAT;
+        case 4:
+            return UD3ConfigType.TYPE_STRING;
+    }
+    return undefined;
+}
 
 function drawString(dat: number[], center: boolean, source?: object) {
     const x = bytes_to_signed(dat[1], dat[2]);

@@ -7,7 +7,6 @@ import {MultiWindowIPC} from "./IPCProvider";
 
 export class MenuIPC {
     private lastUD3State: UD3State = UD3State.DEFAULT_STATE;
-    private lastConnectText: string = "Connect";
     private lastScriptName: string = "Script: none";
     private lastMediaName: string = "MIDI-File: none";
     private readonly processIPC: MultiWindowIPC;
@@ -36,11 +35,6 @@ export class MenuIPC {
         }
     }
 
-    public setConnectionButtonText(newText: string) {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.connectionButtonText, newText);
-        this.lastConnectText = newText;
-    }
-
     public setScriptName(scriptName: string) {
         this.lastScriptName = "Script: " + scriptName;
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, this.lastScriptName);
@@ -53,7 +47,6 @@ export class MenuIPC {
 
     public sendFullState(target: object) {
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, target, this.lastUD3State);
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.connectionButtonText, target, this.lastConnectText);
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, target, this.lastScriptName);
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, target, this.lastMediaName);
     }

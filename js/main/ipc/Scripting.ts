@@ -1,5 +1,5 @@
 import {ConfirmReply, IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ConfirmationRequest, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {ConfirmationRequest, IPC_CONSTANTS_TO_RENDERER, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
@@ -24,7 +24,7 @@ export class ScriptingIPC {
 
     public async startScript(source: object) {
         if (this.currentScript === null) {
-            ipcs.terminal.println("Please select a script file using drag&drop first");
+            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info);
         } else {
             await this.currentScript.start(source);
         }
@@ -32,9 +32,9 @@ export class ScriptingIPC {
 
     public stopScript() {
         if (this.currentScript === null) {
-            ipcs.terminal.println("Please select a script file using drag&drop first");
+            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info);
         } else if (!this.currentScript.isRunning()) {
-            ipcs.terminal.println("The script can not be stopped since it isn't running");
+            ipcs.misc.openToast('Script', "The script can not be stopped since it isn't running", ToastSeverity.info);
         } else {
             this.currentScript.cancel();
         }
@@ -45,7 +45,7 @@ export class ScriptingIPC {
             this.currentScript = await Script.create(file.contents);
             ipcs.menu.setScriptName(file.name);
         } catch (e) {
-            ipcs.terminal.println("Failed to load script: " + e);
+            ipcs.misc.openToast('Script', "Failed to load script: " + e, ToastSeverity.error);
             console.log(e);
         }
     }

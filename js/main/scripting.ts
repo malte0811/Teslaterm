@@ -1,10 +1,12 @@
-import * as JSZip from "jszip";
+// TODO something's broken about the JSZip type defs, this weird import hides the errors
+import * as JSZip from "jszip/dist/jszip.min.js";
 import * as vm from 'vm';
 import {TransmittedFile} from "../common/IPCConstantsToMain";
+import {ToastSeverity} from "../common/IPCConstantsToRenderer";
 import {commands} from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
+import * as media_player from "./media/media_player";
 import {isMediaFile} from "./media/media_player";
-import * as media_player from './media/media_player';
 
 const maxQueueLength = 1000;
 
@@ -37,7 +39,7 @@ export class Script {
             playMediaAsync: this.wrapForSandboxNonPromise(() => media_player.media_state.startPlaying()),
             playMediaBlocking: this.wrapForSandbox(() => this.playMediaBlocking()),
             println: this.wrapForSandbox((s) => {
-                ipcs.terminal.println(s);
+                ipcs.misc.openToast('Script output', s, ToastSeverity.info);
                 return Promise.resolve();
             }),
             setBPS: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBPS(d)),
@@ -56,10 +58,10 @@ export class Script {
     }
 
     public static async create(zipData: ArrayBuffer): Promise<Script | null> {
-        const zip = await JSZip.loadAsync(zipData);
+        const loadedZip: JSZip = await JSZip.loadAsync(zipData);
 
         let scriptName = null;
-        for (const name of Object.keys(zip.files)) {
+        for (const name of Object.keys(loadedZip.files)) {
             if (name.endsWith(".js")) {
                 if (scriptName) {
                     throw new Error("Multiple scripts in zip: " + scriptName + " and " + name);
@@ -70,8 +72,8 @@ export class Script {
         if (scriptName == null) {
             throw new Error("Did not find script in zip file!");
         }
-        const script = await zip.file(scriptName).async("string");
-        const ret = new Script(zip, script);
+        const script = await loadedZip.file(scriptName).async("string");
+        const ret = new Script(loadedZip, script);
         for (const entry of ret.queue) {
             await entry.assertApplicable();
         }
@@ -92,7 +94,7 @@ export class Script {
 
     public async start(starterKey: object) {
         if (this.running) {
-            ipcs.terminal.println("The script is already running.");
+            ipcs.misc.openToast('Script', 'The script is already running.', ToastSeverity.info, starterKey);
             return;
         }
         this.starterKey = starterKey;
@@ -101,16 +103,16 @@ export class Script {
         try {
             for (const entry of this.queue) {
                 if (!this.isRunning()) {
-                    ipcs.terminal.println("Cancelled script");
+                    ipcs.misc.openToast('Script', 'Cancelled script', ToastSeverity.info, starterKey);
                     break;
                 }
                 await entry.run();
             }
             if (this.isRunning()) {
-                ipcs.terminal.println("Script finished normally");
+                ipcs.misc.openToast('Script', 'Script finished normally', ToastSeverity.info, starterKey);
             }
         } catch (x) {
-            ipcs.terminal.println("Script finished with error: " + x);
+            ipcs.misc.openToast('Script', 'Script finished with error: ' + x, ToastSeverity.warning, starterKey);
             console.error(x);
         }
         this.running = false;

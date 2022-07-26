@@ -1,7 +1,7 @@
 import {FEATURE_NOTELEMETRY} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
-import {commands, getUD3Connection, hasUD3Connection} from "../connection/connection";
+import {getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {receive_main} from "../connection/telemetry";
 import {TerminalHandle} from "../connection/types/UD3Connection";
 import {MultiWindowIPC} from "./IPCProvider";

@@ -4,19 +4,11 @@ import {
     ScopeText,
     ScopeTraceConfig, ScopeValues,
 } from "../../common/IPCConstantsToRenderer";
-import {
-    beginControlledDraw,
-    drawChart,
-    drawLine,
-    drawString,
-    redrawInfo,
-    redrawMediaInfo,
-    traces,
-} from "../gui/oscilloscope/oscilloscope";
 import {processIPC} from "./IPCProvider";
 
 export namespace ScopeIPC {
     export function init() {
+        /*
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.configure, (cfg: ScopeTraceConfig) => {
             traces[cfg.id].configure(cfg.min, cfg.max, cfg.offset, cfg.div, cfg.unit, cfg.name);
             redrawInfo();
@@ -41,5 +33,6 @@ export namespace ScopeIPC {
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia, (state: MediaState) => {
             redrawMediaInfo(state);
         });
+         */
     }
 }

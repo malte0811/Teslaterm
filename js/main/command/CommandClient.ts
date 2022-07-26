@@ -1,5 +1,6 @@
 import {Socket} from "net";
 import {SynthType} from "../../common/CommonTypes";
+import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {getOptionalUD3Connection,} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
@@ -25,7 +26,9 @@ export class CommandClient {
     public constructor(remoteName: string, port: number) {
         this.socket = new Socket();
         this.socket.addListener("data", (data) => this.parser.onData(data));
-        this.socket.addListener("error", (err) => ipcs.terminal.println("Failed to connect to command server: " + err));
+        this.socket.addListener("error", (err) => ipcs.misc.openToast(
+            'Command client', "Failed to connect to command server: " + err, ToastSeverity.error
+        ));
         this.socket.connect(port, remoteName);
     }
 

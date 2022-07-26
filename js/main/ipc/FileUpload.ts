@@ -1,4 +1,5 @@
 import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
+import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {startBootloading} from "../connection/connection";
 import * as media_player from "../media/media_player";
 import {BlockSender} from "./block";
@@ -13,7 +14,7 @@ export class FileUploadIPC {
             await ipcs.scripting.loadScript(file);
         } else if (extension === "cyacd") {
             if (!startBootloading(file.contents)) {
-                ipcs.terminal.println("Connection does not support bootloading");
+                ipcs.misc.openToast('Bootloader', "Connection does not support bootloading", ToastSeverity.error,);
             }
         } else if (extension === "mcf") {
             await BlockSender.loadBlocks(file);

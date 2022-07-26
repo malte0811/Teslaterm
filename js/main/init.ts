@@ -1,9 +1,10 @@
+import {ToastSeverity} from "../common/IPCConstantsToRenderer";
 import {TTConfig} from "../common/TTConfig";
 import {CommandClient} from "./command/CommandClient";
 import {ICommandServer, makeCommandServer} from "./command/CommandServer";
 import * as connection from "./connection/connection";
-import {ipcs} from "./ipc/IPCProvider";
 import * as IPC from "./ipc/IPCProvider";
+import {ipcs} from "./ipc/IPCProvider";
 import * as midi from "./midi/midi";
 import {NetworkSIDServer} from "./sid/NetworkSIDServer";
 import * as sid from "./sid/sid";
@@ -40,7 +41,7 @@ function tick200() {
     connection.updateSlow();
     commandServer.tick();
     if (commandClient && commandClient.tickSlow()) {
-        ipcs.terminal.println("Command server timed out, reconnecting");
+        ipcs.misc.openToast("Command server", "Command server timed out, reconnecting", ToastSeverity.warning);
         initCommandClient();
     }
 }
@@ -54,8 +55,5 @@ function tick20() {
 }
 
 function tick10() {
-    const updateButton = connection.updateFast();
-    if (updateButton) {
-        ipcs.menu.setConnectionButtonText(connection.connectionState.getButtonText());
-    }
+    connection.updateFast();
 }

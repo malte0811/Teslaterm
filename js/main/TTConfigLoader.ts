@@ -229,9 +229,9 @@ export function loadConfig(filename: string): TTConfig {
     }
     fs.writeFile(filename, configToString(config), (err) => {
         if (err) {
-            ipcs.terminal.println("Failed to write new config!");
+            console.warn("Failed to write new config!", err);
         } else {
-            ipcs.terminal.println("Successfully updated config");
+            console.log("Successfully updated config");
         }
     });
     return ret;

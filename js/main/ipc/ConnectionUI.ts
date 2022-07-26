@@ -1,5 +1,7 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
+import {AutoSerialPort, IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
+import {connectWithOptions} from "../connection/connection";
+import {sendConnectionSuggestions} from "../connection/types/Suggestions";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class ConnectionUIIPC {
@@ -7,27 +9,25 @@ export class ConnectionUIIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-    }
-
-    public async openConnectionUI(key: object): Promise<any> {
-        return new Promise<any>((res, rej) => {
-            this.processIPC.once(IPC_CONSTANTS_TO_MAIN.connect, (source: object, args: any) => {
-                if (args !== null) {
-                    res(args);
-                } else {
-                    rej("Cancelled");
-                }
-            });
-            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.connect.openUI, key);
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect, (source: object, args: any) => {
+            connectWithOptions(args);
         });
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestConnectSuggestions, sendConnectionSuggestions);
     }
 
-    public async suggestUDP(key: object, ip: string, desc?: string) {
-        const data: IUDPConnectionSuggestion = {remoteIP: ip, desc};
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.connect.addUDPSuggestion, key, data);
+    public suggestUDP(key: object, suggestions: IUDPConnectionSuggestion[]) {
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.connect.setUDPSuggestions, key, suggestions);
     }
 
     public suggestSerial(key: object, ports: string[]) {
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, key, ports);
+    }
+
+    public sendConnectionError(error: string) {
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.connect.connectionError, error);
+    }
+
+    public sendAutoOptions(options: AutoSerialPort[]) {
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.connect.showAutoPortOptions, options);
     }
 }

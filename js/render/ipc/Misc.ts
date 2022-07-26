@@ -1,19 +1,14 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
-import {addUDPSuggestion, openUI, setSerialSuggestions} from "../gui/ConnectionUI";
-import {terminal} from "../gui/constants";
-import {ud_settings} from "../gui/UDConfig";
 import {processIPC} from "./IPCProvider";
 
 export let config: TTConfig = new TTConfig();
 
 export namespace MiscIPC {
 
+    /*
     export function init() {
-        processIPC.on(IPC_CONSTANTS_TO_RENDERER.terminal, (s: string) => {
-            terminal.write(s);
-        });
         processIPC.on(IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg: TTConfig) => {
             config = cfg;
         });
@@ -37,6 +32,7 @@ export namespace MiscIPC {
         });
         processIPC.send(IPC_CONSTANTS_TO_MAIN.rendererReady);
     }
+     */
 
     export function sendMidi(data: Uint8Array) {
         processIPC.send(IPC_CONSTANTS_TO_MAIN.midiMessage, data);

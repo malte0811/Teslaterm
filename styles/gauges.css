@@ -1,0 +1,8 @@
+.tt-gauges {
+    width: 120px;
+    overflow-y: auto;
+}
+
+.tt-gauge {
+    height: 120px;
+}

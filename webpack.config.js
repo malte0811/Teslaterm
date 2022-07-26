@@ -3,12 +3,19 @@ const path = require('path');
 module.exports = {
 	entry: './js/render/entry_browser.js',
 	devtool: 'inline-source-map',
-	resolve: {
-		extensions: ['.js'],
-	},
 	output: {
 		filename: 'bundle.js',
 		path: path.resolve(__dirname, 'dist'),
+	},
+	module: {
+		rules: [
+			{ test: /\.css$/, use: 'css-loader' },
+			{ test: /\.ts$/, use: 'ts-loader' },
+			{ test: /\.tsx$/, use: 'ts-loader' },
+		],
+	},
+	resolve: {
+		extensions: ['.tsx', '.ts', '.js'],
 	},
     performance: {
         // We do not care about this size; TT is never loaded over anything worse than a fast LAN connection

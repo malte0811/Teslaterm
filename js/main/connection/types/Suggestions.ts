@@ -1,4 +1,5 @@
 import {SerialPort} from "serialport";
+import {IUDPConnectionSuggestion} from "../../../common/IPCConstantsToRenderer";
 import {convertArrayBufferToString, sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {createBroadcastSocket} from "../udp_helper";
@@ -9,6 +10,7 @@ export function sendConnectionSuggestions(windowKey: any) {
 }
 
 async function sendUDPConnectionSuggestions(windowKey: any) {
+    const suggestions: IUDPConnectionSuggestion[] = [];
     const udpSocket = await createBroadcastSocket();
     udpSocket.send("FINDReq=1;\0", 50022, "255.255.255.255");
     udpSocket.on('message', (msg, rinfo) => {
@@ -30,7 +32,8 @@ async function sendUDPConnectionSuggestions(windowKey: any) {
                 }
             }
             if (isUD3) {
-                ipcs.connectionUI.suggestUDP(windowKey, rinfo.address, name);
+                suggestions.push({remoteIP: rinfo.address, desc: name});
+                ipcs.connectionUI.suggestUDP(windowKey, suggestions);
             }
         }
     });

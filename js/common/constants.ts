@@ -16,12 +16,6 @@ export const TT_CHART32_CONF = 17;
 
 export const UNITS: string[] = ['', 'V', 'A', 'W', 'Hz', '°C', 'kW', 'RPM'];
 
-export const TYPE_UNSIGNED = 0;
-export const TYPE_SIGNED = 1;
-export const TYPE_FLOAT = 2;
-export const TYPE_CHAR = 3;
-export const TYPE_STRING = 4;
-
 export const DATA_TYPE = 0;
 export const DATA_NUM = 1;
 
@@ -29,9 +23,6 @@ export const FEATURE_TIMEBASE = "timebase";
 export const FEATURE_TIMECOUNT = "time_count";
 export const FEATURE_NOTELEMETRY = "notelemetry_supported";
 export const FEATURE_MINSID = "min_sid_support";
-
-export const maxBurstOntime = 1000;
-export const maxBurstOfftime = 1000;
 
 // Connection types
 export const udp_min = "udpmin";

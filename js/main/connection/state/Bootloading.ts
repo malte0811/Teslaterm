@@ -1,3 +1,4 @@
+import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
@@ -22,7 +23,7 @@ export class Bootloading implements IConnectionState {
             .catch(
                 (e) => {
                     console.error(e);
-                    ipcs.terminal.println("Error while bootloading: " + e);
+                    ipcs.misc.openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
                 }
             )
             .then(
@@ -48,8 +49,8 @@ export class Bootloading implements IConnectionState {
         }
     }
 
-    getButtonText(): string {
-        return "Abort bootloading";
+    getConnectionStatus(): ConnectionStatus {
+        return ConnectionStatus.BOOTLOADING;
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {
@@ -99,7 +100,7 @@ export class Bootloading implements IConnectionState {
             await ldr.connectAndProgram();
         } catch (e) {
             console.error(e);
-            ipcs.terminal.println("Error while bootloading: " + e);
+            ipcs.misc.openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
         }
         if (this.inBootloadMode) {
             this.connection.leaveBootloaderMode();

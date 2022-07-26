@@ -1,0 +1,3 @@
+- Take a look at https://react-bootstrap.github.io/forms/validation/ for baudrate etc
+- Add "Abort connection" button to connect screen
+  - But first properly implement that in the backend, currently it leaves the partial connection running and ports locked

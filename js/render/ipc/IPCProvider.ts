@@ -1,19 +1,25 @@
+export interface IPCListenerRef {
+    channel: string;
+    realCB: any;
+}
+
 export interface IPCProvider {
     send(channel: string, ...args: any[]);
 
-    on(channel: string, callback: (...args: any[]) => void);
+    on(channel: string, callback: (...args: any[]) => void): IPCListenerRef;
 
-    once(channel: string, callback: (...args: any[]) => void);
+    removeListener(listener: IPCListenerRef);
 }
 
 export class DummyIPC implements IPCProvider {
-    public on(channel: string, callback: (...args: any[]) => void) {
+    public on(channel: string, callback: (...args: any[]) => void): IPCListenerRef {
+        return {channel, realCB: undefined};
     }
 
     public send(channel: string, ...args: any[]) {
     }
 
-    public once(channel: string, callback: (...args: any[]) => void) {
+    public removeListener(listener: IPCListenerRef) {
     }
 }
 

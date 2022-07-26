@@ -1,3 +1,4 @@
+import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {startConf} from "../connection";
 import * as telemetry from "../telemetry";
@@ -26,12 +27,14 @@ export class Connecting implements IConnectionState {
             this.connection = c;
             if (c) {
                 this.state = State.connecting;
-                let error = undefined;
+                let error: {
+                    message: string;
+                } = undefined;
                 try {
                     await c.connect();
                     this.autoTerminal = c.setupNewTerminal(telemetry.receive_main);
                     if (this.autoTerminal === undefined) {
-                        error = "Failed to create a terminal for automatic commands";
+                        error = {message: "Failed to create a terminal for automatic commands"};
                     } else {
                         await c.startTerminal(this.autoTerminal);
                         this.state = State.initializing;
@@ -43,7 +46,7 @@ export class Connecting implements IConnectionState {
                     error = x;
                 }
                 if (error) {
-                    ipcs.terminal.println("Failed to connect");
+                    ipcs.connectionUI.sendConnectionError(error.message || ('Error: ' + error));
                     console.log("While connecting: ", error);
                     c.disconnect();
                     this.state = State.failed;
@@ -62,8 +65,8 @@ export class Connecting implements IConnectionState {
         }
     }
 
-    public getButtonText(): string {
-        return "Abort connection";
+    public getConnectionStatus(): ConnectionStatus {
+        return ConnectionStatus.CONNECTING;
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {

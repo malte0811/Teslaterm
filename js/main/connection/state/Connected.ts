@@ -1,4 +1,5 @@
 import {PlayerActivity} from "../../../common/CommonTypes";
+import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as media from "../../media/media_player";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
@@ -28,8 +29,8 @@ export class Connected implements IConnectionState {
         return this.active_connection;
     }
 
-    public getButtonText(): string {
-        return "Disconnect";
+    public getConnectionStatus(): ConnectionStatus {
+        return ConnectionStatus.CONNECTED;
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {
@@ -46,7 +47,7 @@ export class Connected implements IConnectionState {
         this.active_connection.tick();
 
         if (this.isConnectionLost()) {
-            ipcs.terminal.println("\n\rLost connection, will attempt to reconnect");
+            ipcs.misc.openToast('Connection lost', 'Lost connection, will attempt to reconnect', ToastSeverity.warning);
             this.active_connection.disconnect();
             ipcs.terminal.onConnectionClosed();
             return new Reconnecting(this.active_connection);

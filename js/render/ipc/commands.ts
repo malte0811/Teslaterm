@@ -1,5 +1,4 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {terminal} from "../gui/constants";
 import {processIPC} from "./IPCProvider";
 
 class CommandsIPC {
@@ -25,11 +24,6 @@ class CommandsIPC {
 
     public sendManualCommand(cmd: string) {
         processIPC.send(IPC_CONSTANTS_TO_MAIN.manualCommand, cmd);
-    }
-
-    public clearManualTerminal() {
-        terminal.clear();
-        this.sendManualCommand('cls\r');
     }
 }
 

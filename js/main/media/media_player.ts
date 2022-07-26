@@ -1,6 +1,7 @@
 import * as path from "path";
 import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {commands, getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {transientActive} from "../connection/telemetry/UD3State";
 import {config} from "../init";
@@ -63,6 +64,7 @@ export class PlayerState {
         }
     }
 
+    // TODO convert to toasts
     public async startPlaying(): Promise<void> {
         if (this.currentFile === null) {
             ipcs.terminal.println("Please select a media file using drag&drop");
@@ -114,7 +116,7 @@ export function isMediaFile(filename: string): boolean {
 
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     if (config.command.state === "client") {
-        ipcs.terminal.println("Cannot load media files on command client!");
+        ipcs.misc.openToast('Media', "Cannot load media files on command client!", ToastSeverity.info);
         return;
     }
     if (media_state.state === PlayerActivity.playing) {
@@ -126,6 +128,6 @@ export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     } else if (extension === "dmp" || extension === "sid") {
         await loadSidFile(file);
     } else {
-        ipcs.terminal.println("Unknown extension: " + extension);
+        ipcs.misc.openToast('Media', "Unknown extension: " + extension, ToastSeverity.warning);
     }
 }
