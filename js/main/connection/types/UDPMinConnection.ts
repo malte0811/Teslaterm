@@ -1,8 +1,7 @@
-import {createUDPSocket} from "../tcp_helper";
+import {createUDPSocket} from "../udp_helper";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
 import * as dgram from 'dgram';
-import {ipcs} from "../../ipc/IPCProvider";
 
 class UDPMinConnection extends MinConnection {
     public readonly remotePort: number;

@@ -3,29 +3,6 @@ import * as net from "net";
 import {promisify} from "util";
 import {ipcs} from "../ipc/IPCProvider";
 
-export function connectTCPSocket(
-    ipaddr: string,
-    port: number,
-    desc: string,
-    dataCallback: (data: Buffer) => void,
-): Promise<net.Socket> {
-    return new Promise<net.Socket>((res, rej) => {
-        const ret = net.createConnection({port, host: ipaddr}, () => {
-            ipcs.terminal.println("Connected socket " + desc);
-            res(ret);
-        });
-        ret.on('end', () => {
-            ipcs.terminal.println("Socket " + desc + " disconnected");
-        });
-        ret.addListener('error', (e: Error) => {
-            ipcs.terminal.println("Error on " + desc + " socket!");
-            console.error(e);
-            rej(e);
-        });
-        ret.on('data', dataCallback);
-    });
-}
-
 function createSocket(onError: (err) => any): dgram.Socket {
     let socket = dgram.createSocket("udp4");
     socket.on('end', () => {

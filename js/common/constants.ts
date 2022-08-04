@@ -34,13 +34,11 @@ export const maxBurstOntime = 1000;
 export const maxBurstOfftime = 1000;
 
 // Connection types
-export const eth_node = "eth";
 export const udp_min = "udpmin";
 export const serial_min = "min";
 export const serial_plain = "serial";
 export const dummy = "dummy";
 export const connection_types = new Map<string, string>();
-connection_types.set(eth_node, "Ethernet to UD3-node");
 connection_types.set(udp_min, "MIN over UDP");
 connection_types.set(serial_min, "Serial (MIN)");
 connection_types.set(serial_plain, "Serial (Plain)");

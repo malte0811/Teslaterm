@@ -1,8 +1,5 @@
 export class EthernetConfig {
     public remote_ip: string;
-    public telnetPort: number;
-    public midiPort: number;
-    public sidPort: number;
     public udpMinPort: number;
 }
 

@@ -1,10 +1,10 @@
 import {
     baudrate,
     connection_type,
-    getDefaultConnectOptions, midi_port, remote_ip,
-    serial_port, sid_port, telnet_port, udp_min_port,
+    getDefaultConnectOptions, remote_ip,
+    serial_port, udp_min_port,
 } from "../../common/ConnectionOptions";
-import {connection_types, dummy, eth_node, serial_min, serial_plain, udp_min} from "../../common/constants";
+import {connection_types, dummy, serial_min, serial_plain, udp_min} from "../../common/constants";
 import {IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
 import {config} from "../ipc/Misc";
 import * as ui_helper from "./ui_helper";
@@ -93,12 +93,6 @@ function recreateForm(selected_type: string | undefined, info: IScreenInfo) {
             addField(fields, baudrate, "Baudrate", "int");
             break;
         }
-        case eth_node:
-            addField(fields, remote_ip, "Remote IP");
-            addField(fields, telnet_port, "Telnet port", "int");
-            addField(fields, midi_port, "MIDI port", "int");
-            addField(fields, sid_port, "SID port", "int");
-            break;
         case udp_min: {
             addWithSuggestions(fields, remote_ip, "Remote IP", getUDPSuggestions());
             addField(fields, udp_min_port, "Remote port");
@@ -136,11 +130,7 @@ function recreateForm(selected_type: string | undefined, info: IScreenInfo) {
     const selector = $("input[name=" + connection_type + "]");
     const selectorItems: Array<{ id: string, text: string }> = [];
     for (const [id, text] of connection_types.entries()) {
-        // Disable eth_node connection type if command server is in use: Eth-node is not compatible with absolute SID
-        // timestamps.
-        if (id !== eth_node || config.command.state === "disable") {
-            selectorItems.push({id, text});
-        }
+        selectorItems.push({id, text});
     }
     selector.w2field("list", {
         items: selectorItems,

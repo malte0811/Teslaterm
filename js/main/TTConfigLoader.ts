@@ -167,13 +167,6 @@ export function loadConfig(filename: string): TTConfig {
             "Default settings for ethernet connections to UD3 node instances"
         );
         ret.ethernet.remote_ip = ethernet.getOrWrite("remote_ip", "localhost", changed);
-        ret.ethernet.midiPort = ethernet.getOrWrite("midiport", 12001, changed,
-            "Default remove port for RTP midi");
-        ret.ethernet.telnetPort = ethernet.getOrWrite("telnetport", 2321, changed,
-            "Default remote port for telnet and telemetry");
-        ret.ethernet.sidPort = ethernet.getOrWrite("sidport", 6581, changed,
-            "Default remote port for netSID");
-        //TODO discuss default value?
         ret.ethernet.udpMinPort = ethernet.getOrWrite("udpMinPort", 1337, changed,
             "Default remote port for MIN connections over UDP");
     }

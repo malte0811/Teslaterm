@@ -1,7 +1,7 @@
 import {SerialPort} from "serialport";
 import {convertArrayBufferToString, sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
-import {createBroadcastSocket} from "../tcp_helper";
+import {createBroadcastSocket} from "../udp_helper";
 
 export function sendConnectionSuggestions(windowKey: any) {
     Promise.all([sendSerialConnectionSuggestions(windowKey), sendUDPConnectionSuggestions(windowKey)])

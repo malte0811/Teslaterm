@@ -3,19 +3,14 @@ import {SerialPort} from "serialport";
 import {
     baudrate,
     connection_type,
-    midi_port,
     remote_ip,
     serial_port,
-    sid_port,
-    telnet_port, udp_min_port,
+    udp_min_port,
 } from "../../../common/ConnectionOptions";
-import {connection_types, dummy, eth_node, serial_min, serial_plain, udp_min} from "../../../common/constants";
-import {convertArrayBufferToString, sleep} from "../../helper";
+import {connection_types, dummy, serial_min, serial_plain, udp_min} from "../../../common/constants";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
-import {createBroadcastSocket} from "../tcp_helper";
 import {DummyConnection} from "../types/DummyConnection";
-import {createEthernetConnection} from "../types/ethernet";
 import {createPlainSerialConnection} from "../types/serial_plain";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
 import {sendConnectionSuggestions} from "../types/Suggestions";
@@ -33,8 +28,6 @@ export class Idle implements IConnectionState {
                 return this.connectSerial(options, createPlainSerialConnection);
             case serial_min:
                 return this.connectSerial(options, createMinSerialConnection);
-            case eth_node:
-                return createEthernetConnection(options[remote_ip], options[telnet_port], options[midi_port], options[sid_port]);
             case udp_min:
                 return createMinUDPConnection(options[udp_min_port], Idle.addressFromString(options[remote_ip]));
             case dummy:
