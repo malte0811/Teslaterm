@@ -5,13 +5,14 @@ on:
   create:
     tags:
       - 'v*'
-
+permissions:
+  contents: write
 jobs:
   create-artifacts:
     name: Create artifacts
     runs-on: ubuntu-latest
     env:
-      release: ${{ github.event_name == 'create' && startsWith(github.ref, 'v')}}
+      release: ${{ github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -19,7 +20,8 @@ jobs:
         run: |
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
           sudo apt-get update
-          sudo apt-get install -y --allow-downgrades libpcre2-8-0/focal libpcre2-16-0/focal libpcre2-32-0/focal libpcre2-posix2/focal
+          sudo apt-get install -y --allow-downgrades libgd3/focal libpcre2-8-0/focal libpcre2-16-0/focal libpcre2-32-0/focal libpcre2-posix2/focal
+          sudo apt-get purge -y libmono* moby* mono* php* libgdiplus libpcre2-posix3 libzip4
       - name: Install wine
         run: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get -f install wine32
       - name: Cache node modules
@@ -62,51 +64,12 @@ jobs:
         with:
           path: dist/node/ud3-node.exe
           name: ud3-node-windows.exe
-      - name: Create release
+      - name: Create and upload release builds
+        uses: softprops/action-gh-release@v1
         if: env.release == 'true'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-      - name: Release electron-linux
-        if: env.release == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/electron/teslaterm-linux.zip
-          asset_name: teslaterm-linux.zip
-          asset_content_type: application/zip
-      - name: Release electron-windows
-        if: env.release == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/electron/teslaterm-win.zip
-          asset_name: teslaterm-windows.zip
-          asset_content_type: application/zip
-      - name: Release node-linux
-        if: env.release == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/node/ud3-node-linux.zip
-          asset_name: ud3-node-linux.zip
-          asset_content_type: application/zip
-      - name: Release node-windows
-        if: env.release == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/node/ud3-node-win.zip
-          asset_name: ud3-node-windows.zip
-          asset_content_type: application/zip
+          files: |
+            dist/electron/teslaterm-linux.zip
+            dist/electron/teslaterm-win.zip
+            dist/node/ud3-node
+            dist/node/ud3-node.exe
