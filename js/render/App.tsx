@@ -33,6 +33,7 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg})
         );
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync);
     }
 
     render(): React.ReactNode {
@@ -66,6 +67,5 @@ export function init() {
     document.addEventListener('DOMContentLoaded', () => {
         const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
         root.render(<React.StrictMode><App/></React.StrictMode>);
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync);
     });
 }
