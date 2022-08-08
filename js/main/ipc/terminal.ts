@@ -45,6 +45,9 @@ export class TerminalIPC {
     }
 
     public async setupTerminal(source: object): Promise<TermSetupResult> {
+        if (this.terminals.has(source)) {
+            return TermSetupResult.success;
+        }
         this.processIPC.addDisconnectCallback(source, () => {
             if (this.terminals.has(source)) {
                 if (hasUD3Connection()) {
