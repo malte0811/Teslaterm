@@ -1,7 +1,7 @@
 import React from "react";
 import {Button, DropdownButton, Modal} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUD3State, UD3ConfigOption} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
@@ -54,9 +54,10 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             items,
             'Save EEPROM',
             'Are you sure to save the configuration to EEPROM?',
-            IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM
+            IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM,
+            undefined
         );
-        this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig);
+        this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
         return <>
             <DropdownButton id={'commands'} title={'Commands'}>{items}</DropdownButton>
             {this.makeWarningModal()}
@@ -72,15 +73,15 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         </>;
     }
 
-    private makeWarningItem(
-        items: JSX.Element[], text: string, warningText: string, channel: string, ...args
+    private makeWarningItem<T>(
+        items: JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T
     ) {
         items.push(<Dropdown.Item
             as={Button}
             onClick={() => {
                 this.setState({
                     warningText,
-                    onOk: () => processIPC.send(channel, ...args)
+                    onOk: () => processIPC.send(channel, arg)
                 });
             }}
             key={items.length}
@@ -90,10 +91,10 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         </Dropdown.Item>);
     }
 
-    private makeIPCItem(items: JSX.Element[], text: string, channel: string, ...args) {
+    private makeIPCItem<T>(items: JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T) {
         items.push(<Dropdown.Item
             as={Button}
-            onClick={() => processIPC.send(channel, ...args)}
+            onClick={() => processIPC.send(channel, arg)}
             key={items.length}
             disabled={this.props.disabled}
         >

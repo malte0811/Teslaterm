@@ -1,3 +1,5 @@
+import {IPCToMainKey} from "../../common/IPCConstantsToMain";
+import {IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
 import {CommandIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
@@ -19,7 +21,6 @@ export interface ISingleWindowIPC {
 
 interface IIPCCallback {
     cb: (source: object, ...data: any[]) => void;
-    once: boolean;
 }
 
 export class MultiWindowIPC {
@@ -28,20 +29,23 @@ export class MultiWindowIPC {
     private activeSingleCallbacks: Map<object, Set<string>> = new Map();
     private disconnectCallbacks: Map<object, Array<() => void>> = new Map();
 
-    public on(channel: string, callback: (source: object, ...data: any[]) => void) {
-        this.addListener(channel, callback, false);
+    public on<T>(channel: IPCToMainKey<T>, callback: (source: object, data: T) => void) {
+        if (!this.callbacks.has(channel.channel)) {
+            this.callbacks.set(channel.channel, []);
+            for (const key of this.windows.keys()) {
+                this.addSingleCallback(channel.channel, key);
+            }
+        }
+        const arr = this.callbacks.get(channel.channel);
+        arr.push({cb: callback});
     }
 
-    public onAsync(channel: string, callback: (source: object, ...data: any[]) => Promise<any>) {
-        this.on(channel, (source, ...data) => {
-            callback(source, ...data).catch((err) => {
-                console.error("While processing message on", channel, "from", source, ", payload", data, ":", err);
+    public onAsync<T>(channel: IPCToMainKey<T>, callback: (source: object, data: T) => Promise<any>) {
+        this.on(channel, (source, data) => {
+            callback(source, data).catch((err) => {
+                console.error("While processing message on", channel.channel, "from", source, ", payload", data, ":", err);
             });
         });
-    }
-
-    public once(channel: string, callback: (source: object, ...data: any[]) => void) {
-        this.addListener(channel, callback, true);
     }
 
     public addWindow(key: object, windowIPC: ISingleWindowIPC) {
@@ -66,33 +70,33 @@ export class MultiWindowIPC {
         }
     }
 
-    public sendToAll(channel: string, ...data: any[]) {
+    public sendToAll<T>(channel: IPCToRendererKey<T>, data: T) {
         for (const ipc of this.windows.values()) {
-            ipc.send(channel, ...data);
+            ipc.send(channel.channel, data);
         }
     }
 
-    public sendToAllExcept(channel: string, key: object, ...data: any[]) {
+    public sendToAllExcept<T>(channel: IPCToRendererKey<T>, key: object, data: T) {
         if (key && !this.isValidWindow(key)) {
             console.trace("Tried to send to all except invalid window " + key);
         } else {
             for (const k of this.windows.keys()) {
                 if (k !== key) {
-                    this.sendToWindow(channel, k, ...data);
+                    this.sendToWindow(channel, k, data);
                 }
             }
         }
     }
 
-    public sendToWindow(channel: string, key: object, ...data: any[]) {
+    public sendToWindow<T>(channel: IPCToRendererKey<T>, key: object, data: T) {
         if (key) {
             if (this.isValidWindow(key)) {
-                this.windows.get(key).send(channel, ...data);
+                this.windows.get(key).send(channel.channel, data);
             } else {
                 console.trace("Tried to send to invalid window " + key);
             }
         } else {
-            this.sendToAll(channel, ...data);
+            this.sendToAll(channel, data);
         }
     }
 
@@ -103,17 +107,6 @@ export class MultiWindowIPC {
             const arr = this.disconnectCallbacks.get(key);
             arr[arr.length] = cb;
         }
-    }
-
-    private addListener(channel: string, callback: (source: object, ...data: any[]) => void, once: boolean) {
-        if (!this.callbacks.has(channel)) {
-            this.callbacks.set(channel, []);
-            for (const key of this.windows.keys()) {
-                this.addSingleCallback(channel, key);
-            }
-        }
-        const arr = this.callbacks.get(channel);
-        arr.push({cb: callback, once});
     }
 
     private addSingleCallback(channel: string, key: object) {
@@ -128,11 +121,6 @@ export class MultiWindowIPC {
                 if (callbacks) {
                     for (let i = 0; i < callbacks.length; ++i) {
                         callbacks[i].cb(key, ...data);
-                        if (callbacks[i].once) {
-                            callbacks[i] = callbacks[callbacks.length - 1];
-                            --callbacks.length;
-                            --i;
-                        }
                     }
                 }
             });

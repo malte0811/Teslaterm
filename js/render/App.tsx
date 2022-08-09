@@ -33,7 +33,7 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg})
         );
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     render(): React.ReactNode {

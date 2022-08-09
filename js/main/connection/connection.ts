@@ -1,4 +1,4 @@
-import {getDefaultConnectOptions} from "../../common/ConnectionOptions";
+import {ConnectionOptions, getDefaultConnectOptions} from "../../common/ConnectionOptions";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
@@ -87,7 +87,7 @@ export function hasUD3Connection(): boolean {
     return connectionState.getActiveConnection() !== undefined;
 }
 
-export function connectWithOptions(args: any) {
+export function connectWithOptions(args: ConnectionOptions) {
     // TODO sort of a hack, I guess
     connectionState = new Connecting(Idle.connectWithOptions(args), new Idle());
 }

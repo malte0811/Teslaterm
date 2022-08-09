@@ -31,7 +31,7 @@ export class MiscIPC {
             ipcs.sliders.sendSliderSync();
             this.syncTTConfig(config, source);
         });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (source: object, msg: Uint8Array) => {
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (source: object, msg) => {
             playMidiData(msg);
         });
     }

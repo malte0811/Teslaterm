@@ -1,6 +1,6 @@
 import * as os from "os";
 import {
-    connection_types,
+    CONNECTION_TYPE_DESCS,
     FEATURE_TIMEBASE,
     FEATURE_NOTELEMETRY,
     FEATURE_TIMECOUNT,
@@ -153,7 +153,7 @@ export function loadConfig(filename: string): TTConfig {
 
     {
         const general = config.getOrCreateSection("general");
-        const types = Array.from(connection_types.keys());
+        const types = Array.from(CONNECTION_TYPE_DESCS.keys());
         ret.autoconnect = general.getOrWrite(
             "autoconnect",
             "none",

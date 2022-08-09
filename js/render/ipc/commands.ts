@@ -3,7 +3,7 @@ import {processIPC} from "./IPCProvider";
 
 class CommandsIPC {
     public saveEEPROM() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM, undefined);
     }
 
     public setBusState(enabled: boolean) {

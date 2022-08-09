@@ -9,7 +9,7 @@ export class ConnectionUIIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect, (source: object, args: any) => {
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect, (source: object, args) => {
             connectWithOptions(args);
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestConnectSuggestions, sendConnectionSuggestions);

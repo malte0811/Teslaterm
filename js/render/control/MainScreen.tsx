@@ -81,7 +81,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
             (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),
         )
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
         if (this.mainDivRef.current) {
             this.mainDivRef.current.addEventListener('dragover', this.dragoverListener);
             this.mainDivRef.current.addEventListener('drop', this.dropListener);

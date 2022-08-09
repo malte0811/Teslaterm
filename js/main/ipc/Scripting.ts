@@ -12,7 +12,7 @@ export class ScriptingIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny, (src, msg: ConfirmReply) => {
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny, (src, msg) => {
             if (msg.requestID === this.activeConfirmationID && this.confirmationResolve) {
                 this.confirmationResolve(msg.confirmed);
                 this.confirmationReject = this.confirmationResolve = undefined;

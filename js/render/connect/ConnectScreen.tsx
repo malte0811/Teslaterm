@@ -34,7 +34,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
             IPC_CONSTANTS_TO_RENDERER.connect.connectionError, (error) => this.setState({error, showingError: true})
         );
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.connect.showAutoPortOptions, (options: AutoSerialPort[]) => this.setState({
+            IPC_CONSTANTS_TO_RENDERER.connect.showAutoPortOptions, (options) => this.setState({
                 autoPorts: options,
                 showingAutoPorts: true,
             })

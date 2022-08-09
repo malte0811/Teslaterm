@@ -1,8 +1,8 @@
 import React from "react";
 import {Button, Col, DropdownButton, Form, Row} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {baudrate, connection_type, remote_ip, serial_port, udp_min_port} from "../../common/ConnectionOptions";
-import {connection_types, serial_min, serial_plain, udp_min} from "../../common/constants";
+import {ConnectionOptions, getDefaultConnectOptions} from "../../common/ConnectionOptions";
+import {CONNECTION_TYPE_DESCS, CONNECTION_TYPES_BY_NAME, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
@@ -14,8 +14,9 @@ export interface ConnectFormProps {
     connecting: boolean;
 }
 
+// TODO use ConnectionOptions object in this?
 export interface ConnectFormState {
-    currentType: string;
+    currentType: UD3ConnectionType;
 
     serialPort: string;
     baudrate: string;
@@ -31,12 +32,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
 
     constructor(props) {
         super(props);
-        let startType;
-        if (props.ttConfig.autoconnect && connection_types.has(props.ttConfig.autoconnect)) {
-            startType = props.ttConfig.autoconnect;
-        } else {
-            startType = serial_min;
-        }
+        const startType = CONNECTION_TYPES_BY_NAME.get(props.ttConfig.autoconnect) || UD3ConnectionType.serial_min;
         this.state = {
             currentType: startType,
             serialPort: props.ttConfig.serial.serial_port,
@@ -58,7 +54,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, (suggestions: string[]) => {
             this.setState({serialSuggestions: suggestions});
         });
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestConnectSuggestions);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestConnectSuggestions, undefined);
         if (this.firstFieldRef.current) {
             this.firstFieldRef.current.focus();
         }
@@ -70,7 +66,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
             return <div>Unsupported connection type {this.state.currentType}</div>
         }
         let possibleTypes: JSX.Element[] = [];
-        for (const [type, desc] of connection_types.entries()) {
+        for (const [type, desc] of CONNECTION_TYPE_DESCS.entries()) {
             possibleTypes.push(
                 <Dropdown.Item
                     key={possibleTypes.length}
@@ -83,7 +79,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
             );
         }
         return <div className={'tt-connect-form'}>
-            <DropdownButton title={connection_types.get(this.state.currentType)}>
+            <DropdownButton title={CONNECTION_TYPE_DESCS.get(this.state.currentType)}>
                 {possibleTypes}
             </DropdownButton>
             <Form onSubmit={e => e.preventDefault()}>
@@ -154,15 +150,15 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
 
     private getConfigOptions() {
         switch (this.state.currentType) {
-            case serial_min:
-            case serial_plain:
+            case UD3ConnectionType.serial_min:
+            case UD3ConnectionType.serial_plain:
                 return [
                     this.makeSuggestedField(
                         'Port', 'serialPort', this.state.serialSuggestions, true, 'Autoconnect'
                     ),
                     this.makeField('Baudrate', true, 'baudrate'),
                 ];
-            case udp_min:
+            case UD3ConnectionType.udp_min:
                 const suggestionStrings = this.state.udpSuggestions.map(
                     (s) => s.desc ? s.desc + ' (' + s.remoteIP + ')' : s.remoteIP,
                 );
@@ -174,12 +170,12 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     private connect() {
-        const options = {};
-        options[connection_type] = this.state.currentType;
-        options[serial_port] = this.state.serialPort;
-        options[baudrate] = Number.parseInt(this.state.baudrate);
-        options[remote_ip] = this.state.remoteIP;
-        options[udp_min_port] = this.state.udpPort;
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, options);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, {
+            connectionType: this.state.currentType,
+            serialPort: this.state.serialPort,
+            baudrate: Number.parseInt(this.state.baudrate),
+            remoteIP: this.state.remoteIP,
+            udpMinPort: Number.parseInt(this.state.udpPort),
+        });
     }
 }

@@ -3,6 +3,7 @@ import {Button, Col, Form, Row, Tab, Tabs} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {UD3ConfigOption, UD3ConfigType} from '../../common/IPCConstantsToRenderer';
 import {TTConfig} from "../../common/TTConfig";
+import {commands} from "../ipc/commands";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 
@@ -38,7 +39,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
                 <Button onClick={() => this.sendAndClose()}>Send to UD3</Button>
                 <Button onClick={() => {
                     this.sendAndClose();
-                    processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM);
+                    commands.saveEEPROM();
                 }}>Send to UD3 & save to EEPROM</Button>
                 <Button onClick={this.props.close}>Discard</Button>
             </div>

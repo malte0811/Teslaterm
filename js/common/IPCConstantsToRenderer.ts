@@ -1,40 +1,52 @@
-import {MediaFileType, PlayerActivity} from "./CommonTypes";
+import {SliderState} from "../main/ipc/sliders";
+import {MediaFileType, PlayerActivity} from './CommonTypes';
+import {TTConfig} from "./TTConfig";
+
+// The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
+// this channel
+export interface IPCToRendererKey<Type> {
+    channel: string;
+}
+
+function makeKey<Type>(channel: string): IPCToRendererKey<Type> {
+    return {channel};
+}
 
 export const IPC_CONSTANTS_TO_RENDERER = {
     connect: {
-        setUDPSuggestions: "suggest-udp",
-        setSerialSuggestions: "suggest-serial",
-        connectionError: "connection-error",
-        showAutoPortOptions: "show-auto-ports",
+        setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
+        setSerialSuggestions: makeKey<string[]>('suggest-serial'),
+        connectionError: makeKey<string>('connection-error'),
+        showAutoPortOptions: makeKey<AutoSerialPort[]>('show-auto-ports'),
     },
     menu: {
-        setMediaTitle: "menu-media-title",
-        setScriptName: "menu-script-name",
-        ud3State: "menu-ud3-state",
+        setMediaTitle: makeKey<string>('menu-media-title'),
+        setScriptName: makeKey<string>('menu-script-name'),
+        ud3State: makeKey<UD3State>('menu-ud3-state'),
     },
     meters: {
-        configure: "meter-config",
-        setValue: "meter-set-value",
+        configure: makeKey<MeterConfig>('meter-config'),
+        setValue: makeKey<SetMeters>('meter-set-value'),
     },
     scope: {
-        addValues: "scope-values",
-        configure: "scope-config",
-        drawLine: "scope-draw-line",
-        drawString: "scope-draw-string",
-        redrawMedia: "scope-draw-media",
-        startControlled: "scope-start-controlled",
+        addValues: makeKey<ScopeValues>('scope-values'),
+        configure: makeKey<ScopeTraceConfig>('scope-config'),
+        drawLine: makeKey<ScopeLine>('scope-draw-line'),
+        drawString: makeKey<ScopeText>('scope-draw-string'),
+        redrawMedia: makeKey<MediaState>('scope-draw-media'),
+        startControlled: makeKey<undefined>('scope-start-controlled'),
     },
     script: {
-        requestConfirm: "script-request-confirm",
+        requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
     sliders: {
-        syncSettings: "slider-sync",
+        syncSettings: makeKey<SliderState>('slider-sync'),
     },
-    updateConnectionState: "update-connection-state",
-    terminal: "terminal",
-    ttConfig: "tt-config",
-    udConfig: "ud-config",
-    openToast: "open-toast",
+    updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
+    terminal: makeKey<string>('terminal'),
+    ttConfig: makeKey<TTConfig>('tt-config'),
+    udConfig: makeKey<UD3ConfigOption[]>('ud-config'),
+    openToast: makeKey<ToastData>('open-toast'),
 };
 
 export class SetMeters {

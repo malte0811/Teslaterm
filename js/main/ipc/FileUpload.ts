@@ -26,7 +26,9 @@ export class FileUploadIPC {
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.loadFile, (source, name, data) => FileUploadIPC.loadFile(name, data));
+        processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.loadFile, (source, file) => FileUploadIPC.loadFile(file.name, file.bytes)
+        );
         this.processIPC = processIPC;
     }
 }

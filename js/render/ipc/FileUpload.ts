@@ -8,6 +8,9 @@ export namespace FileUploadIPC {
     }
 
     export function upload(name: string, data: ArrayBuffer) {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFile, name, [...new Uint8Array(data)]);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFile, {
+            name,
+            bytes: [...new Uint8Array(data)]
+        });
     }
 }

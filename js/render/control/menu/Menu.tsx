@@ -64,7 +64,7 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
         if (this.props.connectionStatus == ConnectionStatus.IDLE) {
             this.props.clearWasConnected();
         } else {
-            processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton);
+            processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton, undefined);
         }
     }
 }

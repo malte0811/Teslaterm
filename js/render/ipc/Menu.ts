@@ -1,24 +1,24 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, UD3State} from "../../common/IPCConstantsToRenderer";
+import {UD3State} from "../../common/IPCConstantsToRenderer";
 import {processIPC} from "./IPCProvider";
 
 export let ud3State: UD3State;
 
 export namespace MenuIPC {
     export function requestUDConfig(): void {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
     }
 
     export function startPlaying(): void {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.startMedia);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.startMedia, undefined);
     }
 
     export function stopPlaying(): void {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.stopMedia);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, undefined);
     }
 
     export function connectButton() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton, undefined);
     }
 
     export function init() {

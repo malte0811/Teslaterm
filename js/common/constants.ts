@@ -25,13 +25,21 @@ export const FEATURE_NOTELEMETRY = "notelemetry_supported";
 export const FEATURE_MINSID = "min_sid_support";
 
 // Connection types
-export const udp_min = "udpmin";
-export const serial_min = "min";
-export const serial_plain = "serial";
-export const dummy = "dummy";
-export const connection_types = new Map<string, string>();
-connection_types.set(udp_min, "MIN over UDP");
-connection_types.set(serial_min, "Serial (MIN)");
-connection_types.set(serial_plain, "Serial (Plain)");
+export enum UD3ConnectionType {
+    udp_min,
+    serial_min,
+    serial_plain,
+    dummy,
+}
+
+export const CONNECTION_TYPES_BY_NAME = new Map<string, UD3ConnectionType>();
+CONNECTION_TYPES_BY_NAME.set('udpmin', UD3ConnectionType.udp_min);
+CONNECTION_TYPES_BY_NAME.set('min', UD3ConnectionType.serial_min);
+CONNECTION_TYPES_BY_NAME.set('serial', UD3ConnectionType.serial_plain);
+
+export const CONNECTION_TYPE_DESCS = new Map<UD3ConnectionType, string>();
+CONNECTION_TYPE_DESCS.set(UD3ConnectionType.udp_min, "MIN over UDP");
+CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_min, "Serial (MIN)");
+CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_plain, "Serial (Plain)");
 // connection_types.set(dummy, "Dummy connection (debug only!)");
 

@@ -4,11 +4,11 @@ import {processIPC} from "./IPCProvider";
 
 export module ScriptingIPC {
     export function startScript() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.script.startScript);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.script.startScript, undefined);
     }
 
     export function stopScript() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.script.stopScript);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.script.stopScript, undefined);
     }
 
     export function init() {

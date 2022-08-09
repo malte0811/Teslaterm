@@ -1,39 +1,31 @@
 import {SerialPort} from "serialport";
-import {
-    baudrate,
-    connection_type,
-    remote_ip,
-    serial_port,
-    udp_min_port,
-} from "../../../common/ConnectionOptions";
-import {connection_types, dummy, serial_min, serial_plain, udp_min} from "../../../common/constants";
+import {ConnectionOptions} from "../../../common/ConnectionOptions";
+import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
 import {AutoSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {DummyConnection} from "../types/DummyConnection";
 import {createPlainSerialConnection} from "../types/serial_plain";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
-import {sendConnectionSuggestions} from "../types/Suggestions";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {createMinUDPConnection} from "../types/UDPMinConnection";
-import {Connecting} from "./Connecting";
 import {IConnectionState} from "./IConnectionState";
 
 export class Idle implements IConnectionState {
 
-    public static async connectWithOptions(options: any): Promise<UD3Connection | undefined> {
-        const type = options[connection_type];
+    public static async connectWithOptions(options: ConnectionOptions): Promise<UD3Connection | undefined> {
+        const type = options.connectionType;
         switch (type) {
-            case serial_plain:
+            case UD3ConnectionType.serial_plain:
                 return this.connectSerial(options, createPlainSerialConnection);
-            case serial_min:
+            case UD3ConnectionType.serial_min:
                 return this.connectSerial(options, createMinSerialConnection);
-            case udp_min:
-                return createMinUDPConnection(options[udp_min_port], Idle.addressFromString(options[remote_ip]));
-            case dummy:
+            case UD3ConnectionType.udp_min:
+                return createMinUDPConnection(options.udpMinPort, Idle.addressFromString(options.remoteIP));
+            case UD3ConnectionType.dummy:
                 return new DummyConnection();
             default:
-                ipcs.connectionUI.sendConnectionError("Connection type \"" + connection_types.get(type) +
+                ipcs.connectionUI.sendConnectionError("Connection type \"" + CONNECTION_TYPE_DESCS.get(type) +
                     "\" (" + type + ") is currently not supported");
                 return undefined;
         }
@@ -48,12 +40,12 @@ export class Idle implements IConnectionState {
         }
     }
 
-    private static async connectSerial(options: any, create: (port: string, baudrate: number) => UD3Connection)
+    private static async connectSerial(options: ConnectionOptions, create: (port: string, baudrate: number) => UD3Connection)
         : Promise<UD3Connection | undefined> {
-        if (options[serial_port]) {
-            return create(options[serial_port], options[baudrate]);
+        if (options.serialPort) {
+            return create(options.serialPort, options.baudrate);
         } else {
-            return this.autoConnectSerial(options[baudrate], create);
+            return this.autoConnectSerial(options.baudrate, create);
         }
     }
 

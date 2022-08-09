@@ -30,7 +30,7 @@ export class ScopeIPC {
     }
 
     public startControlledDraw(source?: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, source);
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, source, undefined);
     }
 
     public drawLine(x1: number, y1: number, x2: number, y2: number, color: number, source?: object) {
