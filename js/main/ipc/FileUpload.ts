@@ -6,7 +6,7 @@ import {BlockSender} from "./block";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
 export class FileUploadIPC {
-    private static async loadFile(name: string, data: number[]) {
+    private static async loadFile(source: object, name: string, data: number[]) {
         const file = new TransmittedFile(name, new Uint8Array(data));
         const extension = file.name.substring(file.name.lastIndexOf(".") + 1);
         if (extension === "zip") {
@@ -14,7 +14,13 @@ export class FileUploadIPC {
             await ipcs.scripting.loadScript(file);
         } else if (extension === "cyacd") {
             if (!startBootloading(file.contents)) {
-                ipcs.misc.openToast('Bootloader', "Connection does not support bootloading", ToastSeverity.error,);
+                ipcs.misc.openToast(
+                    'Bootloader',
+                    "Connection does not support bootloading",
+                    ToastSeverity.error,
+                    'bootload-not-supported',
+                    source
+                );
             }
         } else if (extension === "mcf") {
             await BlockSender.loadBlocks(file);
@@ -27,7 +33,7 @@ export class FileUploadIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.loadFile, (source, file) => FileUploadIPC.loadFile(file.name, file.bytes)
+            IPC_CONSTANTS_TO_MAIN.loadFile, (source, file) => FileUploadIPC.loadFile(source, file.name, file.bytes)
         );
         this.processIPC = processIPC;
     }

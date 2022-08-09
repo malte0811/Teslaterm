@@ -50,8 +50,8 @@ export class MiscIPC {
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.ttConfig, target, configToSync);
     }
 
-    public openToast(title: string, message: string, level: ToastSeverity, target?: object) {
-        const msg: ToastData = {level, title, message};
+    public openToast(title: string, message: string, level: ToastSeverity, mergeKey?: string, target?: object) {
+        const msg: ToastData = {level, title, message, mergeKey};
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.openToast, target, msg);
     }
 

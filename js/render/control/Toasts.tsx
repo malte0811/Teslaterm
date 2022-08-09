@@ -3,8 +3,13 @@ import {Toast, ToastContainer} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_RENDERER, ToastData, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../TTComponent";
 
+interface ShownToastData extends ToastData {
+    hideTimeout?: NodeJS.Timeout;
+    occurrences: number;
+}
+
 interface ToastsState {
-    toasts: ToastData[];
+    toasts: ShownToastData[];
 }
 
 export class Toasts extends TTComponent<{}, ToastsState> {
@@ -18,17 +23,33 @@ export class Toasts extends TTComponent<{}, ToastsState> {
     componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.openToast, (arg: ToastData) => {
             this.setState((oldState) => {
+                const newToasts: ShownToastData[] = [...oldState.toasts];
+                let occurrences = 1;
+                if (arg.mergeKey !== undefined) {
+                    for (let i = 0; i < newToasts.length; ++i) {
+                        if (arg.mergeKey === newToasts[i].mergeKey) {
+                            occurrences += newToasts[i].occurrences;
+                            if (newToasts[i].hideTimeout !== undefined) {
+                                clearTimeout(newToasts[i].hideTimeout);
+                            }
+                            newToasts.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+                const newToast: ShownToastData = {occurrences: occurrences, ...arg};
                 if (arg.level == ToastSeverity.info) {
                     // Manual implementation of autohide, since the default one seems to have issues with dynamic
                     // indices
-                    setTimeout(() => this.setState((state) => {
-                        const indexToRemove = state.toasts.indexOf(arg);
+                    newToast.hideTimeout = setTimeout(() => this.setState((state) => {
+                        const indexToRemove = state.toasts.indexOf(newToast);
                         if (indexToRemove >= 0) {
                             return {toasts: state.toasts.filter((_, i) => i != indexToRemove)};
                         }
                     }), 3000);
                 }
-                return {toasts: [...oldState.toasts, arg]};
+                newToasts.push(newToast);
+                return {toasts: newToasts};
             });
         });
     }
@@ -39,13 +60,17 @@ export class Toasts extends TTComponent<{}, ToastsState> {
         </ToastContainer>;
     }
 
-    private makeToast(data: ToastData, index: number) {
+    private makeToast(data: ShownToastData, index: number) {
         return <Toast
             onClose={() => this.setState({toasts: this.state.toasts.filter((_, i) => i != index)})}
             bg={Toasts.getStyleFor(data.level)}
             key={index}
+            className={'me-2'}
         >
-            <Toast.Header>{data.title}</Toast.Header>
+            <Toast.Header>
+                <div className={'me-auto'}>{data.title}</div>
+                {data.occurrences > 1 && <small>Seen {data.occurrences} times</small>}
+            </Toast.Header>
             <Toast.Body>{data.message}</Toast.Body>
         </Toast>;
     }

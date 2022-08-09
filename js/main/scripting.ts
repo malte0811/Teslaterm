@@ -94,7 +94,13 @@ export class Script {
 
     public async start(starterKey: object) {
         if (this.running) {
-            ipcs.misc.openToast('Script', 'The script is already running.', ToastSeverity.info, starterKey);
+            ipcs.misc.openToast(
+                'Script',
+                'The script is already running.',
+                ToastSeverity.info,
+                'script-info',
+                starterKey
+            );
             return;
         }
         this.starterKey = starterKey;
@@ -103,16 +109,22 @@ export class Script {
         try {
             for (const entry of this.queue) {
                 if (!this.isRunning()) {
-                    ipcs.misc.openToast('Script', 'Cancelled script', ToastSeverity.info, starterKey);
+                    ipcs.misc.openToast(
+                        'Script', 'Cancelled script', ToastSeverity.info, 'script-info', starterKey
+                    );
                     break;
                 }
                 await entry.run();
             }
             if (this.isRunning()) {
-                ipcs.misc.openToast('Script', 'Script finished normally', ToastSeverity.info, starterKey);
+                ipcs.misc.openToast(
+                    'Script', 'Script finished normally', ToastSeverity.info, 'script-info', starterKey
+                );
             }
         } catch (x) {
-            ipcs.misc.openToast('Script', 'Script finished with error: ' + x, ToastSeverity.warning, starterKey);
+            ipcs.misc.openToast(
+                'Script', 'Script finished with error: ' + x, ToastSeverity.warning, 'script-info', starterKey
+            );
             console.error(x);
         }
         this.running = false;

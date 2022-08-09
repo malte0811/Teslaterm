@@ -34,7 +34,7 @@ export class Reconnecting implements IConnectionState {
 
     tickFast(): IConnectionState {
         if (this.failedAttempts >= Reconnecting.MAX_RETRIES) {
-            ipcs.misc.openToast('Reconnect', "Aborting attempts to reconnect", ToastSeverity.error);
+            ipcs.misc.openToast('Reconnect', "Aborting attempts to reconnect", ToastSeverity.error, 'reconnect-fail');
             return new Idle();
         }
         ++this.ticksSinceLastFailure;
@@ -44,8 +44,9 @@ export class Reconnecting implements IConnectionState {
             ipcs.misc.openToast(
                 'Reconnect',
                 "Attempting to reconnect (attempt " + this.failedAttempts + " of " + Reconnecting.MAX_RETRIES + ")...",
-                ToastSeverity.info
-            );
+                ToastSeverity.info,
+            'reconnect-attempt-id',
+        );
             return new Connecting(Promise.resolve(this.connectionToReestablish), this);
         } else {
             return this;

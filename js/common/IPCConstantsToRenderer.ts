@@ -242,6 +242,7 @@ export interface ToastData {
     title: string;
     message: string;
     level: ToastSeverity;
+    mergeKey?: string;
 }
 
 export interface AutoSerialPort {

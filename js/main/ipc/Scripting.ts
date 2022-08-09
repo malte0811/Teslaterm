@@ -24,7 +24,7 @@ export class ScriptingIPC {
 
     public async startScript(source: object) {
         if (this.currentScript === null) {
-            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info);
+            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info, 'no-script');
         } else {
             await this.currentScript.start(source);
         }
@@ -32,9 +32,9 @@ export class ScriptingIPC {
 
     public stopScript() {
         if (this.currentScript === null) {
-            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info);
+            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info, 'no-script');
         } else if (!this.currentScript.isRunning()) {
-            ipcs.misc.openToast('Script', "The script can not be stopped since it isn't running", ToastSeverity.info);
+            ipcs.misc.openToast('Script', "The script can not be stopped since it isn't running", ToastSeverity.info, 'script-not-running');
         } else {
             this.currentScript.cancel();
         }
@@ -45,7 +45,7 @@ export class ScriptingIPC {
             this.currentScript = await Script.create(file.contents);
             ipcs.menu.setScriptName(file.name);
         } catch (e) {
-            ipcs.misc.openToast('Script', "Failed to load script: " + e, ToastSeverity.error);
+            ipcs.misc.openToast('Script', "Failed to load script: " + e, ToastSeverity.error, 'failed-script-load');
             console.log(e);
         }
     }

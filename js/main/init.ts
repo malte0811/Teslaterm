@@ -41,7 +41,12 @@ function tick200() {
     connection.updateSlow();
     commandServer.tick();
     if (commandClient && commandClient.tickSlow()) {
-        ipcs.misc.openToast("Command server", "Command server timed out, reconnecting", ToastSeverity.warning);
+        ipcs.misc.openToast(
+            "Command server",
+            "Command server timed out, reconnecting",
+            ToastSeverity.warning,
+            'command-timeout'
+        );
         initCommandClient();
     }
 }

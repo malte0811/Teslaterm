@@ -116,7 +116,7 @@ export function isMediaFile(filename: string): boolean {
 
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     if (config.command.state === "client") {
-        ipcs.misc.openToast('Media', "Cannot load media files on command client!", ToastSeverity.info);
+        ipcs.misc.openToast('Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client');
         return;
     }
     if (media_state.state === PlayerActivity.playing) {
@@ -128,6 +128,6 @@ export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     } else if (extension === "dmp" || extension === "sid") {
         await loadSidFile(file);
     } else {
-        ipcs.misc.openToast('Media', "Unknown extension: " + extension, ToastSeverity.warning);
+        ipcs.misc.openToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');
     }
 }

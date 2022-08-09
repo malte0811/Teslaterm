@@ -47,7 +47,9 @@ export class Connected implements IConnectionState {
         this.active_connection.tick();
 
         if (this.isConnectionLost()) {
-            ipcs.misc.openToast('Connection lost', 'Lost connection, will attempt to reconnect', ToastSeverity.warning);
+            ipcs.misc.openToast(
+                'Connection lost', 'Lost connection, will attempt to reconnect', ToastSeverity.warning, 'will-reconnect'
+            );
             this.active_connection.disconnect();
             ipcs.terminal.onConnectionClosed();
             return new Reconnecting(this.active_connection);

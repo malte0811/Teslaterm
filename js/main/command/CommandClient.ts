@@ -27,7 +27,7 @@ export class CommandClient {
         this.socket = new Socket();
         this.socket.addListener("data", (data) => this.parser.onData(data));
         this.socket.addListener("error", (err) => ipcs.misc.openToast(
-            'Command client', "Failed to connect to command server: " + err, ToastSeverity.error
+            'Command client', "Failed to connect to command server: " + err, ToastSeverity.error, 'connect-command'
         ));
         this.socket.connect(port, remoteName);
     }
