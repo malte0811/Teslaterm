@@ -3,6 +3,7 @@ import {TTConfig} from "../common/TTConfig";
 import {CommandClient} from "./command/CommandClient";
 import {ICommandServer, makeCommandServer} from "./command/CommandServer";
 import * as connection from "./connection/connection";
+import {initAlarms} from "./connection/telemetry/Alarms";
 import * as IPC from "./ipc/IPCProvider";
 import {ipcs} from "./ipc/IPCProvider";
 import * as midi from "./midi/midi";
@@ -20,6 +21,7 @@ export function init() {
     config = loadConfig("config.ini");
     IPC.init();
     midi.init();
+    initAlarms();
     setInterval(tick200, 200);
     setInterval(tick20, 20);
     setInterval(tick10, 10);

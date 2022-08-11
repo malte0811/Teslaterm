@@ -16,7 +16,7 @@ export class TelemetryChannel {
         this.source = source;
     }
 
-    public processByte(byte: number, print: (s: string) => void) {
+    public processByte(byte: number, print: (s: string) => void, initializing: boolean) {
         switch (this.state) {
             case TelemetryFrameState.idle:
                 if (byte === 0xff) {
@@ -34,7 +34,7 @@ export class TelemetryChannel {
                 this.currentFrame.addByte(byte);
                 if (this.currentFrame.isFull()) {
                     if (!this.source || getUD3Connection().isMultiTerminal()) {
-                        this.currentFrame.process(this.source);
+                        this.currentFrame.process(this.source, initializing);
                     }
                     this.currentFrame = undefined;
                     this.state = TelemetryFrameState.idle;

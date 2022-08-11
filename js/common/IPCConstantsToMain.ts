@@ -27,6 +27,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         requestUDConfig: makeKey<undefined>('request-ud-config'),
         startMedia: makeKey<undefined>('start-media'),
         stopMedia: makeKey<undefined>('stop-media'),
+        requestAlarmList: makeKey<undefined>('request-alarms'),
     },
     midiMessage: makeKey<Uint8Array>('midi-message'),
     requestFullSync: makeKey<undefined>('request-full-sync'),

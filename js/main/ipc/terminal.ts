@@ -62,9 +62,7 @@ export class TerminalIPC {
             return TermSetupResult.not_connected;
         }
         const connection = getUD3Connection();
-        const termID = connection.setupNewTerminal((d) => {
-            receive_main(d, source);
-        });
+        const termID = connection.setupNewTerminal((d) => receive_main(d, false, source));
         if (termID === undefined) {
             this.waitingConnections.push(source);
             return TermSetupResult.no_terminal_available;

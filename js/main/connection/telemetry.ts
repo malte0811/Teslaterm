@@ -5,7 +5,7 @@ import {TelemetryChannel} from "./telemetry/TelemetryChannel";
 const channels: Map<object, TelemetryChannel> = new Map();
 let consoleLine: string = "";
 
-export function receive_main(data: Buffer, source?: object) {
+export function receive_main(data: Buffer, initializing: boolean, source?: object) {
     const buf = new Uint8Array(data);
     resetResponseTimeout();
     if (!channels.has(source)) {
@@ -30,6 +30,6 @@ export function receive_main(data: Buffer, source?: object) {
         };
     }
     for (const byte of buf) {
-        channels.get(source).processByte(byte, print);
+        channels.get(source).processByte(byte, print, initializing);
     }
 }

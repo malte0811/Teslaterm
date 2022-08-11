@@ -9,6 +9,7 @@ export const TT_CHART_TEXT = 8;
 export const TT_CHART_TEXT_CENTER = 9;
 export const TT_STATE_SYNC = 10;
 export const TT_CONFIG_GET = 11;
+export const TT_EVENT = 12;
 export const TT_GAUGE32 = 13;
 export const TT_GAUGE32_CONF = 14;
 export const TT_CHART32 = 16;
@@ -42,4 +43,11 @@ CONNECTION_TYPE_DESCS.set(UD3ConnectionType.udp_min, "MIN over UDP");
 CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_min, "Serial (MIN)");
 CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_plain, "Serial (Plain)");
 // connection_types.set(dummy, "Dummy connection (debug only!)");
+
+export enum UD3AlarmLevel {
+    info = 0,
+    warn = 1,
+    alarm = 2,
+    critical = 3,
+}
 

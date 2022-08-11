@@ -20,6 +20,7 @@ export class Connecting implements IConnectionState {
     private autoTerminal: TerminalHandle | undefined;
     private state: State = State.waiting_for_ud_connection;
     private readonly stateOnFailure: IConnectionState;
+    private doneInitializingAt: number;
 
     public constructor(connection: Promise<UD3Connection | undefined>, onFailure: IConnectionState) {
         this.stateOnFailure = onFailure;
@@ -32,7 +33,15 @@ export class Connecting implements IConnectionState {
                 } = undefined;
                 try {
                     await c.connect();
-                    this.autoTerminal = c.setupNewTerminal(telemetry.receive_main);
+                    this.autoTerminal = c.setupNewTerminal((data) =>
+                        telemetry.receive_main(
+                            data,
+                            // After connecting the UD3 will send one alarm per 100 ms, generally less than 20 total. We
+                            // do not want to show toasts for these alarms that happened before TT connected, so
+                            // consider these 2000 ms as "initializing"
+                            this.state === State.initializing || (Date.now() - this.doneInitializingAt) < 2000,
+                            undefined,
+                        ));
                     if (this.autoTerminal === undefined) {
                         error = {message: "Failed to create a terminal for automatic commands"};
                     } else {
@@ -40,6 +49,7 @@ export class Connecting implements IConnectionState {
                         this.state = State.initializing;
                         await startConf();
                         await ipcs.terminal.onSlotsAvailable(true);
+                        this.doneInitializingAt = Date.now();
                         this.state = State.connected;
                     }
                 } catch (x) {

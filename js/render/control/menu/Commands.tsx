@@ -2,10 +2,11 @@ import React from "react";
 import {Button, DropdownButton, Modal} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, IUD3State, UD3ConfigOption} from "../../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, IUD3State, UD3Alarm, UD3ConfigOption} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {Alarms} from "../Alarms";
 import {UD3Config} from "../UD3Config";
 
 interface CommandsState {
@@ -13,6 +14,8 @@ interface CommandsState {
     onOk?: () => any;
 
     originalSettings?: UD3ConfigOption[];
+
+    alarmList?: UD3Alarm[];
 }
 
 export interface CommandsMenuProps {
@@ -28,10 +31,8 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     componentDidMount() {
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.udConfig,
-            (cfg: UD3ConfigOption[]) => this.setState({originalSettings: cfg})
-        );
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.udConfig, cfg => this.setState({originalSettings: cfg}));
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.alarmList, alarmList => this.setState({alarmList}));
     }
 
     render(): React.ReactNode {
@@ -58,18 +59,12 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             undefined
         );
         this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
+        this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined);
         return <>
             <DropdownButton id={'commands'} title={'Commands'}>{items}</DropdownButton>
             {this.makeWarningModal()}
-            <Modal show={this.state.originalSettings !== undefined} size={'lg'}>
-                <Modal.Body>
-                    <UD3Config
-                        original={this.state.originalSettings || []}
-                        close={() => this.setState({originalSettings: undefined})}
-                        ttConfig={this.props.ttConfig}
-                    />
-                </Modal.Body>
-            </Modal>
+            {this.makeConfigModal()}
+            {this.makeAlarmListModal()}
         </>;
     }
 
@@ -119,6 +114,30 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
                 <Button variant="secondary" onClick={closeModal}>Abort</Button>
                 <Button variant="primary" onClick={confirm} disabled={this.props.disabled}>Confirm</Button>
             </Modal.Footer>
+        </Modal>;
+    }
+
+    private makeConfigModal() {
+        return <Modal show={this.state.originalSettings !== undefined} size={'lg'}>
+            <Modal.Body>
+                <UD3Config
+                    original={this.state.originalSettings || []}
+                    close={() => this.setState({originalSettings: undefined})}
+                    ttConfig={this.props.ttConfig}
+                />
+            </Modal.Body>
+        </Modal>;
+    }
+
+    private makeAlarmListModal() {
+        const close = () => this.setState({alarmList: undefined});
+        return <Modal show={this.state.alarmList !== undefined} size={'lg'} onBackdropClick={close}>
+            <Modal.Body>
+                <Alarms
+                    alarms={this.state.alarmList || []}
+                    close={close}
+                />
+            </Modal.Body>
         </Modal>;
     }
 }

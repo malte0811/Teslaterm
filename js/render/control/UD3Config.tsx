@@ -64,14 +64,9 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
 
     private makeOptionsTab(tabIndex: number, options: IndexedOption[]): JSX.Element {
         const title = TAB_NAMES[tabIndex] || 'Unknown';
-        const css: CSSProperties = {
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            height: '70vh'
-        };
         return (
             <Tab title={title} key={tabIndex} eventKey={tabIndex}>
-                <Form style={css}>
+                <Form className={'tt-modal-scrollable'}>
                     {options.map((o) => this.makeOption(o))}
                 </Form>
             </Tab>

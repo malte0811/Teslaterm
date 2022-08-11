@@ -4,14 +4,15 @@ import {
     TT_CHART, TT_CHART32,
     TT_CHART32_CONF, TT_CHART_CLEAR, TT_CHART_CONF, TT_CHART_DRAW, TT_CHART_LINE, TT_CHART_TEXT,
     TT_CHART_TEXT_CENTER,
-    TT_CONFIG_GET,
+    TT_CONFIG_GET, TT_EVENT,
     TT_GAUGE,
     TT_GAUGE32, TT_GAUGE32_CONF, TT_GAUGE_CONF,
-    TT_STATE_SYNC, UNITS,
+    TT_STATE_SYNC, UD3AlarmLevel, UNITS,
 } from "../../../common/constants";
 import {UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
+import {addAlarm} from "./Alarms";
 import {updateStateFromTelemetry} from "./UD3State";
 
 export let configRequestQueue: object[] = [];
@@ -35,8 +36,7 @@ export class TelemetryFrame {
         return this.data.length >= this.length;
     }
 
-    public process(source: object) {
-        let str: string;
+    public process(source: object, initializing: boolean) {
         const type = this.data[DATA_TYPE];
         const num = this.data[DATA_NUM];
         switch (type) {
@@ -51,7 +51,7 @@ export class TelemetryFrame {
                 const gauge_min = bytes_to_signed(this.data[2], this.data[3]);
                 const gauge_max = bytes_to_signed(this.data[4], this.data[5]);
                 this.data.splice(0, 6);
-                str = convertBufferToString(this.data);
+                const str = convertBufferToString(this.data);
                 ipcs.meters.configure(index, gauge_min, gauge_max, 1, str);
                 break;
             }
@@ -61,7 +61,7 @@ export class TelemetryFrame {
                 const max = from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN);
                 const div = from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN);
                 this.data.splice(0, 14);
-                str = convertBufferToString(this.data);
+                const str = convertBufferToString(this.data);
                 ipcs.meters.configure(index, min, max, div, str);
                 break;
             }
@@ -130,9 +130,9 @@ export class TelemetryFrame {
                     );
                 }
                 break;
-            case TT_CONFIG_GET:
+            case TT_CONFIG_GET: {
                 this.data.splice(0, 1);
-                str = convertBufferToString(this.data, false);
+                const str = convertBufferToString(this.data, false);
                 if (str === "NULL;NULL") {
                     if (!source && configRequestQueue.length > 0) {
                         source = configRequestQueue.shift();
@@ -158,6 +158,15 @@ export class TelemetryFrame {
                     }
                 }
                 break;
+            }
+            case TT_EVENT:
+                this.data.splice(0, 1);
+                const data = convertBufferToString(this.data, false);
+                const [levelStr, timestampStr, message, valueStr] = data.split(';');
+                const level = Number.parseInt(levelStr) as UD3AlarmLevel;
+                const timestamp = Number.parseInt(timestampStr);
+                const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr);
+                addAlarm({message, value, level, timestamp}, initializing);
         }
     }
 }

@@ -4,6 +4,7 @@ import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constant
 import {AutoSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
+import {resetAlarms} from "../telemetry/Alarms";
 import {DummyConnection} from "../types/DummyConnection";
 import {createPlainSerialConnection} from "../types/serial_plain";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
@@ -14,6 +15,7 @@ import {IConnectionState} from "./IConnectionState";
 export class Idle implements IConnectionState {
 
     public static async connectWithOptions(options: ConnectionOptions): Promise<UD3Connection | undefined> {
+        resetAlarms();
         const type = options.connectionType;
         switch (type) {
             case UD3ConnectionType.serial_plain:

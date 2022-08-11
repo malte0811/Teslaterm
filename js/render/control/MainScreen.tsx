@@ -72,11 +72,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
     }
 
     componentDidMount() {
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state) => {
-                this.setState({ud3state: state});
-            }
-        );
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state) => this.setState({ud3state: state}));
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
             (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),

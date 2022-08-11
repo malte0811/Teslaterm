@@ -1,5 +1,6 @@
 import {SliderState} from "../main/ipc/sliders";
 import {MediaFileType, PlayerActivity} from './CommonTypes';
+import {UD3AlarmLevel} from "./constants";
 import {TTConfig} from "./TTConfig";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
@@ -47,6 +48,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     ttConfig: makeKey<TTConfig>('tt-config'),
     udConfig: makeKey<UD3ConfigOption[]>('ud-config'),
     openToast: makeKey<ToastData>('open-toast'),
+    alarmList: makeKey<UD3Alarm[]>('alarms'),
 };
 
 export class SetMeters {
@@ -250,4 +252,11 @@ export interface AutoSerialPort {
     manufacturer: string;
     vendorID: string;
     productID: string;
+}
+
+export interface UD3Alarm {
+    message: string;
+    level: UD3AlarmLevel;
+    timestamp: number;
+    value?: number;
 }

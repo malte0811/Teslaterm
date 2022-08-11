@@ -8,7 +8,7 @@ export class CommandInterface {
     }
 
     public async startTelemetry() {
-        await this.sendCommand('tterm start\r');
+        await this.sendCommand('tterm start alarm\r');
     }
 
     public async busOff() {

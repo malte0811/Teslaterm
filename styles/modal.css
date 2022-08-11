@@ -1,0 +1,5 @@
+.tt-modal-scrollable {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 70vh;
+}
