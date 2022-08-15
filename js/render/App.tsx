@@ -7,6 +7,7 @@ import {ConnectScreen} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
+import {loadUIConfig, storeUIConfig, UIConfig} from "./UIConfig";
 
 interface TopLevelState {
     connectionStatus: ConnectionStatus;
@@ -14,6 +15,7 @@ interface TopLevelState {
     // If connection is lost, it may be because the UD3 died. In that case we want to stay on the "main" screen so the
     // last telemetry is still visible.
     wasConnected: boolean;
+    uiConfig: UIConfig;
 }
 
 export class App extends TTComponent<{}, TopLevelState> {
@@ -23,7 +25,9 @@ export class App extends TTComponent<{}, TopLevelState> {
             connectionStatus: ConnectionStatus.IDLE,
             ttConfig: undefined,
             wasConnected: false,
+            uiConfig: loadUIConfig(),
         };
+        storeUIConfig(this.state.uiConfig);
     }
 
     componentDidMount() {
@@ -37,21 +41,34 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     render(): React.ReactNode {
+        return <div className={this.state.uiConfig.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
+            {this.getMainElement()}
+        </div>
+    }
+
+    private getMainElement(): JSX.Element {
         if (!this.state.ttConfig) {
-            return <div>Initializing...</div>;
+            return <>Initializing...</>;
         } else if (this.state.wasConnected) {
             return <MainScreen
                 ttConfig={this.state.ttConfig}
                 connectionStatus={this.state.connectionStatus}
                 clearWasConnected={() => this.setState({wasConnected: false})}
+                darkMode={this.state.uiConfig.darkMode}
             />;
         } else if (this.state.connectionStatus == ConnectionStatus.CONNECTING || this.state.connectionStatus == ConnectionStatus.IDLE) {
             return <ConnectScreen
                 ttConfig={this.state.ttConfig}
                 connecting={this.state.connectionStatus === ConnectionStatus.CONNECTING}
+                darkMode={this.state.uiConfig.darkMode}
+                setDarkMode={newVal => {
+                    const newConfig: UIConfig = {...this.state.uiConfig, darkMode: newVal};
+                    storeUIConfig(newConfig);
+                    this.setState({uiConfig: newConfig});
+                }}
             />;
         } else {
-            return <div>Unsupported status {this.state.connectionStatus} :(</div>;
+            return <>Unsupported status {this.state.connectionStatus} :(</>;
         }
     }
 

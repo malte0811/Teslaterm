@@ -8,7 +8,6 @@ import {
 } from "../common/constants";
 import {TTConfig} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
-import {ipcs} from "./ipc/IPCProvider";
 import * as fs from "fs";
 import * as ini from "ini";
 

@@ -14,6 +14,7 @@ export interface MenuProps {
     ud3state: IUD3State;
     ttConfig: TTConfig;
     clearWasConnected: () => any;
+    darkMode: boolean;
 }
 
 export class MenuBar extends TTComponent<MenuProps, {}> {
@@ -38,18 +39,21 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
                     udState={this.props.ud3state}
                     ttConfig={this.props.ttConfig}
                     disabled={!allowInteraction}
+                    darkMode={this.props.darkMode}
                 />
                 <StartStopMenuItem
                     startKey={IPC_CONSTANTS_TO_MAIN.menu.startMedia}
                     stopKey={IPC_CONSTANTS_TO_MAIN.menu.stopMedia}
                     dataKey={IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle}
                     disabled={!allowInteraction}
+                    darkMode={this.props.darkMode}
                 />
                 <StartStopMenuItem
                     startKey={IPC_CONSTANTS_TO_MAIN.script.startScript}
                     stopKey={IPC_CONSTANTS_TO_MAIN.script.stopScript}
                     dataKey={IPC_CONSTANTS_TO_RENDERER.menu.setScriptName}
                     disabled={!allowInteraction}
+                    darkMode={this.props.darkMode}
                 />
             </ButtonGroup>
             <Killbit killbit={this.props.ud3state.killBitSet} disabled={!allowInteraction}/>

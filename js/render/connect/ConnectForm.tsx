@@ -1,17 +1,18 @@
 import React from "react";
-import {Button, Col, DropdownButton, Form, Row} from "react-bootstrap";
+import {Button, Col, Form, Row} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {ConnectionOptions, getDefaultConnectOptions} from "../../common/ConnectionOptions";
 import {CONNECTION_TYPE_DESCS, CONNECTION_TYPES_BY_NAME, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
+import {TTDropdown} from "../TTDropdown";
 
 export interface ConnectFormProps {
     ttConfig: TTConfig;
     connecting: boolean;
+    darkMode: boolean;
 }
 
 // TODO use ConnectionOptions object in this?
@@ -79,9 +80,12 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
             );
         }
         return <div className={'tt-connect-form'}>
-            <DropdownButton title={CONNECTION_TYPE_DESCS.get(this.state.currentType)}>
+            <TTDropdown
+                title={CONNECTION_TYPE_DESCS.get(this.state.currentType)}
+                darkMode={this.props.darkMode}
+            >
                 {possibleTypes}
-            </DropdownButton>
+            </TTDropdown>
             <Form onSubmit={e => e.preventDefault()}>
                 {optionsForType}
                 <Button
@@ -94,12 +98,9 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     protected makeField(
-        label: string,
-        isNumber: boolean,
-        key: keyof ConnectFormState,
-        first: boolean = false,
+        label: string, isNumber: boolean, key: keyof ConnectFormState, first: boolean = false,
     ): JSX.Element {
-        return <Form.Group as={Row}>
+        return <Form.Group as={Row} key={key}>
             <Form.Label column>{label}</Form.Label>
             <Col sm={9}>
                 <Form.Control
@@ -112,19 +113,16 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                     }}
                     disabled={this.props.connecting}
                     ref={first ? this.firstFieldRef : undefined}
+                    className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                 />
             </Col>
         </Form.Group>;
     }
 
     protected makeSuggestedField(
-        label: string,
-        key: keyof ConnectFormState,
-        suggestions: string[],
-        first: boolean = false,
-        placeholder?: string
+        label: string, key: keyof ConnectFormState, suggestions: string[], first: boolean = false, placeholder?: string
     ): JSX.Element {
-        return <Form.Group as={Row} style={{marginBottom: '5px'}}>
+        return <Form.Group as={Row} style={{marginBottom: '5px'}} key={key}>
             <Form.Label column>Port</Form.Label>
             <Col sm={9}>
                 <Form.Control
@@ -140,12 +138,13 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                     list={'suggestions'}
                     ref={first ? this.firstFieldRef : undefined}
                     disabled={this.props.connecting}
+                    className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                 />
                 <datalist id={'suggestions'}>
                     {suggestions.map((s, i) => <option value={s} key={i}/>)}
                 </datalist>
             </Col>
-        </Form.Group>
+        </Form.Group>;
     }
 
     private getConfigOptions() {

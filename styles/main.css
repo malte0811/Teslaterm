@@ -41,6 +41,58 @@
     overflow-y: visible;
 }
 
-#root {
+.tt-light-root, .tt-dark-root {
     overflow: hidden;
+}
+
+.tt-dark-root, .tt-dark-modal-root {
+    --dark-background: #414141;
+    --dark-foreground: white;
+    color: var(--dark-foreground);
+    --bs-warning-rgb: 192, 139, 20;
+    --bs-warning: rgb(var(--bs-warning-rgb));
+    --bs-modal-bg: var(--dark-background);
+    --bs-modal-color: var(--dark-foreground);
+    --bs-body-color: var(--dark-foreground);
+}
+
+.tt-dark-root {
+    background: var(--dark-background);
+}
+
+.tt-light-form-input {}
+
+.dark-dropdown-menu {
+    --bs-dropdown-link-color: var(--dark-foreground);
+    --bs-dropdown-bg: #707070;
+}
+
+.dark-dropdown-menu.show {
+    background: #707070;
+    color: var(--dark-foreground);
+}
+
+.tt-dark-form-input, .tt-dark-form-input:focus {
+    background: var(--dark-background);
+    color: var(--dark-foreground);
+}
+
+.tt-dark-form-input:disabled {
+    background: #555555;
+    color: #bbbbbb;
+}
+
+.tt-dark-tabs {
+    --bs-nav-tabs-link-active-bg: #555555;
+    --bs-nav-tabs-link-active-border-color: #999999;
+    --bs-nav-tabs-link-active-color: white;
+}
+
+.tt-dark-text-muted {
+    color: #bbbbbb;
+}
+
+.tt-darkmode-toggle {
+    position: absolute;
+    bottom: 0;
 }

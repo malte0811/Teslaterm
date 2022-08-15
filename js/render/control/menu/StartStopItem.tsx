@@ -1,16 +1,18 @@
 import React from "react";
-import {Button, DropdownButton} from "react-bootstrap";
+import {Button} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {IPCToMainKey} from "../../../common/IPCConstantsToMain";
 import {IPCToRendererKey} from "../../../common/IPCConstantsToRenderer";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {TTDropdown} from "../../TTDropdown";
 
 export interface StartStopProps {
     dataKey: IPCToRendererKey<string>;
     startKey: IPCToMainKey<undefined>;
     stopKey: IPCToMainKey<undefined>;
     disabled: boolean;
+    darkMode: boolean;
 }
 
 export interface StartStopState {
@@ -28,7 +30,7 @@ export class StartStopMenuItem extends TTComponent<StartStopProps, StartStopStat
     }
 
     render(): React.ReactNode {
-        return <DropdownButton id={'commands'} title={this.state.current}>
+        return <TTDropdown title={this.state.current} darkMode={this.props.darkMode}>
             <Dropdown.Item
                 as={Button}
                 onClick={() => processIPC.send(this.props.startKey, undefined)}
@@ -39,6 +41,6 @@ export class StartStopMenuItem extends TTComponent<StartStopProps, StartStopStat
                 onClick={() => processIPC.send(this.props.stopKey, undefined)}
                 disabled={this.props.disabled}
             >Stop</Dropdown.Item>
-        </DropdownButton>;
+        </TTDropdown>;
     }
 }

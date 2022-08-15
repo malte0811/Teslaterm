@@ -16,6 +16,8 @@ interface ConnectScreenState {
 export interface ConnectScreenProps {
     ttConfig: TTConfig;
     connecting: boolean;
+    darkMode: boolean;
+    setDarkMode: (newVal: boolean) => void;
 }
 
 export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreenState> {
@@ -43,17 +45,25 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
 
     render(): React.ReactNode {
         return <div className={'tt-connect-screen'}>
-            <ConnectForm ttConfig={this.props.ttConfig} connecting={this.props.connecting}/>
+            <ConnectForm
+                ttConfig={this.props.ttConfig}
+                connecting={this.props.connecting}
+                darkMode={this.props.darkMode}
+            />
+            {this.makeDarkmodeToggle()}
             {this.makeToast()}
             {this.makeModal()}
         </div>;
     }
 
     private makeToast() {
+        const style = this.props.darkMode ? 'dark' : 'light';
         return <ToastContainer position={'bottom-end'}>
             <Toast
                 show={this.state.showingError}
                 onClose={() => this.setState({showingError: false})}
+                className={'tt-' + style + '-toast'}
+                bg={style}
             >
                 <Toast.Header>Failed to connect</Toast.Header>
                 <Toast.Body>{this.state.error}</Toast.Body>
@@ -62,7 +72,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
     }
 
     private makeModal() {
-        const makeRow = (port: AutoSerialPort) => <tr>
+        const makeRow = (port: AutoSerialPort) => <tr key={port.path}>
             <td>{port.path}</td><td>{port.manufacturer}</td><td>{port.vendorID}</td><td>{port.productID}</td>
         </tr>;
         const table = <Table hover bordered>
@@ -72,12 +82,28 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
             <tbody>{this.state.autoPorts.map(makeRow)}</tbody>
         </Table>;
         const close = () => this.setState({showingAutoPorts: false});
-        return <Modal show={this.state.showingAutoPorts} onHide={close} size={"lg"}>
+        return <Modal
+            show={this.state.showingAutoPorts}
+            onHide={close}
+            size={"lg"}
+            className={this.props.darkMode && 'tt-dark-modal-root'}
+        >
             <Modal.Header>Data for autoconnect</Modal.Header>
             <Modal.Body>{table}</Modal.Body>
             <Modal.Footer>
                 <Button onClick={close}>Close</Button>
             </Modal.Footer>
         </Modal>;
+    }
+
+    private makeDarkmodeToggle() {
+        const otherMode = this.props.darkMode ? 'light' : 'dark';
+        return <Button
+            className={'tt-darkmode-toggle'}
+            onClick={() => this.props.setDarkMode(!this.props.darkMode)}
+            variant={otherMode}
+        >
+            Switch to {otherMode} mode
+        </Button>;
     }
 }

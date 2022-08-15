@@ -7,6 +7,7 @@ import {TTComponent} from "../TTComponent";
 export interface AlarmProps {
     alarms: UD3Alarm[];
     close: () => any;
+    darkMode: boolean;
 }
 
 export class Alarms extends TTComponent<AlarmProps, {}> {
@@ -30,33 +31,35 @@ export class Alarms extends TTComponent<AlarmProps, {}> {
             </tr>
             </thead>
             <tbody>
-            {this.props.alarms.map(Alarms.makeRow)}
+            {this.props.alarms.map((alarm, id) => this.makeRow(alarm, id))}
             </tbody>
         </Table>;
     }
 
-    private static makeRow(alarm: UD3Alarm, id: number) {
+    private makeRow(alarm: UD3Alarm, id: number) {
         let levelName: string;
         let background: string;
+        let color: string;
         switch (alarm.level) {
             case UD3AlarmLevel.info:
                 levelName = 'info';
-                background = 'white';
                 break;
             case UD3AlarmLevel.warn:
                 levelName = 'warn';
-                background = 'yellow';
+                background = this.props.darkMode ? 'darkgoldenrod' : 'yellow';
+                color = this.props.darkMode ? 'white' : 'black';
                 break;
             case UD3AlarmLevel.alarm:
                 levelName = 'alarm';
                 background = 'orange';
+                color = 'white';
                 break;
             case UD3AlarmLevel.critical:
                 levelName = 'critical';
                 background = 'red';
+                color = 'white';
                 break;
         }
-        const color = alarm.level == UD3AlarmLevel.info || alarm.level == UD3AlarmLevel.warn ? 'black' : 'white';
         return <tr style={({background, color})} key={id}>
             <td>{alarm.timestamp}</td>
             <td>{levelName}</td>

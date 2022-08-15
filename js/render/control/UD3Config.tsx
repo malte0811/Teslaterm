@@ -11,6 +11,7 @@ export interface UD3ConfigProps {
     original: UD3ConfigOption[];
     close: () => any;
     ttConfig: TTConfig;
+    darkMode: boolean;
 }
 
 interface UD3ConfigState {
@@ -65,7 +66,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
     private makeOptionsTab(tabIndex: number, options: IndexedOption[]): JSX.Element {
         const title = TAB_NAMES[tabIndex] || 'Unknown';
         return (
-            <Tab title={title} key={tabIndex} eventKey={tabIndex}>
+            <Tab title={title} key={tabIndex} eventKey={tabIndex} tabClassName={this.props.darkMode && 'tt-dark-tabs'}>
                 <Form className={'tt-modal-scrollable'}>
                     {options.map((o) => this.makeOption(o))}
                 </Form>
@@ -87,9 +88,12 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
                             this.setState({current: newValues});
                         }}
                         value={option.option.current}
+                        className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                     />
-                    {option.option.type !== UD3ConfigType.TYPE_STRING && UD3Config.makeMinMaxDesc(option.option)}<br/>
-                    <Form.Text className="text-muted">{option.option.help}</Form.Text>
+                    {option.option.type !== UD3ConfigType.TYPE_STRING && this.makeMinMaxDesc(option.option)}<br/>
+                    <Form.Text
+                        className={this.getMutedClass()}
+                    >{option.option.help}</Form.Text>
                 </Col>
             </Form.Group>
         );
@@ -107,8 +111,8 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         }
     }
 
-    private static makeMinMaxDesc(option: UD3ConfigOption) {
-        return <Form.Text className={'text-muted'}>
+    private makeMinMaxDesc(option: UD3ConfigOption) {
+        return <Form.Text className={this.getMutedClass()}>
             Min: {option.min} Max: {option.max}
         </Form.Text>;
     }
@@ -123,5 +127,9 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         }
         processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setParms, changeMap);
         this.props.close();
+    }
+
+    private getMutedClass() {
+        return this.props.darkMode ? 'tt-dark-text-muted' : 'text-muted';
     }
 }

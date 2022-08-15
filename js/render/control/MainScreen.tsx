@@ -30,6 +30,7 @@ export interface MainScreenProps {
     ttConfig: TTConfig;
     connectionStatus: ConnectionStatus;
     clearWasConnected: () => any;
+    darkMode: boolean;
 }
 
 // TODO this is a hack. I'm not 100% sure why, but Terminal does not like open/dispose cycles
@@ -101,6 +102,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
                     connectionStatus={this.props.connectionStatus}
                     ttConfig={this.props.ttConfig}
                     clearWasConnected={this.props.clearWasConnected}
+                    darkMode={this.props.darkMode}
                 />
             </div>
             <div className={'tt-terminal-and-gauges'}>
@@ -117,10 +119,10 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
                         disabled={!allowInteraction}
                     />
                 </div>
-                <Gauges/>
+                <Gauges darkMode={this.props.darkMode}/>
             </div>
             {this.makeScriptPopup()}
-            <Toasts/>
+            <Toasts darkMode={this.props.darkMode}/>
         </div>;
     }
 
@@ -158,7 +160,10 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
             );
             this.setState({scriptPopupShown: false});
         };
-        return <Modal show={this.state.scriptPopupShown}>
+        return <Modal
+            show={this.state.scriptPopupShown}
+            className={this.props.darkMode && 'tt-dark-modal-root'}
+        >
             {this.state.scriptPopup.title && <Modal.Title>{this.state.scriptPopup.title}</Modal.Title>}
             <Modal.Body>{this.state.scriptPopup.message}</Modal.Body>
             <Modal.Footer>

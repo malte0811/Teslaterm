@@ -1,0 +1,6 @@
+.tt-light-toast {}
+
+.tt-dark-toast {
+    --bs-toast-header-bg: rgba(108, 117, 125, 0.9);
+    --bs-toast-header-color: white;
+}

@@ -6,7 +6,14 @@ import {TTComponent} from "../../TTComponent";
 export interface GaugeProps {
     value: number;
     config: MeterConfig;
+    darkMode: boolean;
 }
+
+const DARK_GAUGE_PROPS = {
+    gaugeColor: '#575757',
+    valueFontColor: 'white',
+    labelFontColor: 'white',
+};
 
 export class Gauge extends TTComponent<GaugeProps, {}> {
     private static nextId: number = 0;
@@ -25,7 +32,8 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
             value: this.props.value,
             min: this.props.config.min,
             max: this.props.config.max,
-            label: this.props.config.name
+            label: this.props.config.name,
+            ...(this.props.darkMode ? DARK_GAUGE_PROPS : {}),
         });
     }
 

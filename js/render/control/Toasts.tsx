@@ -8,11 +8,15 @@ interface ShownToastData extends ToastData {
     occurrences: number;
 }
 
+export interface ToastsProps {
+    darkMode: boolean;
+}
+
 interface ToastsState {
     toasts: ShownToastData[];
 }
 
-export class Toasts extends TTComponent<{}, ToastsState> {
+export class Toasts extends TTComponent<ToastsProps, ToastsState> {
     constructor(props) {
         super(props);
         this.state = {
@@ -63,9 +67,9 @@ export class Toasts extends TTComponent<{}, ToastsState> {
     private makeToast(data: ShownToastData, index: number) {
         return <Toast
             onClose={() => this.setState({toasts: this.state.toasts.filter((_, i) => i != index)})}
-            bg={Toasts.getStyleFor(data.level)}
+            bg={this.getStyleFor(data.level)}
             key={index}
-            className={'me-2'}
+            className={'me-2 tt-' + (this.props.darkMode ? 'dark' : 'light') + '-toast'}
         >
             <Toast.Header>
                 <div className={'me-auto'}>{data.title}</div>
@@ -75,10 +79,10 @@ export class Toasts extends TTComponent<{}, ToastsState> {
         </Toast>;
     }
 
-    private static getStyleFor(level: ToastSeverity) {
+    private getStyleFor(level: ToastSeverity) {
         switch (level) {
             case ToastSeverity.info:
-                return 'light';
+                return this.props.darkMode ? 'dark' : 'light';
             case ToastSeverity.warning:
                 return 'warning';
             case ToastSeverity.error:

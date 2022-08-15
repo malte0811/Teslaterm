@@ -1,16 +1,19 @@
 import React from "react";
 import {IPC_CONSTANTS_TO_RENDERER, MeterConfig, SetMeters} from "../../../common/IPCConstantsToRenderer";
-import {IPCListenerRef, processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {Gauge, GaugeProps} from "./Gauge";
 
 export const NUM_GAUGES = 7;
 
-export interface GaugeState {
+export interface GaugesProps {
+    darkMode: boolean;
+}
+
+interface GaugeState {
     gauges: GaugeProps[];
 }
 
-export class Gauges extends TTComponent<{}, GaugeState> {
+export class Gauges extends TTComponent<GaugesProps, GaugeState> {
     constructor(props: any) {
         super(props);
         const gauges: GaugeProps[] = [];
@@ -18,7 +21,8 @@ export class Gauges extends TTComponent<{}, GaugeState> {
             gauges.push({
                 value: 0,
                 config: new MeterConfig(i, 0, 10, 1, "Meter "+i),
-            })
+                darkMode: this.props.darkMode,
+            });
         }
         this.state = {gauges};
     }
@@ -27,7 +31,11 @@ export class Gauges extends TTComponent<{}, GaugeState> {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.meters.configure, (config: MeterConfig) => {
             this.setState((oldState) => {
                 const newGauges = [...oldState.gauges];
-                newGauges[config.meterId] = {value: newGauges[config.meterId].value, config};
+                newGauges[config.meterId] = {
+                    value: newGauges[config.meterId].value,
+                    config,
+                    darkMode: this.props.darkMode
+                };
                 return {gauges: newGauges};
             });
         });

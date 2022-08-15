@@ -1,11 +1,12 @@
 import React from "react";
-import {Button, DropdownButton, Modal} from "react-bootstrap";
+import {Button, Modal} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUD3State, UD3Alarm, UD3ConfigOption} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {TTDropdown} from "../../TTDropdown";
 import {Alarms} from "../Alarms";
 import {UD3Config} from "../UD3Config";
 
@@ -22,6 +23,7 @@ export interface CommandsMenuProps {
     udState: IUD3State;
     ttConfig: TTConfig;
     disabled: boolean;
+    darkMode: boolean;
 }
 
 export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsState> {
@@ -61,7 +63,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
         this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined);
         return <>
-            <DropdownButton id={'commands'} title={'Commands'}>{items}</DropdownButton>
+            <TTDropdown title={'Commands'} darkMode={this.props.darkMode}>{items}</TTDropdown>
             {this.makeWarningModal()}
             {this.makeConfigModal()}
             {this.makeAlarmListModal()}
@@ -103,7 +105,10 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             this.state.onOk();
             closeModal();
         };
-        return <Modal show={this.state.warningText !== undefined}>
+        return <Modal
+            show={this.state.warningText !== undefined}
+            className={this.props.darkMode && 'tt-dark-modal-root'}
+        >
             <Modal.Header>
                 <Modal.Title>WARNING</Modal.Title>
             </Modal.Header>
@@ -118,12 +123,17 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeConfigModal() {
-        return <Modal show={this.state.originalSettings !== undefined} size={'lg'}>
+        return <Modal
+            show={this.state.originalSettings !== undefined}
+            size={'lg'}
+            className={this.props.darkMode && 'tt-dark-modal-root'}
+        >
             <Modal.Body>
                 <UD3Config
                     original={this.state.originalSettings || []}
                     close={() => this.setState({originalSettings: undefined})}
                     ttConfig={this.props.ttConfig}
+                    darkMode={this.props.darkMode}
                 />
             </Modal.Body>
         </Modal>;
@@ -131,12 +141,14 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
 
     private makeAlarmListModal() {
         const close = () => this.setState({alarmList: undefined});
-        return <Modal show={this.state.alarmList !== undefined} size={'lg'} onBackdropClick={close}>
+        return <Modal
+            show={this.state.alarmList !== undefined}
+            size={'lg'}
+            onBackdropClick={close}
+            className={this.props.darkMode && 'tt-dark-modal-root'}
+        >
             <Modal.Body>
-                <Alarms
-                    alarms={this.state.alarmList || []}
-                    close={close}
-                />
+                <Alarms alarms={this.state.alarmList || []} close={close} darkMode={this.props.darkMode}/>
             </Modal.Body>
         </Modal>;
     }
