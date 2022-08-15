@@ -163,6 +163,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
         return <Modal
             show={this.state.scriptPopupShown}
             className={this.props.darkMode && 'tt-dark-modal-root'}
+            onHide={() => confirm(false)}
         >
             {this.state.scriptPopup.title && <Modal.Title>{this.state.scriptPopup.title}</Modal.Title>}
             <Modal.Body>{this.state.scriptPopup.message}</Modal.Body>

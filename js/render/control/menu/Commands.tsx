@@ -108,6 +108,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         return <Modal
             show={this.state.warningText !== undefined}
             className={this.props.darkMode && 'tt-dark-modal-root'}
+            onHide={closeModal}
         >
             <Modal.Header>
                 <Modal.Title>WARNING</Modal.Title>
@@ -123,15 +124,17 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeConfigModal() {
+        const closeModal = () => this.setState({originalSettings: undefined});
         return <Modal
             show={this.state.originalSettings !== undefined}
             size={'lg'}
             className={this.props.darkMode && 'tt-dark-modal-root'}
+            onHide={closeModal}
         >
             <Modal.Body>
                 <UD3Config
                     original={this.state.originalSettings || []}
-                    close={() => this.setState({originalSettings: undefined})}
+                    close={closeModal}
                     ttConfig={this.props.ttConfig}
                     darkMode={this.props.darkMode}
                 />
@@ -144,7 +147,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         return <Modal
             show={this.state.alarmList !== undefined}
             size={'lg'}
-            onBackdropClick={close}
+            onHide={close}
             className={this.props.darkMode && 'tt-dark-modal-root'}
         >
             <Modal.Body>
