@@ -58,7 +58,7 @@ export class Idle implements IConnectionState {
         const options: AutoSerialPort[] = [];
         for (const port of all) {
             if (port.vendorId === config.serial.vendorID && port.productId === config.serial.productID) {
-                ipcs.terminal.println("Auto connecting to " + port.path);
+                console.log("Auto connecting to " + port.path);
                 return create(port.path, baudrate);
             }
             if (port.vendorId && port.productId) {
