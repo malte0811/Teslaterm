@@ -1,6 +1,7 @@
 import React from "react";
 import {Button, Dropdown} from "react-bootstrap";
-import {MiscIPC} from "../../ipc/Misc";
+import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
+import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import MIDIInput = WebMidi.MIDIInput;
 
@@ -79,7 +80,7 @@ export class MidiSourceSelect extends TTComponent<MidiSelectProps, MidiSelectSta
             oldState.currentInput.onmidimessage = undefined;
         }
         if (newInput) {
-            newInput.onmidimessage = (msg) => MiscIPC.sendMidi(msg.data);
+            newInput.onmidimessage = (msg) => processIPC.send(IPC_CONSTANTS_TO_MAIN.midiMessage, msg.data);
         }
         return newInput;
     }
