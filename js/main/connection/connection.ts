@@ -1,4 +1,5 @@
-import {ConnectionOptions, getDefaultConnectOptions} from "../../common/ConnectionOptions";
+import {ConnectionOptions} from "../../common/ConnectionOptions";
+import {UD3ConnectionType} from "../../common/constants";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
@@ -35,10 +36,17 @@ export async function pressButton(window: object) {
 
 export function autoConnect() {
     console.assert(connectionState instanceof Idle);
-    const autoconnect_options = getDefaultConnectOptions(true, config);
-    if (autoconnect_options) {
-        connectionState = new Connecting(Idle.connectWithOptions(autoconnect_options), new Idle());
-    }
+        let connectionType = config.defaultConnectOptions.defaultConnectionType;
+        if (connectionType === undefined) {
+                return;
+        }
+        let options: ConnectionOptions;
+        if (connectionType === UD3ConnectionType.udp_min) {
+            options = {connectionType, options: config.defaultConnectOptions.udpOptions};
+        } else {
+            options = {connectionType, options: config.defaultConnectOptions.serialOptions};
+        }
+        connectionState = new Connecting(Idle.connectWithOptions(options), new Idle());
 }
 
 export function startBootloading(cyacd: Uint8Array): boolean {

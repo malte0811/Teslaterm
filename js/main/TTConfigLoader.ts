@@ -1,15 +1,29 @@
 import * as os from "os";
+import {FullConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../common/ConnectionOptions";
 import {
     CONNECTION_TYPE_DESCS,
     FEATURE_TIMEBASE,
     FEATURE_NOTELEMETRY,
     FEATURE_TIMECOUNT,
-    FEATURE_MINSID
+    FEATURE_MINSID,
+    CONNECTION_TYPES_BY_NAME
 } from "../common/constants";
-import {TTConfig} from "../common/TTConfig";
+import {
+    COMMAND_ROLES,
+    CommandConnectionConfig,
+    EthernetConfig,
+    MidiConfig,
+    NetSidConfig,
+    SerialConfig,
+    TTConfig
+} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
 import * as fs from "fs";
 import * as ini from "ini";
+
+interface ChangedFlag {
+    changed: boolean;
+}
 
 const defaultUDFeatures: Map<string, string> = new Map([
     ["protocol", "2.0"],
@@ -95,12 +109,7 @@ class ConfigSection {
         this.desc = desc;
     }
 
-    public getOrWrite<T>(
-        key: string,
-        defaultValue: T,
-        changed: { val: boolean },
-        description?: string,
-    ): T {
+    public getOrWrite<T>(key: string, defaultValue: T, changed: ChangedFlag, description?: string): T {
         if (this.contents.has(key)) {
             const retEntry = this.contents.get(key);
             retEntry.desc = description;
@@ -114,7 +123,7 @@ class ConfigSection {
             }
         } else {
             this.contents.set(key, new ConfigEntry(defaultValue, description));
-            changed.val = true;
+            changed.changed = true;
             return defaultValue;
         }
     }
@@ -141,110 +150,126 @@ class Config {
     }
 }
 
+function readEthernetConfig(cfg: Config, changed: ChangedFlag): UDPConnectionOptions {
+    const ethernet = cfg.getOrCreateSection(
+        "ethernet", "Default settings for ethernet connections to UD3 node instances"
+    );
+    return {
+        udpMinPort: ethernet.getOrWrite<number>(
+            "udpMinPort", 1337, changed, "Default remote port for MIN connections over UDP"
+        ),
+        remoteIP: ethernet.getOrWrite("remote_ip", "localhost", changed),
+    };
+}
+
+function readSerialConfig(cfg: Config, changed: ChangedFlag): SerialConnectionOptions {
+    const serial = cfg.getOrCreateSection("serial", "Default settings for serial connections (plain or MIN)");
+    let defaultPort: string;
+    if (os.platform() === "win32") {
+        defaultPort = "COM1";
+    } else {
+        defaultPort = "/dev/ttyACM0";
+    }
+    return {
+        serialPort: serial.getOrWrite<string>("port", defaultPort, changed),
+        baudrate: serial.getOrWrite<number>("baudrate", 460_800, changed),
+        autoVendorID: serial.getOrWrite<string>("vendor_id", "1a86", changed),
+        autoProductID: serial.getOrWrite<string>("product_id", "7523", changed),
+    };
+}
+
+function readConnectOptions(cfg: Config, changed: ChangedFlag): FullConnectionOptions {
+    const general = cfg.getOrCreateSection("general");
+    const types = Array.from(CONNECTION_TYPES_BY_NAME.keys());
+    const asString = general.getOrWrite(
+        "autoconnect", "none", changed, "One of \"" + types.join("\", \"") + "\" or \"none\""
+    );
+    return {
+        defaultConnectionType: CONNECTION_TYPES_BY_NAME.get(asString),
+        serialOptions: readSerialConfig(cfg, changed),
+        udpOptions: readEthernetConfig(cfg, changed),
+    };
+}
+
+function readMIDIConfig(cfg: Config, changed: ChangedFlag): MidiConfig {
+    const rtpmidi = cfg.getOrCreateSection("rtpmidi", "Settings for the RTP-MIDI server hosted by Teslaterm/UD3-node");
+    return {
+        runMidiServer: rtpmidi.getOrWrite<boolean>("enabled", true, changed),
+        port: rtpmidi.getOrWrite<number>("port", 12001, changed),
+        localName: rtpmidi.getOrWrite<string>("localName", "Teslaterm", changed),
+        bonjourName: rtpmidi.getOrWrite<string>("bonjourName", "Teslaterm", changed),
+    };
+}
+
+function readSIDConfig(cfg: Config, changed: ChangedFlag): NetSidConfig {
+    const netsid = cfg.getOrCreateSection("netsid", "Settings for the NetSID server hosted by Teslaterm/UD3-node");
+    return {
+        enabled: netsid.getOrWrite<boolean>("enabled", true, changed),
+        port: netsid.getOrWrite<number>("port", 6581, changed),
+    };
+}
+
+function readCommandConfig(cfg: Config, changed: ChangedFlag): CommandConnectionConfig {
+    // TODO document
+    const command = cfg.getOrCreateSection("command", "");
+    const stateStr = command.getOrWrite<string>("state", "disable", changed, "Possible values: disable, server, client");
+    return {
+        state: COMMAND_ROLES.get(stateStr) || 'disable',
+        port: command.getOrWrite<number>("port", 13001, changed),
+        remoteName: command.getOrWrite<string>("remoteName", "localhost", changed),
+    };
+}
+
 export function loadConfig(filename: string): TTConfig {
-    let ret = new TTConfig();
     let contents: string = "";
     if (fs.existsSync(filename)) {
         contents = convertArrayBufferToString(fs.readFileSync(filename));
     }
     let config = configFromString(contents);
-    let changed: { val: boolean } = {val: false};
+    let changed: ChangedFlag = {changed: false};
 
-    {
-        const general = config.getOrCreateSection("general");
-        const types = Array.from(CONNECTION_TYPE_DESCS.keys());
-        ret.autoconnect = general.getOrWrite(
-            "autoconnect",
-            "none",
-            changed,
-            "One of \"" + types.join("\", \"") + "\" or \"none\""
-        );
+    const ttConfigBase = {
+        defaultConnectOptions: readConnectOptions(config, changed),
+        midi: readMIDIConfig(config, changed),
+        netsid: readSIDConfig(config, changed),
+        command: readCommandConfig(config, changed),
+    };
+    const udconfig = config.getOrCreateSection(
+        "udconfig",
+        "Each entry indicates which page the corresponding UD3 option should be shown on in the UD3 config GUI"
+    );
+    let udFeaturesInConfig = config.getOrCreateSection(
+        "defaultUDFeatures",
+        "Default values for features of the UD3. These values will only be used if the UD3 does not specify " +
+        "the correct values to use."
+    );
+    const ttConfig: TTConfig = {
+        ...ttConfigBase,
+        udConfigPages: readSectionFromMap<number>(defaultUDConfigPages, udconfig, changed),
+        defaultUDFeatures: readSectionFromMap<string>(defaultUDFeatures, udFeaturesInConfig, changed),
     }
-    {
-        const ethernet = config.getOrCreateSection(
-            "ethernet",
-            "Default settings for ethernet connections to UD3 node instances"
-        );
-        ret.ethernet.remote_ip = ethernet.getOrWrite("remote_ip", "localhost", changed);
-        ret.ethernet.udpMinPort = ethernet.getOrWrite("udpMinPort", 1337, changed,
-            "Default remote port for MIN connections over UDP");
+    if (changed.changed) {
+        fs.writeFile(filename, configToString(config), (err) => {
+            if (err) {
+                console.warn("Failed to write new config!", err);
+            } else {
+                console.log("Successfully updated config");
+            }
+        });
     }
-    {
-        const serial = config.getOrCreateSection("serial", "Default settings for serial connections (plain or MIN)");
-        let defaultPort: string;
-        if (os.platform() === "win32") {
-            defaultPort = "COM1";
-        } else {
-            defaultPort = "/dev/ttyUSB0";
-        }
-        ret.serial.serial_port = serial.getOrWrite("port", defaultPort, changed);
-        ret.serial.baudrate = serial.getOrWrite("baudrate", 460_800, changed);
-        ret.serial.vendorID = serial.getOrWrite("vendor_id", "1a86", changed);
-        ret.serial.productID = serial.getOrWrite("product_id", "7523", changed);
-    }
-    {
-        const rtpmidi = config.getOrCreateSection("rtpmidi", "Settings for the RTP-MIDI server hosted by Teslaterm/UD3-node");
-        ret.midi.runMidiServer = rtpmidi.getOrWrite("enabled", true, changed);
-        ret.midi.port = rtpmidi.getOrWrite("port", 12001, changed);
-        ret.midi.localName = rtpmidi.getOrWrite("localName", "Teslaterm", changed);
-        ret.midi.bonjourName = rtpmidi.getOrWrite("bonjourName", "Teslaterm", changed);
-    }
-    {
-        const netsid = config.getOrCreateSection("netsid", "Settings for the NetSID server hosted by Teslaterm/UD3-node");
-        ret.netsid.enabled = netsid.getOrWrite("enabled", true, changed);
-        ret.netsid.port = netsid.getOrWrite("port", 6581, changed);
-    }
-    {
-        // TODO document
-        const command = config.getOrCreateSection("command", "");
-        ret.command.state = command.getOrWrite("state", "disable", changed, "Possible values: disable, server, client");
-        ret.command.port = command.getOrWrite("port", 13001, changed);
-        ret.command.remoteName = command.getOrWrite("remoteName", "localhost", changed);
-    }
-    {
-        const udconfig = config.getOrCreateSection(
-            "udconfig",
-            "Each entry indicates which page the corresponding UD3 option should be shown on in the UD3 config GUI"
-        );
-        setSectionFromMap(
-            defaultUDConfigPages,
-            ret.udConfigPages,
-            udconfig,
-            changed
-        );
-    }
-    {
-        let udFeaturesInConfig = config.getOrCreateSection(
-            "defaultUDFeatures",
-            "Default values for features of the UD3. These values will only be used if the UD3 does not specify " +
-            "the correct values to use."
-        );
-        setSectionFromMap(
-            defaultUDFeatures,
-            ret.defaultUDFeatures,
-            udFeaturesInConfig,
-            changed
-        );
-    }
-    fs.writeFile(filename, configToString(config), (err) => {
-        if (err) {
-            console.warn("Failed to write new config!", err);
-        } else {
-            console.log("Successfully updated config");
-        }
-    });
-    return ret;
+    return ttConfig;
 }
 
-function setSectionFromMap(defaults: Map<string, any>, output: Map<string, any>, section: ConfigSection, changed: { val: boolean }) {
+function readSectionFromMap<T>(defaults: Map<string, T>, section: ConfigSection, changed: ChangedFlag): Map<string, T> {
     const allNames = new Set<string>(defaults.keys());
     for (const key of section.contents.keys()) {
         allNames.add(key);
     }
-    output.clear();
+    const output = new Map<string, T>();
     for (const name of allNames) {
         output.set(name, section.getOrWrite(name, defaults.get(name), changed));
     }
+    return output;
 }
 
 function configFromString(contents: string): Config {

@@ -1,7 +1,8 @@
 import React from "react";
 import {Button, Col, Form, Row} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {CONNECTION_TYPE_DESCS, CONNECTION_TYPES_BY_NAME, UD3ConnectionType} from "../../common/constants";
+import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
+import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
@@ -15,33 +16,24 @@ export interface ConnectFormProps {
     darkMode: boolean;
 }
 
-// TODO use ConnectionOptions object in this?
-export interface ConnectFormState {
+export interface ConnectFormState extends SerialConnectionOptions, UDPConnectionOptions{
     currentType: UD3ConnectionType;
-
-    serialPort: string;
-    baudrate: string;
     serialSuggestions: string[];
-
-    remoteIP: string;
-    udpPort: string;
     udpSuggestions: IUDPConnectionSuggestion[];
 }
 
 export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState> {
     private readonly firstFieldRef: React.RefObject<HTMLInputElement> = React.createRef();
 
-    constructor(props) {
-        super(props);
-        const startType = CONNECTION_TYPES_BY_NAME.get(props.ttConfig.autoconnect) || UD3ConnectionType.serial_min;
+    constructor(props_) {
+        super(props_);
+        const connectOptions = this.props.ttConfig.defaultConnectOptions;
         this.state = {
-            currentType: startType,
-            serialPort: props.ttConfig.serial.serial_port,
-            baudrate: props.ttConfig.serial.baudrate.toString(),
-            remoteIP: props.ttConfig.ethernet.remote_ip,
-            udpPort: props.ttConfig.ethernet.udpMinPort.toString(),
+            currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
             serialSuggestions: [],
             udpSuggestions: [],
+            ...connectOptions.serialOptions,
+            ...connectOptions.udpOptions,
         };
         this.connect = this.connect.bind(this);
     }
@@ -108,7 +100,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                     value={this.state[key] as string}
                     onChange={(ev) => {
                         let obj = {};
-                        obj[key] = ev.target.value;
+                        obj[key] = isNumber ? Number.parseInt(ev.target.value) : ev.target.value;
                         this.setState(obj);
                     }}
                     disabled={this.props.connecting}
@@ -163,18 +155,12 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                 );
                 return [
                     this.makeSuggestedField('Remote IP', 'remoteIP', suggestionStrings, true),
-                    this.makeField('Remote port', true, 'udpPort'),
+                    this.makeField('Remote port', true, 'udpMinPort'),
                 ];
         }
     }
 
     private connect() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, {
-            connectionType: this.state.currentType,
-            serialPort: this.state.serialPort,
-            baudrate: Number.parseInt(this.state.baudrate),
-            remoteIP: this.state.remoteIP,
-            udpMinPort: Number.parseInt(this.state.udpPort),
-        });
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, {connectionType: this.state.currentType, options: this.state});
     }
 }

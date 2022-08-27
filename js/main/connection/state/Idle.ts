@@ -1,5 +1,5 @@
 import {SerialPort} from "serialport";
-import {ConnectionOptions} from "../../../common/ConnectionOptions";
+import {ConnectionOptions, SerialConnectionOptions} from "../../../common/ConnectionOptions";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
 import {AutoSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {config} from "../../init";
@@ -19,11 +19,13 @@ export class Idle implements IConnectionState {
         const type = options.connectionType;
         switch (type) {
             case UD3ConnectionType.serial_plain:
-                return this.connectSerial(options, createPlainSerialConnection);
+                return this.connectSerial(options.options, createPlainSerialConnection);
             case UD3ConnectionType.serial_min:
-                return this.connectSerial(options, createMinSerialConnection);
+                return this.connectSerial(options.options, createMinSerialConnection);
             case UD3ConnectionType.udp_min:
-                return createMinUDPConnection(options.udpMinPort, Idle.addressFromString(options.remoteIP));
+                return createMinUDPConnection(
+                    options.options.udpMinPort, Idle.addressFromString(options.options.remoteIP)
+                );
             case UD3ConnectionType.dummy:
                 return new DummyConnection();
             default:
@@ -42,27 +44,33 @@ export class Idle implements IConnectionState {
         }
     }
 
-    private static async connectSerial(options: ConnectionOptions, create: (port: string, baudrate: number) => UD3Connection)
-        : Promise<UD3Connection | undefined> {
+    private static async connectSerial(
+        options: SerialConnectionOptions, create: (port: string, baudrate: number) => UD3Connection
+    ): Promise<UD3Connection | undefined> {
         if (options.serialPort) {
             return create(options.serialPort, options.baudrate);
         } else {
-            return this.autoConnectSerial(options.baudrate, create);
+            return this.autoConnectSerial(options.baudrate, create, options);
         }
     }
 
-    private static async autoConnectSerial(baudrate: number,
-                                           create: (port: string, baudrate: number) => UD3Connection)
-        : Promise<UD3Connection | undefined> {
+    private static async autoConnectSerial(
+        baudrate: number,
+        create: (port: string, baudrate: number) => UD3Connection,
+        options: SerialConnectionOptions,
+    ): Promise<UD3Connection | undefined> {
+        if (!options.autoVendorID || !options.autoProductID) {
+            return undefined;
+        }
         const all = await SerialPort.list();
-        const options: AutoSerialPort[] = [];
+        const candidates: AutoSerialPort[] = [];
         for (const port of all) {
-            if (port.vendorId === config.serial.vendorID && port.productId === config.serial.productID) {
+            if (port.vendorId === options.autoVendorID && port.productId === options.autoProductID) {
                 console.log("Auto connecting to " + port.path);
                 return create(port.path, baudrate);
             }
             if (port.vendorId && port.productId) {
-                options.push({
+                candidates.push({
                     path: port.path,
                     manufacturer: port.manufacturer,
                     vendorID: port.vendorId,
@@ -70,7 +78,7 @@ export class Idle implements IConnectionState {
                 });
             }
         }
-        ipcs.connectionUI.sendAutoOptions(options);
+        ipcs.connectionUI.sendAutoOptions(candidates);
         return undefined;
     }
     public getActiveConnection(): UD3Connection | undefined {

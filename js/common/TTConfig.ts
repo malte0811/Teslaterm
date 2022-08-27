@@ -1,44 +1,47 @@
-export class EthernetConfig {
-    public remote_ip: string;
-    public udpMinPort: number;
+import {FullConnectionOptions} from "./ConnectionOptions";
+
+export interface EthernetConfig {
+    readonly remoteIP: string;
+    readonly udpMinPort: number;
 }
 
-export class SerialConfig {
-    public serial_port: string;
-    public baudrate: number;
-    public productID: string;
-    public vendorID: string;
+export interface SerialConfig {
+    readonly serialPort: string;
+    readonly baudrate: number;
+    readonly productID: string;
+    readonly vendorID: string;
 }
 
-export class MidiConfig {
-    public runMidiServer: boolean;
-    public port: number;
-    public localName: string;
-    public bonjourName: string;
+export interface MidiConfig {
+    readonly runMidiServer: boolean;
+    readonly port: number;
+    readonly localName: string;
+    readonly bonjourName: string;
 }
 
-export class NetSidConfig {
-    public enabled: boolean;
-    public port: number;
+export interface NetSidConfig {
+    readonly enabled: boolean;
+    readonly port: number;
 }
 
-export type CommandRole = "disable" | "server" | "client";
+export type CommandRole = 'disable' | 'server' | 'client';
+export const COMMAND_ROLES = new Map<string, CommandRole>();
+COMMAND_ROLES.set('disable', 'disable');
+COMMAND_ROLES.set('server', 'server');
+COMMAND_ROLES.set('client', 'client');
 
-export class CommandConnectionConfig {
-    public state: CommandRole;
-    public port: number;
-    public remoteName: string;
+export interface CommandConnectionConfig {
+    readonly state: CommandRole;
+    readonly port: number;
+    readonly remoteName: string;
 }
 
-export class TTConfig {
-    // The type of connection to use for autoconnect: none, eth, udpmin, min or serial
-    public autoconnect: string;
-    public readonly ethernet: EthernetConfig = new EthernetConfig();
-    public readonly serial: SerialConfig = new SerialConfig();
-    public readonly midi: MidiConfig = new MidiConfig();
-    public readonly netsid: NetSidConfig = new NetSidConfig();
-    public readonly command: CommandConnectionConfig = new CommandConnectionConfig();
+export interface TTConfig {
+    readonly defaultConnectOptions: FullConnectionOptions;
+    readonly midi: MidiConfig;
+    readonly netsid: NetSidConfig;
+    readonly command: CommandConnectionConfig;
 
-    public readonly udConfigPages: Map<string, number> = new Map();
-    public readonly defaultUDFeatures: Map<string, string> = new Map();
+    readonly udConfigPages: Map<string, number>;
+    readonly defaultUDFeatures: Map<string, string>;
 }
