@@ -1,23 +1,22 @@
 import React from "react";
 import {Button, Col, Form, Row} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
-import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
+import {MergedConnectionOptions} from "./ConnectScreen";
 
 export interface ConnectFormProps {
-    ttConfig: TTConfig;
+    currentOptions: MergedConnectionOptions;
+    setOptions: (newOptions: Partial<MergedConnectionOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
 }
 
-export interface ConnectFormState extends SerialConnectionOptions, UDPConnectionOptions{
-    currentType: UD3ConnectionType;
+export interface ConnectFormState {
     serialSuggestions: string[];
     udpSuggestions: IUDPConnectionSuggestion[];
 }
@@ -27,13 +26,9 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
 
     constructor(props_) {
         super(props_);
-        const connectOptions = this.props.ttConfig.defaultConnectOptions;
         this.state = {
-            currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
             serialSuggestions: [],
             udpSuggestions: [],
-            ...connectOptions.serialOptions,
-            ...connectOptions.udpOptions,
         };
         this.connect = this.connect.bind(this);
     }
@@ -54,9 +49,10 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     render() {
-        let optionsForType: JSX.Element[] = this.getConfigOptions();
+        const currentType = this.props.currentOptions.currentType;
+        let optionsForType: JSX.Element[] = this.getConfigOptions(currentType);
         if (!optionsForType) {
-            return <div>Unsupported connection type {this.state.currentType}</div>
+            return <div>Unsupported connection type {currentType}</div>
         }
         let possibleTypes: JSX.Element[] = [];
         for (const [type, desc] of CONNECTION_TYPE_DESCS.entries()) {
@@ -64,7 +60,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                 <Dropdown.Item
                     key={possibleTypes.length}
                     as={Button}
-                    onClick={() => this.setState({currentType: type})}
+                    onClick={() => this.props.setOptions({currentType: type})}
                     disabled={this.props.connecting}
                 >
                     {desc}
@@ -73,7 +69,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         }
         return <div className={'tt-connect-form'}>
             <TTDropdown
-                title={CONNECTION_TYPE_DESCS.get(this.state.currentType)}
+                title={CONNECTION_TYPE_DESCS.get(currentType)}
                 darkMode={this.props.darkMode}
             >
                 {possibleTypes}
@@ -89,22 +85,19 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         </div>;
     }
 
-    protected makeField(
-        label: string, isNumber: boolean, key: keyof ConnectFormState, first: boolean = false,
-    ): JSX.Element {
+    protected makeIntField(label: string, key: keyof MergedConnectionOptions): JSX.Element {
         return <Form.Group as={Row} key={key}>
             <Form.Label column>{label}</Form.Label>
             <Col sm={9}>
                 <Form.Control
-                    type={isNumber? 'number' : 'text'}
-                    value={this.state[key] as string}
+                    type={'number'}
+                    value={this.props.currentOptions[key] as string}
                     onChange={(ev) => {
                         let obj = {};
-                        obj[key] = isNumber ? Number.parseInt(ev.target.value) : ev.target.value;
-                        this.setState(obj);
+                        obj[key] = Number.parseInt(ev.target.value);
+                        this.props.setOptions(obj);
                     }}
                     disabled={this.props.connecting}
-                    ref={first ? this.firstFieldRef : undefined}
                     className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                 />
             </Col>
@@ -112,7 +105,10 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     protected makeSuggestedField(
-        label: string, key: keyof ConnectFormState, suggestions: string[], first: boolean = false, placeholder?: string
+        label: string,
+        key: keyof MergedConnectionOptions,
+        suggestions: string[],
+        placeholder?: string
     ): JSX.Element {
         return <Form.Group as={Row} style={{marginBottom: '5px'}} key={key}>
             <Form.Label column>Port</Form.Label>
@@ -120,15 +116,15 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                 <Form.Control
                     type={'text'}
                     placeholder={placeholder}
-                    value={this.state[key] as string}
+                    value={this.props.currentOptions[key] as string}
                     onChange={(ev) => {
                         // TODO is there a better way to do this?
                         let obj = {};
-                        obj[key] = ev.target.value;
-                        this.setState(obj);
+                        obj[key as string] = ev.target.value;
+                        this.props.setOptions(obj);
                     }}
                     list={'suggestions'}
-                    ref={first ? this.firstFieldRef : undefined}
+                    ref={this.firstFieldRef}
                     disabled={this.props.connecting}
                     className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                 />
@@ -139,28 +135,31 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         </Form.Group>;
     }
 
-    private getConfigOptions() {
-        switch (this.state.currentType) {
+    private getConfigOptions(currentType: UD3ConnectionType) {
+        switch (currentType) {
             case UD3ConnectionType.serial_min:
             case UD3ConnectionType.serial_plain:
                 return [
                     this.makeSuggestedField(
-                        'Port', 'serialPort', this.state.serialSuggestions, true, 'Autoconnect'
+                        'Port', 'serialPort', this.state.serialSuggestions, 'Autoconnect'
                     ),
-                    this.makeField('Baudrate', true, 'baudrate'),
+                    this.makeIntField('Baudrate', 'baudrate'),
                 ];
             case UD3ConnectionType.udp_min:
                 const suggestionStrings = this.state.udpSuggestions.map(
                     (s) => s.desc ? s.desc + ' (' + s.remoteIP + ')' : s.remoteIP,
                 );
                 return [
-                    this.makeSuggestedField('Remote IP', 'remoteIP', suggestionStrings, true),
-                    this.makeField('Remote port', true, 'udpMinPort'),
+                    this.makeSuggestedField('Remote IP', 'remoteIP', suggestionStrings),
+                    this.makeIntField('Remote port', 'udpMinPort'),
                 ];
         }
     }
 
     private connect() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, {connectionType: this.state.currentType, options: this.state});
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, {
+            connectionType: this.props.currentOptions.currentType,
+            options: this.props.currentOptions,
+        });
     }
 }

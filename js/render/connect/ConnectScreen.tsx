@@ -1,9 +1,15 @@
 import React from "react";
+import {Button, Modal, Table, Toast, ToastContainer} from "react-bootstrap";
+import {SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
+import {UD3ConnectionType} from "../../common/constants";
 import {AutoSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {TTComponent} from "../TTComponent";
-import {Button, Modal, Table, Toast, ToastContainer} from "react-bootstrap";
 import {ConnectForm} from "./ConnectForm";
+
+export interface MergedConnectionOptions extends SerialConnectionOptions, UDPConnectionOptions {
+    currentType: UD3ConnectionType;
+}
 
 interface ConnectScreenState {
     error: string;
@@ -11,6 +17,8 @@ interface ConnectScreenState {
 
     autoPorts: AutoSerialPort[];
     showingAutoPorts: boolean;
+
+    currentOptions: MergedConnectionOptions;
 }
 
 export interface ConnectScreenProps {
@@ -23,11 +31,17 @@ export interface ConnectScreenProps {
 export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreenState> {
     constructor(props: ConnectScreenProps) {
         super(props);
+        const connectOptions = this.props.ttConfig.defaultConnectOptions;
         this.state = {
             error: '',
             showingError: false,
             autoPorts: [],
             showingAutoPorts: false,
+            currentOptions: {
+                currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
+                ...connectOptions.udpOptions,
+                ...connectOptions.serialOptions,
+            },
         };
     }
 
@@ -46,7 +60,10 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
     render(): React.ReactNode {
         return <div className={'tt-connect-screen'}>
             <ConnectForm
-                ttConfig={this.props.ttConfig}
+                currentOptions={this.state.currentOptions}
+                setOptions={(opts) => this.setState(
+                    (oldState) => ({currentOptions: {...oldState.currentOptions, ...opts}})
+                )}
                 connecting={this.props.connecting}
                 darkMode={this.props.darkMode}
             />
