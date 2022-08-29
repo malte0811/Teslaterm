@@ -1,4 +1,5 @@
 import {Button, ButtonGroup, Form} from "react-bootstrap";
+import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ConnectionPreset, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {processIPC} from "../ipc/IPCProvider";
@@ -57,7 +58,24 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
             const newPresets = this.state.presets.filter((cp) => cp != preset);
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, newPresets);
         };
-        return <div className={'tt-side-aligned tt-connect-preset'}>
+        let description = `Type: ${CONNECTION_TYPE_DESCS.get(preset.options.connectionType)}`;
+        switch (preset.options.connectionType) {
+            case UD3ConnectionType.serial_min:
+            case UD3ConnectionType.serial_plain:
+                if (preset.options.options.serialPort) {
+                    description += `\nPort: ${preset.options.options.serialPort}`;
+                } else {
+                    description += `\nVendor ID: ${preset.options.options.autoVendorID}`;
+                    description += `\nProduct ID: ${preset.options.options.autoProductID}`;
+                }
+                description += `\nBaudrate: ${preset.options.options.baudrate}`;
+                break;
+            case UD3ConnectionType.udp_min:
+                description += `\nRemote IP: ${preset.options.options.remoteIP}`;
+                description += `\nRemote port: ${preset.options.options.udpMinPort}`;
+                break;
+        }
+        return <div className={'tt-side-aligned tt-connect-preset'} title={description}>
             <span className={'tt-align-left'}>{preset.name}</span>
             <ButtonGroup>
                 <Button disabled={this.props.connecting} onClick={load}>Load</Button>
