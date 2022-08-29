@@ -184,9 +184,9 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
     private static configure(oldTraces: OscilloscopeTrace[], cfg: ScopeTraceConfig) {
         const newTraces = [...oldTraces];
         const perDiv = (cfg.max - cfg.min) / NUM_VERTICAL_DIVS;
-        newTraces[cfg.id] = new OscilloscopeTrace(
-            new TraceConfig(TRACE_COLORS[cfg.id], cfg.name, cfg.unit, perDiv, cfg.offset, cfg.div)
-        );
+        const oldTrace = newTraces[cfg.id];
+        const newTraceCfg = new TraceConfig(TRACE_COLORS[cfg.id], cfg.name, cfg.unit, perDiv, cfg.offset, cfg.div);
+        newTraces[cfg.id] = oldTrace ? oldTrace.withCfg(newTraceCfg) : new OscilloscopeTrace(newTraceCfg);
         return {traces: newTraces};
     }
 

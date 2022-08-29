@@ -74,6 +74,14 @@ export class OscilloscopeTrace {
         return this.withScaledValue(ud3value / this.config.divider);
     }
 
+    public withCfg(newCfg: TraceConfig): OscilloscopeTrace {
+        if (newCfg.name !== this.config.name || newCfg.unit !== this.config.unit) {
+            return new OscilloscopeTrace(newCfg);
+        } else {
+            return new OscilloscopeTrace(newCfg, this.data, this.stats);
+        }
+    }
+
     private withScaledValue(value: number): OscilloscopeTrace {
         const newData = [...this.data];
         newData.push(value);
