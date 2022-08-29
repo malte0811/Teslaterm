@@ -1,0 +1,44 @@
+.tt-connect-screen {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 60% auto;
+}
+
+.tt-connect-form {
+    width: calc(min(500px, 50vw));
+    margin-left: auto;
+    margin-right: 5%;
+    height: 100%;
+    overflow-y: visible;
+}
+
+.tt-connect-presets {
+    height: 100%;
+    width: calc(min(400px, 40vw));
+    margin-left: 0;
+}
+
+.tt-connect-preset {
+    width: 100%;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.tt-side-aligned {
+    display: flex;
+    height: min-content;
+    flex-direction: row;
+}
+
+.tt-align-left {
+    flex-grow: 1;
+}
+
+.tt-preset-list {
+    border: 2px gray solid;
+    padding: 2px 2px 40px;
+    overflow-y: auto;
+    margin-top: 10px;
+}

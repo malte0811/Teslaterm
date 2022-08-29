@@ -20,6 +20,7 @@ export type ConnectionOptions = {
     options: UDPConnectionOptions;
 } | {
     connectionType: UD3ConnectionType.dummy;
+    options: {};
 };
 
 export interface FullConnectionOptions {

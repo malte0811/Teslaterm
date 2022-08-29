@@ -1,5 +1,6 @@
 import {SliderState} from "../main/ipc/sliders";
 import {MediaFileType, PlayerActivity} from './CommonTypes';
+import {ConnectionOptions} from "./ConnectionOptions";
 import {UD3AlarmLevel} from "./constants";
 import {TTConfig} from "./TTConfig";
 
@@ -19,6 +20,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setSerialSuggestions: makeKey<string[]>('suggest-serial'),
         connectionError: makeKey<string>('connection-error'),
         showAutoPortOptions: makeKey<AutoSerialPort[]>('show-auto-ports'),
+        syncPresets: makeKey<ConnectionPreset[]>('sync-connect-sesets'),
     },
     menu: {
         setMediaTitle: makeKey<string>('menu-media-title'),
@@ -260,3 +262,9 @@ export interface UD3Alarm {
     timestamp: number;
     value?: number;
 }
+
+export interface ConnectionPreset {
+    name: string;
+    options: ConnectionOptions;
+}
+

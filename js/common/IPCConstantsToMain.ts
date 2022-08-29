@@ -1,4 +1,5 @@
 import {ConnectionOptions} from './ConnectionOptions';
+import {ConnectionPreset} from "./IPCConstantsToRenderer";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -18,10 +19,14 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setParms: makeKey<Map<string, string>>('set-parms'),
         setTRState: makeKey<boolean>('set-tr-state'),
     },
-    connect: makeKey<ConnectionOptions>('connect-to-ud3'),
-    requestConnectSuggestions: makeKey<undefined>('request-connect-suggestions'),
     loadFile: makeKey<DroppedFile>('load-file'),
     manualCommand: makeKey<string>('manual-command'),
+    connect: {
+        connect: makeKey<ConnectionOptions>('connect-to-ud3'),
+        requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
+        getPresets: makeKey<undefined>('get-connect-presets'),
+        setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),
+    },
     menu: {
         connectButton: makeKey<undefined>('press-connect-button'),
         requestUDConfig: makeKey<undefined>('request-ud-config'),

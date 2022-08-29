@@ -30,17 +30,6 @@
     grid-template-columns: 100%;
 }
 
-.tt-connect-screen {
-    width: 100vw;
-    height: 100vh;
-}
-
-.tt-connect-form {
-    max-width: 600px;
-    margin: auto;
-    overflow-y: visible;
-}
-
 .tt-light-root, .tt-dark-root {
     overflow: hidden;
 }

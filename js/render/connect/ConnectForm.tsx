@@ -7,7 +7,7 @@ import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
-import {MergedConnectionOptions} from "./ConnectScreen";
+import {MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
 
 export interface ConnectFormProps {
     currentOptions: MergedConnectionOptions;
@@ -42,7 +42,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, (suggestions: string[]) => {
             this.setState({serialSuggestions: suggestions});
         });
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestConnectSuggestions, undefined);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, undefined);
         if (this.firstFieldRef.current) {
             this.firstFieldRef.current.focus();
         }
@@ -111,7 +111,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         placeholder?: string
     ): JSX.Element {
         return <Form.Group as={Row} style={{marginBottom: '5px'}} key={key}>
-            <Form.Label column>Port</Form.Label>
+            <Form.Label column>{label}</Form.Label>
             <Col sm={9}>
                 <Form.Control
                     type={'text'}
@@ -157,9 +157,6 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     private connect() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect, {
-            connectionType: this.props.currentOptions.currentType,
-            options: this.props.currentOptions,
-        });
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, toSingleOptions(this.props.currentOptions));
     }
 }

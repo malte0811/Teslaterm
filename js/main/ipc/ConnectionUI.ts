@@ -1,7 +1,13 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {AutoSerialPort, IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
+import {
+    AutoSerialPort,
+    ConnectionPreset,
+    IPC_CONSTANTS_TO_RENDERER,
+    IUDPConnectionSuggestion
+} from "../../common/IPCConstantsToRenderer";
 import {connectWithOptions} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
+import {getUIConfig, setUIConfig} from "../UIConfig";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class ConnectionUIIPC {
@@ -9,10 +15,14 @@ export class ConnectionUIIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect, (source: object, args) => {
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.connect, (source: object, args) => {
             connectWithOptions(args);
         });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestConnectSuggestions, sendConnectionSuggestions);
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, sendConnectionSuggestions);
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.getPresets, (source) => this.processIPC.sendToWindow(
+            IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, source, getUIConfig().connectionPresets
+        ));
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.setPresets, (source, presets) => this.setPresets(presets));
     }
 
     public suggestUDP(key: object, suggestions: IUDPConnectionSuggestion[]) {
@@ -29,5 +39,10 @@ export class ConnectionUIIPC {
 
     public sendAutoOptions(options: AutoSerialPort[]) {
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.connect.showAutoPortOptions, options);
+    }
+
+    private setPresets(presets: ConnectionPreset[]) {
+        setUIConfig({...getUIConfig(), connectionPresets: presets});
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, presets);
     }
 }
