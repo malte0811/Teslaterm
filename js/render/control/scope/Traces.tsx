@@ -42,14 +42,17 @@ export class Traces extends CanvasComponent<TraceProps, {}> {
         ctx.strokeStyle = config.wavecolor;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(width + 10, 0);
         const dataOffset = width - (data.length - 1);
         for (let x = width; x >= 0 && x >= dataOffset; --x) {
             const valueDivs = (data[x - dataOffset] - config.visualOffset) / config.perDiv;
             const valuePixels = valueDivs * height / NUM_VERTICAL_DIVS;
             // Canvas coords have 0 at the top, so we need to invert here
             const y = height - valuePixels;
-            ctx.lineTo(x, y);
+            if (x == width) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
         }
         ctx.stroke();
     }
