@@ -18,22 +18,4 @@ export abstract class BootloadableConnection extends UD3Connection {
     }
 
     public abstract sendBootloaderData(data: Buffer): Promise<void>;
-
-    abstract connect(): Promise<void>;
-
-    abstract disconnect(): void;
-
-    abstract getSidConnection(): ISidConnection;
-
-    abstract resetWatchdog(): void;
-
-    abstract sendMidi(data: Buffer): Promise<void>;
-
-    abstract sendTelnet(data: Buffer, handle: TerminalHandle): Promise<void>;
-
-    abstract setSynthImpl(type: SynthType): Promise<void>;
-
-    abstract tick(): void;
-
-    abstract getMaxTerminalID(): number;
 }

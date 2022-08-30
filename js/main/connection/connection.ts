@@ -34,19 +34,22 @@ export async function pressButton(window: object) {
     connectionState = await connectionState.pressButton(window);
 }
 
-export function autoConnect() {
+export async function autoConnect() {
     console.assert(connectionState instanceof Idle);
-        let connectionType = config.defaultConnectOptions.defaultConnectionType;
-        if (connectionType === undefined) {
-                return;
-        }
-        let options: ConnectionOptions;
-        if (connectionType === UD3ConnectionType.udp_min) {
-            options = {connectionType, options: config.defaultConnectOptions.udpOptions};
-        } else {
-            options = {connectionType, options: config.defaultConnectOptions.serialOptions};
-        }
-        connectionState = new Connecting(Idle.connectWithOptions(options), new Idle());
+    let connectionType = config.defaultConnectOptions.defaultConnectionType;
+    if (connectionType === undefined) {
+        return;
+    }
+    let options: ConnectionOptions;
+    if (connectionType === UD3ConnectionType.udp_min) {
+        options = {connectionType, options: config.defaultConnectOptions.udpOptions};
+    } else {
+        options = {connectionType, options: config.defaultConnectOptions.serialOptions};
+    }
+    const connection = await Idle.connectWithOptions(options);
+    if (connection) {
+        connectionState = new Connecting(connection, new Idle());
+    }
 }
 
 export function startBootloading(cyacd: Uint8Array): boolean {
@@ -95,7 +98,10 @@ export function hasUD3Connection(): boolean {
     return connectionState.getActiveConnection() !== undefined;
 }
 
-export function connectWithOptions(args: ConnectionOptions) {
+export async function connectWithOptions(args: ConnectionOptions) {
     // TODO sort of a hack, I guess
-    connectionState = new Connecting(Idle.connectWithOptions(args), new Idle());
+    const connection = await Idle.connectWithOptions(args);
+    if (connection) {
+        connectionState = new Connecting(connection, new Idle());
+    }
 }

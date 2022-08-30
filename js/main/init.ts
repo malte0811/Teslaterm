@@ -25,7 +25,7 @@ export function init() {
     setInterval(tick200, 200);
     setInterval(tick20, 20);
     setInterval(tick10, 10);
-    connection.autoConnect();
+    connection.autoConnect().catch(e => console.log('During autoconnect', e));
     if (config.netsid.enabled) {
         sidServer = new NetworkSIDServer(config.netsid.port);
     }

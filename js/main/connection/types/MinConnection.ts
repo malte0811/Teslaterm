@@ -53,7 +53,7 @@ export abstract class MinConnection extends BootloadableConnection {
         await this.init_min_wrapper();
     }
 
-    public async disconnect() {
+    public async sendDisconnectData() {
         try {
             const toDisconnect = [];
             for (const [id, handler] of this.terminalCallbacks) {

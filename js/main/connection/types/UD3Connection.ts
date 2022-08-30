@@ -1,6 +1,6 @@
 import {MediaFileType, SynthType, synthTypeFor} from "../../../common/CommonTypes";
 import {FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
-import {Endianness, to_ud3_time} from "../../helper";
+import {Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {ISidConnection} from "../../sid/ISidConnection";
@@ -42,7 +42,18 @@ export abstract class UD3Connection {
 
     public abstract connect(): Promise<void>;
 
-    public abstract disconnect(): void;
+    public async disconnect() {
+        try {
+            await withTimeout(this.sendDisconnectData(), 500, "Disconnect data");
+            this.releaseResources();
+        } catch (e) {
+            console.log("While disconnecting: ", e);
+        }
+    }
+
+    public abstract sendDisconnectData(): Promise<void>;
+    
+    public abstract releaseResources(): void;
 
     public abstract resetWatchdog(): void;
 

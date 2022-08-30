@@ -40,8 +40,7 @@ class MinSerialConnection extends MinConnection {
             });
     }
 
-    public async disconnect() {
-        await super.disconnect();
+    public releaseResources() {
         if (this.serialPort) {
             if (this.serialPort.isOpen) {
                 this.serialPort.close();

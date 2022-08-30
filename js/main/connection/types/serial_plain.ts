@@ -35,24 +35,26 @@ export class PlainSerialConnection extends UD3Connection {
                 });
         })
             .catch((e) => {
-                this.close();
+                this.releaseResources();
                 throw e;
             });
     }
 
-    private close() {
-        if (this.serialPort && this.serialPort.isOpen) {
-            this.serialPort.close();
+    public releaseResources() {
+        if (this.serialPort) {
+            if (this.serialPort.isOpen) {
+                this.serialPort.close();
+            }
             this.serialPort.destroy();
+            this.serialPort = undefined;
         }
     }
 
     public async sendVMSFrames(data: Buffer) {
     }
 
-    disconnect(): void {
-        this.sendTelnet(Buffer.from("tterm stop"));
-        this.close();
+    public async sendDisconnectData(): Promise<void> {
+        await this.sendTelnet(Buffer.from("tterm stop"))
     }
 
     getSidConnection(): ISidConnection {

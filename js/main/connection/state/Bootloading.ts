@@ -55,13 +55,13 @@ export class Bootloading implements IConnectionState {
 
     public async pressButton(window: object): Promise<IConnectionState> {
         this.cancelled = true;
-        this.connection.disconnect();
+        await this.connection.releaseResources();
         return new Idle();
     }
 
     public tickFast(): IConnectionState {
         if (this.done) {
-            this.connection.disconnect();
+            this.connection.releaseResources();
             return new Reconnecting(this.connection);
         } else {
             return this;

@@ -13,8 +13,9 @@ export class DummyConnection extends UD3Connection {
         return Promise.resolve(undefined);
     }
 
-    public disconnect(): void {
-    }
+    public async sendDisconnectData() {}
+
+    public releaseResources() {}
 
     public getMaxTerminalID(): number {
         return 3;

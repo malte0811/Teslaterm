@@ -29,8 +29,7 @@ class UDPMinConnection extends MinConnection {
         }
     }
 
-    public async disconnect() {
-        await super.disconnect();
+    public releaseResources() {
         if (this.socket) {
             this.socket.close();
             this.socket = undefined;

@@ -77,10 +77,10 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
             <Form onSubmit={e => e.preventDefault()}>
                 {optionsForType}
                 <Button
-                    disabled={this.props.connecting}
-                    onClick={this.connect}
+                    onClick={this.props.connecting ? ConnectForm.abort : this.connect}
+                    variant={this.props.connecting ? 'warning' : 'primary'}
                     type={'submit'}
-                >{this.props.connecting ? 'Connecting…' : 'Connect'}</Button>
+                >{this.props.connecting ? 'Abort connection' : 'Connect'}</Button>
             </Form>
         </div>;
     }
@@ -158,5 +158,9 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
 
     private connect() {
         processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, toSingleOptions(this.props.currentOptions));
+    }
+
+    private static abort() {
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton, undefined);
     }
 }

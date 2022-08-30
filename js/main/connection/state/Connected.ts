@@ -17,16 +17,16 @@ export function resetResponseTimeout() {
 }
 
 export class Connected implements IConnectionState {
-    private readonly active_connection: UD3Connection;
+    private readonly activeConnection: UD3Connection;
     private readonly autoTerminal: TerminalHandle;
 
     public constructor(conn: UD3Connection, autoTerm: TerminalHandle) {
-        this.active_connection = conn;
+        this.activeConnection = conn;
         this.autoTerminal = autoTerm;
     }
 
     public getActiveConnection(): UD3Connection | undefined {
-        return this.active_connection;
+        return this.activeConnection;
     }
 
     public getConnectionStatus(): ConnectionStatus {
@@ -44,22 +44,22 @@ export class Connected implements IConnectionState {
     }
 
     public tickFast(): IConnectionState {
-        this.active_connection.tick();
+        this.activeConnection.tick();
 
         if (this.isConnectionLost()) {
             ipcs.misc.openToast(
                 'Connection lost', 'Lost connection, will attempt to reconnect', ToastSeverity.warning, 'will-reconnect'
             );
-            this.active_connection.disconnect();
+            this.activeConnection.disconnect();
             ipcs.terminal.onConnectionClosed();
-            return new Reconnecting(this.active_connection);
+            return new Reconnecting(this.activeConnection);
         }
 
         return this;
     }
 
     public tickSlow() {
-        this.active_connection.resetWatchdog();
+        this.activeConnection.resetWatchdog();
     }
 
     public getAutoTerminal(): TerminalHandle | undefined {
@@ -67,8 +67,8 @@ export class Connected implements IConnectionState {
     }
 
     private isConnectionLost(): boolean {
-        if (this.active_connection instanceof BootloadableConnection) {
-            const bootConnection = this.active_connection as BootloadableConnection;
+        if (this.activeConnection instanceof BootloadableConnection) {
+            const bootConnection = this.activeConnection as BootloadableConnection;
             if (bootConnection.isBootloading()) {
                 // TODO detect lost connection in bootloader mode (and fully disconnect)?
                 return false;
@@ -86,6 +86,6 @@ export class Connected implements IConnectionState {
         } catch (e) {
             console.error("Failed to send stop command:", e);
         }
-        await this.active_connection.disconnect();
+        await this.activeConnection.disconnect();
     }
 }

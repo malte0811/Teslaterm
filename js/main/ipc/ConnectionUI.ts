@@ -15,9 +15,9 @@ export class ConnectionUIIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.connect, (source: object, args) => {
-            connectWithOptions(args);
-        });
+        this.processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.connect.connect, async (source: object, args) => await connectWithOptions(args)
+        );
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, sendConnectionSuggestions);
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.getPresets, (source) => this.processIPC.sendToWindow(
             IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, source, getUIConfig().connectionPresets

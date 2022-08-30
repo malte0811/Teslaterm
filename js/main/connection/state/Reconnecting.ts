@@ -45,9 +45,9 @@ export class Reconnecting implements IConnectionState {
                 'Reconnect',
                 "Attempting to reconnect (attempt " + this.failedAttempts + " of " + Reconnecting.MAX_RETRIES + ")...",
                 ToastSeverity.info,
-            'reconnect-attempt-id',
-        );
-            return new Connecting(Promise.resolve(this.connectionToReestablish), this);
+                'reconnect-attempt-id',
+            );
+            return new Connecting(this.connectionToReestablish, this);
         } else {
             return this;
         }

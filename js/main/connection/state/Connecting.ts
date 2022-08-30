@@ -16,55 +16,44 @@ enum State {
 }
 
 export class Connecting implements IConnectionState {
-    private connection: UD3Connection | undefined;
+    private readonly connection: UD3Connection;
     private autoTerminal: TerminalHandle | undefined;
     private state: State = State.waiting_for_ud_connection;
     private readonly stateOnFailure: IConnectionState;
     private doneInitializingAt: number;
 
-    public constructor(connection: Promise<UD3Connection | undefined>, onFailure: IConnectionState) {
+    public constructor(connection: UD3Connection, onFailure: IConnectionState) {
         this.stateOnFailure = onFailure;
-        connection.then(async (c) => {
-            this.connection = c;
-            if (c) {
-                this.state = State.connecting;
-                let error: {
-                    message: string;
-                } = undefined;
-                try {
-                    await c.connect();
-                    this.autoTerminal = c.setupNewTerminal((data) =>
-                        telemetry.receive_main(
-                            data,
-                            // After connecting the UD3 will send one alarm per 100 ms, generally less than 20 total. We
-                            // do not want to show toasts for these alarms that happened before TT connected, so
-                            // consider these 2000 ms as "initializing"
-                            this.state === State.initializing || (Date.now() - this.doneInitializingAt) < 2000,
-                            undefined,
-                        ));
-                    if (this.autoTerminal === undefined) {
-                        error = {message: "Failed to create a terminal for automatic commands"};
-                    } else {
-                        await c.startTerminal(this.autoTerminal);
-                        this.state = State.initializing;
-                        await startConf();
-                        await ipcs.terminal.onSlotsAvailable(true);
-                        this.doneInitializingAt = Date.now();
-                        this.state = State.connected;
-                    }
-                } catch (x) {
-                    error = x;
-                }
-                if (error) {
-                    ipcs.connectionUI.sendConnectionError(error.message || ('Error: ' + error));
-                    console.log("While connecting: ", error);
-                    c.disconnect();
-                    this.state = State.failed;
-                }
-            } else {
-                this.state = State.failed;
-            }
+        this.connection = connection;
+        this.connect().catch((error) => {
+            ipcs.connectionUI.sendConnectionError('Error: ' + error);
+            console.log("While connecting: ", error);
+            connection.releaseResources();
+            this.state = State.failed;
         });
+    }
+
+    private async connect() {
+        this.state = State.connecting;
+        await this.connection.connect();
+        this.autoTerminal = this.connection.setupNewTerminal((data) =>
+            telemetry.receive_main(
+                data,
+                // After connecting the UD3 will send one alarm per 100 ms, generally less than 20 total. We
+                // do not want to show toasts for these alarms that happened before TT connected, so
+                // consider these 2000 ms as "initializing"
+                this.state === State.initializing || (Date.now() - this.doneInitializingAt) < 2000,
+                undefined,
+            ));
+        if (this.autoTerminal === undefined) {
+            throw "Failed to create a terminal for automatic commands";
+        }
+        await this.connection.startTerminal(this.autoTerminal);
+        this.state = State.initializing;
+        await startConf();
+        await ipcs.terminal.onSlotsAvailable(true);
+        this.doneInitializingAt = Date.now();
+        this.state = State.connected;
     }
 
     public getActiveConnection(): UD3Connection | undefined {
@@ -80,7 +69,7 @@ export class Connecting implements IConnectionState {
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {
-        console.log("Aborting connection");
+        this.connection.releaseResources();
         return new Idle();
     }
 
