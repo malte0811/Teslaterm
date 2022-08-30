@@ -75,7 +75,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 description += `\nRemote port: ${preset.options.options.udpMinPort}`;
                 break;
         }
-        return <div className={'tt-side-aligned tt-connect-preset'} title={description}>
+        return <div className={'tt-side-aligned tt-connect-preset'} title={description} key={preset.name}>
             <span className={'tt-align-left'}>{preset.name}</span>
             <ButtonGroup>
                 <Button disabled={this.props.connecting} onClick={load}>Load</Button>

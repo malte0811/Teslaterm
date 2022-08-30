@@ -1,5 +1,5 @@
 .tt-menu-bar {
-    height: 40px;
+    height: min-content;
 }
 
 .tt-scope-container {
@@ -11,7 +11,7 @@
 
 .tt-terminal-container {
     display: grid;
-    grid-template-rows: 50vh calc(50vh - 40px);
+    grid-template-rows: 50vh auto;
     grid-template-columns: 100%;
     width: 100%;
 }
@@ -26,7 +26,7 @@
     width: 100vw;
     height: 100vh;
     display: grid;
-    grid-template-rows: 40px calc(100% - 40px);
+    grid-template-rows: auto auto;
     grid-template-columns: 100%;
 }
 
