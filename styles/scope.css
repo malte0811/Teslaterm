@@ -52,6 +52,7 @@
 .tt-scope-settings {
     font-size: 12px;
     margin-left: 5px;
+    overflow-y: hidden;
 }
 
 .tt-scope-tab-toplevel {

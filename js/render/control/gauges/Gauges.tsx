@@ -30,7 +30,7 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
     componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.meters.configure, (config: MeterConfig) => {
             this.setState((oldState) => {
-                const newGauges = [...oldState.gauges];
+                const newGauges: GaugeProps[] = [...oldState.gauges];
                 newGauges[config.meterId] = {
                     value: newGauges[config.meterId].value,
                     config,
@@ -41,11 +41,11 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
         });
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.meters.setValue, (update: SetMeters) => {
             this.setState((oldState) => {
-                const newGauges = [...oldState.gauges];
+                const newGauges: GaugeProps[] = [...oldState.gauges];
                 for (const [id, value] of Object.entries(update.values)) {
                     const config = newGauges[id].config;
                     const scale = config.scale || 1;
-                    newGauges[id] = {value: value / scale, config};
+                    newGauges[id] = {value: value / scale, config, darkMode: this.props.darkMode};
                 }
                 return {gauges: newGauges};
             });

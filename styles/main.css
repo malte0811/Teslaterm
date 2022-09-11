@@ -1,5 +1,5 @@
 .tt-menu-bar {
-    height: min-content;
+    flex: 0 1 auto;
 }
 
 .tt-scope-container {
@@ -7,27 +7,32 @@
     grid-template-columns: 76% 24%;
     grid-template-rows: 100%;
     margin-bottom: 10px;
+    height: 50vh;
 }
 
 .tt-terminal-container {
-    display: grid;
-    grid-template-rows: 50vh auto;
-    grid-template-columns: 100%;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    /*TODO probably a hack*/
+    width: calc(100% - 120px);
+}
+
+.tt-terminal {
+    flex: 1 1 auto;
 }
 
 .tt-terminal-and-gauges {
-    display: grid;
-    grid-template-columns: calc(100% - 120px) 120px;
-    grid-template-rows: 100%;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    flex: 1 1 auto;
 }
 
 .tt-main-screen {
     width: 100vw;
     height: 100vh;
-    display: grid;
-    grid-template-rows: auto auto;
-    grid-template-columns: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .tt-light-root, .tt-dark-root {

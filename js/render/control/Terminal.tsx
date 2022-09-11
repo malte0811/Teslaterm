@@ -1,4 +1,4 @@
-import React, {CSSProperties} from "react";
+import React from "react";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {commands} from "../ipc/commands";
 import {TTComponent} from "../TTComponent";
@@ -12,16 +12,10 @@ export interface TerminalProps {
 
 export class Terminal extends TTComponent<TerminalProps, {}> {
     private readonly terminalDivRef: React.RefObject<HTMLDivElement>;
-    private readonly resizeHandler: () => any;
 
     constructor(props: any) {
         super(props);
         this.terminalDivRef = React.createRef();
-        this.resizeHandler = () => {
-            if (this.props.terminal.terminal) {
-                this.props.terminal.fitter.fit();
-            }
-        };
     }
 
     public componentDidMount() {
@@ -29,6 +23,7 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
             this.props.terminal.terminal = new xterm.Terminal();
             const terminal = new xterm.Terminal();
             terminal.loadAddon(this.props.terminal.fitter);
+            terminal.resize(0, 0);
             terminal.onKey((ev) => {
                 if (!this.props.disabled) {
                     commands.sendManualCommand(ev.key);
@@ -37,10 +32,10 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
             terminal.open(this.terminalDivRef.current);
             this.props.terminal.terminal = terminal;
             this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.terminal, s => this.onDataFromMain(s));
-            this.props.terminal.fitter.fit();
+            this.fitManually();
             commands.sendManualCommand('\rcls\r');
+            new ResizeObserver(() => this.fitManually()).observe(this.terminalDivRef.current);
         }
-        window.addEventListener('resize', this.resizeHandler);
     }
 
     public componentWillUnmount() {
@@ -49,7 +44,6 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
             this.props.terminal.terminal.dispose();
             this.props.terminal.terminal = undefined;
         }
-        window.removeEventListener('resize', this.resizeHandler);
     }
 
     public render(): React.ReactNode {
@@ -60,5 +54,12 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
         if (this.props.terminal.terminal) {
             this.props.terminal.terminal.write(s);
         }
+    }
+
+    private fitManually() {
+        // Hack: The layout rules don't seem to be enough to make the fitter only take the height it has if the terminal
+        // already exceeds that, so shrink the terminal vertically and then let the fitter expand it again
+        this.props.terminal.terminal.resize(this.props.terminal.terminal.cols, 1);
+        this.props.terminal.fitter.fit();
     }
 }
