@@ -45,9 +45,13 @@ export abstract class UD3Connection {
     public async disconnect() {
         try {
             await withTimeout(this.sendDisconnectData(), 500, "Disconnect data");
-            this.releaseResources();
         } catch (e) {
             console.log("While disconnecting: ", e);
+        }
+        try {
+            this.releaseResources();
+        } catch (e) {
+            console.log("While releasing connection resources: ", e);
         }
     }
 

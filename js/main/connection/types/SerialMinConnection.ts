@@ -60,7 +60,9 @@ class MinSerialConnection extends MinConnection {
     }
 
     send(data: Buffer | number[], onError: (err) => void): void {
-        this.serialPort.write(data, onError);
+        if (this.serialPort) {
+            this.serialPort.write(data, onError);
+        }
     }
 }
 
