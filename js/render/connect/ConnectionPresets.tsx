@@ -48,7 +48,9 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
 
     private makePresetEntry(preset: ConnectionPreset) {
         const load = () => this.props.setMainFormProps({
-            currentType: preset.options.connectionType, ...preset.options.options
+            currentType: preset.options.connectionType,
+            ...preset.options.options,
+            advanced: preset.options.advanced,
         });
         const connect = () => {
             load();

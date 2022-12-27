@@ -61,6 +61,14 @@
     --bs-dropdown-bg: #707070;
 }
 
+.dark-accordion {
+    --bs-accordion-color: var(--dark-foreground);
+    --bs-accordion-btn-color: var(--dark-foreground);
+    --bs-accordion-bg: var(--dark-background);
+    --bs-accordion-active-color: #e7f1ff;
+    --bs-accordion-active-bg: #414152;
+}
+
 .dark-dropdown-menu.show {
     background: #707070;
     color: var(--dark-foreground);

@@ -19,8 +19,8 @@ export interface NetSidConfig {
 }
 
 export interface AdvancedOptions {
-    commandOptions: CommandConnectionConfig,
-    midiOptions: MidiConfig,
-    netSidOptions: NetSidConfig,
+    commandOptions: CommandConnectionConfig;
+    midiOptions: MidiConfig;
+    netSidOptions: NetSidConfig;
 }
 
