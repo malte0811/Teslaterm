@@ -37,7 +37,7 @@ export abstract class MinConnection extends BootloadableConnection {
         super();
         this.sidConnection = new UD3FormattedConnection(
             () => this.flushSynth(),
-            (data) => this.sendMedia(data)
+            (data) => this.sendMedia(data),
         );
         this.actualUDFeatures = new Map(config.defaultUDFeatures.entries());
     }

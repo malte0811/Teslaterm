@@ -1,11 +1,13 @@
-declare namespace rtpmidi {
-    let manager: Manager;
+declare module 'rtpmidi' {
+    const manager: Manager;
 
-    class Session {
+    export interface Session {
         on(event: "message", callback: (delta: number, message: number[]) => void);
+
+        end(): void;
     }
 
-    class Manager {
+    export interface Manager {
         createSession(config: {
             localName: string,
             bonjourName: string,

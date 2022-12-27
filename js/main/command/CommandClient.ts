@@ -1,12 +1,13 @@
 import {Socket} from "net";
 import {SynthType} from "../../common/CommonTypes";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {getOptionalUD3Connection,} from "../connection/connection";
+import {getOptionalUD3Connection} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
 import {playMidiData} from "../midi/midi";
 import {UD3FormattedConnection} from "../sid/UD3FormattedConnection";
 import {Message, MessageType, Parser, setBoolOption, setNumberOption, timeout_us, toBytes} from "./CommandMessages";
+import {DUMMY_SERVER} from "./CommandServer";
 
 const averagingOldFactor = 31 / 32;
 const averagingNewFactor = 1 - averagingOldFactor;
@@ -27,7 +28,7 @@ export class CommandClient {
         this.socket = new Socket();
         this.socket.addListener("data", (data) => this.parser.onData(data));
         this.socket.addListener("error", (err) => ipcs.misc.openToast(
-            'Command client', "Failed to connect to command server: " + err, ToastSeverity.error, 'connect-command'
+            'Command client', "Failed to connect to command server: " + err, ToastSeverity.error, 'connect-command',
         ));
         this.socket.connect(port, remoteName);
     }
@@ -39,6 +40,10 @@ export class CommandClient {
     public tickSlow(): boolean {
         this.socket.write(toBytes({type: MessageType.keep_alive}));
         return now() - this.lastPacketMicrotime > timeout_us;
+    }
+
+    public close() {
+        this.socket.resetAndDestroy();
     }
 
     private async handleSIDQueue() {
@@ -57,7 +62,7 @@ export class CommandClient {
         let numSent = 0;
         while (!activeConnection.isBusy() && this.sidFrameQueue.length > 0 && numSent < 4) {
             const next = this.sidFrameQueue.shift();
-            activeConnection.processAbsoluteFrame(next.data, next.absTime)
+            activeConnection.processAbsoluteFrame(next.data, next.absTime, DUMMY_SERVER)
                 .catch((err) => console.log("While processing SID from command server: ", err));
             ++numSent;
         }

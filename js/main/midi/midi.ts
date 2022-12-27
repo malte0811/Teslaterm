@@ -1,8 +1,8 @@
 import * as MidiPlayer from "midi-player-js";
-import * as rtpmidi from "rtpmidi";
-import {MediaFileType, PlayerActivity, SynthType} from "../../common/CommonTypes";
-import {getUD3Connection, hasUD3Connection} from "../connection/connection";
-import {commandServer, config, simulated} from "../init";
+import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
+import {connectionState, hasUD3Connection} from "../connection/connection";
+import {Connected} from "../connection/state/Connected";
+import {simulated} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
@@ -10,7 +10,9 @@ import * as scripting from "../scripting";
 export const kill_msg = Buffer.of(0xB0, 0x77, 0x00);
 
 // Initialize player and register event handler
-export const player = new MidiPlayer.Player(processMidiFromPlayer);
+export const player = new MidiPlayer.Player(
+    ev => processMidiFromPlayer(ev).catch(err => console.error("playing MIDI", err)),
+);
 
 export async function startCurrentMidiFile() {
     player.play();
@@ -25,11 +27,11 @@ export function stopMidiFile() {
 }
 
 export function stopMidiOutput() {
-    playMidiData(kill_msg);
+    playMidiData(kill_msg).catch(err => console.error("Stopping MIDI output", err));
 }
 
-function processMidiFromPlayer(event: MidiPlayer.Event) {
-    if (playMidiEvent(event)) {
+async function processMidiFromPlayer(event: MidiPlayer.Event) {
+    if (await playMidiEvent(event)) {
         media_state.progress = 100 - player.getSongPercentRemaining();
     } else if (!simulated && !hasUD3Connection()) {
         stopMidiFile();
@@ -61,7 +63,7 @@ function getVarIntLength(byteArray, base) {
 
 let received_event = false;
 
-export function playMidiEvent(event: MidiPlayer.Event): boolean {
+export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     received_event = true;
     const trackObj = player.tracks[event.track - 1];
     // tslint:disable-next-line:no-string-literal
@@ -78,14 +80,12 @@ export function playMidiEvent(event: MidiPlayer.Event): boolean {
     return playMidiData(data);
 }
 
-export function playMidiData(data: number[] | Uint8Array): boolean {
+export async function playMidiData(data: number[] | Uint8Array): Promise<boolean> {
     if (hasUD3Connection() && data[0] !== 0x00) {
-        const msg = Buffer.from(data);
-        const connection = getUD3Connection();
-        checkTransientDisabled();
-        connection.sendMidi(msg);
-        connection.setSynth(SynthType.MIDI, true);
-        commandServer.sendMIDI(msg);
+        await checkTransientDisabled();
+        if (connectionState instanceof Connected) {
+            await connectionState.sendMIDI(Buffer.from(data));
+        }
         return true;
     } else {
         return simulated && data[0] !== 0;
@@ -107,24 +107,5 @@ export function update(): void {
         }
     } else if (media_state.state === PlayerActivity.playing && media_state.type === MediaFileType.midi) {
         media_state.stopPlaying();
-    }
-}
-
-export function init() {
-    if (config.midi.runMidiServer) {
-        const session = rtpmidi.manager.createSession({
-            localName: config.midi.localName,
-            bonjourName: config.midi.bonjourName,
-            port: config.midi.port,
-        });
-        session.on("message", async (delta, data) => {
-            if (hasUD3Connection()) {
-                await getUD3Connection().setSynth(SynthType.MIDI, true);
-                if (media_state.state === PlayerActivity.playing) {
-                    media_state.stopPlaying();
-                }
-                playMidiData(data);
-            }
-        });
     }
 }

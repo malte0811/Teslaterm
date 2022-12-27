@@ -1,6 +1,7 @@
 import {BoolOptionCommand, NumberOptionCommand} from "../command/CommandMessages";
-import {commandServer} from "../init";
-import {getAutoTerminal, getUD3Connection, hasUD3Connection} from "./connection";
+import {DUMMY_SERVER, ICommandServer} from "../command/CommandServer";
+import {connectionState, getAutoTerminal, getUD3Connection, hasUD3Connection} from "./connection";
+import {Connected} from "./state/Connected";
 
 export class CommandInterface {
     public async stop() {
@@ -13,12 +14,12 @@ export class CommandInterface {
 
     public async busOff() {
         await this.sendCommand('bus off\r');
-        commandServer.setBoolOption(BoolOptionCommand.bus, false);
+        connectionState.getCommandServer().setBoolOption(BoolOptionCommand.bus, false);
     }
 
     public async busOn() {
         await this.sendCommand('bus on\r');
-        commandServer.setBoolOption(BoolOptionCommand.bus, true);
+        connectionState.getCommandServer().setBoolOption(BoolOptionCommand.bus, true);
     }
 
     public async eepromSave() {
@@ -27,12 +28,12 @@ export class CommandInterface {
 
     public async setKill() {
         await this.sendCommand('kill set\r');
-        commandServer.setBoolOption(BoolOptionCommand.kill, true);
+        connectionState.getCommandServer().setBoolOption(BoolOptionCommand.kill, true);
     }
 
     public async resetKill() {
         await this.sendCommand('kill reset\r');
-        commandServer.setBoolOption(BoolOptionCommand.kill, false);
+        connectionState.getCommandServer().setBoolOption(BoolOptionCommand.kill, false);
     }
 
     public async setOntime(ontime: number) {
@@ -41,17 +42,17 @@ export class CommandInterface {
 
     public async setBurstOntime(ontime: number) {
         await this.setParam('bon', ontime.toFixed(0));
-        commandServer.setNumberOption(NumberOptionCommand.burst_on, ontime);
+        connectionState.getCommandServer().setNumberOption(NumberOptionCommand.burst_on, ontime);
     }
 
     public async setBurstOfftime(offtime: number) {
         await this.setParam('boff', offtime.toFixed(0));
-        commandServer.setNumberOption(NumberOptionCommand.burst_off, offtime);
+        connectionState.getCommandServer().setNumberOption(NumberOptionCommand.burst_off, offtime);
     }
 
     public async setOfftime(offtime: number) {
         await this.setParam('pwd', offtime.toFixed(0));
-        commandServer.setNumberOption(NumberOptionCommand.offtime, offtime);
+        connectionState.getCommandServer().setNumberOption(NumberOptionCommand.offtime, offtime);
     }
 
     public async setBPS(bps: number) {
@@ -65,7 +66,7 @@ export class CommandInterface {
 
     public async setTransientEnabled(enable: boolean) {
         await this.sendCommand('tr ' + (enable ? 'start' : 'stop') + '\r');
-        commandServer.setBoolOption(BoolOptionCommand.transient, enable);
+        connectionState.getCommandServer().setBoolOption(BoolOptionCommand.transient, enable);
     }
 
     public async sendCommand(c: string) {

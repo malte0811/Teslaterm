@@ -1,7 +1,9 @@
 import * as path from "path";
 import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {connectionState} from "../connection/connection";
 import * as connection from "../connection/connection";
+import {Connected} from "../connection/state/Connected";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, isSID, media_state} from "../media/media_player";
 import {ISidSource} from "./sid_api";
@@ -44,17 +46,21 @@ export async function loadSidFile(file: TransmittedFile) {
 }
 
 export function update() {
-    if (!connection.hasUD3Connection()) {
+    updateAsync().catch(err => console.error("Ticking SID", err));
+}
+
+async function updateAsync() {
+    if (!(connectionState instanceof Connected)) {
         return;
     }
-    const sidConnection = connection.getUD3Connection().getSidConnection();
+    const sidConnection = connectionState.getActiveConnection().getSidConnection();
     if (current_sid_source && media_state.state === PlayerActivity.playing && isSID(media_state.type)
         && !sidConnection.isBusy()) {
-        checkTransientDisabled();
+        await checkTransientDisabled();
         if (connection.hasUD3Connection()) {
             for (let i = 0; i < 4 && !current_sid_source.isDone(); ++i) {
                 const real_frame = current_sid_source.next_frame();
-                sidConnection.processFrame(real_frame);
+                await sidConnection.processFrame(real_frame, connectionState.getCommandServer());
             }
         }
         const totalFrames = current_sid_source.getTotalFrameCount();

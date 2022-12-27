@@ -1,17 +1,17 @@
+import * as fs from "fs";
+import * as ini from "ini";
 import * as os from "os";
 import {FullConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../common/ConnectionOptions";
 import {
-    FEATURE_TIMEBASE,
-    FEATURE_NOTELEMETRY,
-    FEATURE_TIMECOUNT,
+    CONNECTION_TYPES_BY_NAME,
     FEATURE_MINSID,
-    CONNECTION_TYPES_BY_NAME
+    FEATURE_NOTELEMETRY,
+    FEATURE_TIMEBASE,
+    FEATURE_TIMECOUNT,
 } from "../common/constants";
-import {CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
+import {AdvancedOptions, CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
 import {TTConfig} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
-import * as fs from "fs";
-import * as ini from "ini";
 
 export const COMMAND_ROLES = new Map<string, CommandRole>();
 COMMAND_ROLES.set('disable', 'disable');
@@ -51,7 +51,7 @@ const defaultUDConfigPages: Map<string, number> = new Map([
     ["ct1_burden", 2],
     ["ct2_burden", 2],
     ["ct3_burden", 2],
-    ["ct2_type",2],
+    ["ct2_type", 2],
     ["max_fb_errors", 2],
     ["lead_time", 1],
     ["start_freq", 2],
@@ -74,16 +74,16 @@ const defaultUDConfigPages: Map<string, number> = new Map([
     ["eth_hw", 3],
     ["ssid", 3],
     ["passwd", 3],
-    ["vol_mod",7],
-    ["synth_filter",7],
-    ["ntc_b",6],
-    ["ntc_r25",6],
-    ["ntc_idac",6],
-    ["max_dc_curr",5],
-    ["pid_curr_p",5],
-    ["pid_curr_i",5],
-    ["max_const_i",5],
-    ["max_fault_i",5],
+    ["vol_mod", 7],
+    ["synth_filter", 7],
+    ["ntc_b", 6],
+    ["ntc_r25", 6],
+    ["ntc_idac", 6],
+    ["max_dc_curr", 5],
+    ["pid_curr_p", 5],
+    ["pid_curr_i", 5],
+    ["max_const_i", 5],
+    ["max_fault_i", 5],
 ]);
 
 
@@ -112,7 +112,7 @@ class ConfigSection {
             retEntry.desc = description;
             const ret = retEntry.value;
             if (typeof (defaultValue) === "number" && typeof (ret) === "string") {
-                return parseInt(ret) as unknown as T;
+                return parseInt(ret, 10) as unknown as T;
             } else if (typeof (defaultValue) === "boolean" && typeof (ret) === "string") {
                 return (ret === "true") as unknown as T;
             } else {
@@ -149,13 +149,13 @@ class Config {
 
 function readEthernetConfig(cfg: Config, changed: ChangedFlag): UDPConnectionOptions {
     const ethernet = cfg.getOrCreateSection(
-        "ethernet", "Default settings for ethernet connections to UD3 node instances"
+        "ethernet", "Default settings for ethernet connections to UD3 node instances",
     );
     return {
-        udpMinPort: ethernet.getOrWrite<number>(
-            "udpMinPort", 1337, changed, "Default remote port for MIN connections over UDP"
-        ),
         remoteIP: ethernet.getOrWrite("remote_ip", "localhost", changed),
+        udpMinPort: ethernet.getOrWrite<number>(
+            "udpMinPort", 1337, changed, "Default remote port for MIN connections over UDP",
+        ),
     };
 }
 
@@ -168,10 +168,10 @@ function readSerialConfig(cfg: Config, changed: ChangedFlag): SerialConnectionOp
         defaultPort = "/dev/ttyACM0";
     }
     return {
-        serialPort: serial.getOrWrite<string>("port", defaultPort, changed),
-        baudrate: serial.getOrWrite<number>("baudrate", 460_800, changed),
-        autoVendorID: serial.getOrWrite<string>("vendor_id", "1a86", changed),
         autoProductID: serial.getOrWrite<string>("product_id", "7523", changed),
+        autoVendorID: serial.getOrWrite<string>("vendor_id", "1a86", changed),
+        baudrate: serial.getOrWrite<number>("baudrate", 460_800, changed),
+        serialPort: serial.getOrWrite<string>("port", defaultPort, changed),
     };
 }
 
@@ -179,7 +179,7 @@ function readConnectOptions(cfg: Config, changed: ChangedFlag): FullConnectionOp
     const general = cfg.getOrCreateSection("general");
     const types = Array.from(CONNECTION_TYPES_BY_NAME.keys());
     const asString = general.getOrWrite(
-        "autoconnect", "none", changed, "One of \"" + types.join("\", \"") + "\" or \"none\""
+        "autoconnect", "none", changed, "One of \"" + types.join("\", \"") + "\" or \"none\"",
     );
     return {
         defaultConnectionType: CONNECTION_TYPES_BY_NAME.get(asString),
@@ -191,10 +191,10 @@ function readConnectOptions(cfg: Config, changed: ChangedFlag): FullConnectionOp
 function readMIDIConfig(cfg: Config, changed: ChangedFlag): MidiConfig {
     const rtpmidi = cfg.getOrCreateSection("rtpmidi", "Settings for the RTP-MIDI server hosted by Teslaterm/UD3-node");
     return {
-        runMidiServer: rtpmidi.getOrWrite<boolean>("enabled", true, changed),
-        port: rtpmidi.getOrWrite<number>("port", 12001, changed),
-        localName: rtpmidi.getOrWrite<string>("localName", "Teslaterm", changed),
         bonjourName: rtpmidi.getOrWrite<string>("bonjourName", "Teslaterm", changed),
+        localName: rtpmidi.getOrWrite<string>("localName", "Teslaterm", changed),
+        port: rtpmidi.getOrWrite<number>("port", 12001, changed),
+        runMidiServer: rtpmidi.getOrWrite<boolean>("enabled", true, changed),
     };
 }
 
@@ -209,11 +209,13 @@ function readSIDConfig(cfg: Config, changed: ChangedFlag): NetSidConfig {
 function readCommandConfig(cfg: Config, changed: ChangedFlag): CommandConnectionConfig {
     // TODO document
     const command = cfg.getOrCreateSection("command", "");
-    const stateStr = command.getOrWrite<string>("state", "disable", changed, "Possible values: disable, server, client");
+    const stateStr = command.getOrWrite<string>(
+        "state", "disable", changed, "Possible values: disable, server, client",
+    );
     return {
-        state: COMMAND_ROLES.get(stateStr) || 'disable',
         port: command.getOrWrite<number>("port", 13001, changed),
         remoteName: command.getOrWrite<string>("remoteName", "localhost", changed),
+        state: COMMAND_ROLES.get(stateStr) || 'disable',
     };
 }
 
@@ -222,29 +224,29 @@ export function loadConfig(filename: string): TTConfig {
     if (fs.existsSync(filename)) {
         contents = convertArrayBufferToString(fs.readFileSync(filename));
     }
-    let config = configFromString(contents);
-    let changed: ChangedFlag = {changed: false};
+    const config = configFromString(contents);
+    const changed: ChangedFlag = {changed: false};
 
     const ttConfigBase = {
+        command: readCommandConfig(config, changed),
         defaultConnectOptions: readConnectOptions(config, changed),
         midi: readMIDIConfig(config, changed),
         netsid: readSIDConfig(config, changed),
-        command: readCommandConfig(config, changed),
     };
     const udconfig = config.getOrCreateSection(
         "udconfig",
-        "Each entry indicates which page the corresponding UD3 option should be shown on in the UD3 config GUI"
+        "Each entry indicates which page the corresponding UD3 option should be shown on in the UD3 config GUI",
     );
-    let udFeaturesInConfig = config.getOrCreateSection(
+    const udFeaturesInConfig = config.getOrCreateSection(
         "defaultUDFeatures",
         "Default values for features of the UD3. These values will only be used if the UD3 does not specify " +
-        "the correct values to use."
+        "the correct values to use.",
     );
     const ttConfig: TTConfig = {
         ...ttConfigBase,
-        udConfigPages: readSectionFromMap<number>(defaultUDConfigPages, udconfig, changed),
         defaultUDFeatures: readSectionFromMap<string>(defaultUDFeatures, udFeaturesInConfig, changed),
-    }
+        udConfigPages: readSectionFromMap<number>(defaultUDConfigPages, udconfig, changed),
+    };
     if (changed.changed) {
         fs.writeFile(filename, configToString(config), (err) => {
             if (err) {
@@ -270,10 +272,10 @@ function readSectionFromMap<T>(defaults: Map<string, T>, section: ConfigSection,
 }
 
 function configFromString(contents: string): Config {
-    let ret = new Config();
+    const ret = new Config();
     const iniData = ini.parse(contents);
     for (const [key, value] of Object.entries(iniData)) {
-        let section = new ConfigSection();
+        const section = new ConfigSection();
         for (const [subKey, subValue] of Object.entries(value)) {
             section.contents.set(subKey, new ConfigEntry(subValue));
         }
@@ -283,9 +285,9 @@ function configFromString(contents: string): Config {
 }
 
 function configToString(config: Config): string {
-    let configObject = {};
+    const configObject = {};
     for (const [key, section] of config.contents.entries()) {
-        let sectionObject = {};
+        const sectionObject = {};
         for (const [sectionKey, value] of section.contents.entries()) {
             sectionObject[sectionKey] = value.value;
         }
@@ -293,11 +295,11 @@ function configToString(config: Config): string {
     }
     const iniString = ini.stringify(configObject);
     const iniLines = iniString.split(/\r?\n/);
-    let resultLines = [];
-    let currentSection: string | undefined = undefined;
+    const resultLines = [];
+    let currentSection: string | undefined;
     for (const iniLine of iniLines) {
         const sectionMatch = /\[(.*)]/.exec(iniLine);
-        let comment: string | undefined = undefined;
+        let comment: string | undefined;
         if (sectionMatch !== null) {
             currentSection = sectionMatch[1];
             comment = config.contents.get(currentSection).desc;

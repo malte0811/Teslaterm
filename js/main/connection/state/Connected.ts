@@ -1,10 +1,13 @@
-import {PlayerActivity} from "../../../common/CommonTypes";
+import {PlayerActivity, SynthType} from "../../../common/CommonTypes";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
+import {AdvancedOptions, CommandRole} from "../../../common/Options";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as media from "../../media/media_player";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {commands} from "../connection";
+import {ExtraConnections} from "../ExtraConnections";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
+import {Bootloading} from "./Bootloading";
 import {IConnectionState} from "./IConnectionState";
 import {Idle} from "./Idle";
 import {Reconnecting} from "./Reconnecting";
@@ -19,13 +22,17 @@ export function resetResponseTimeout() {
 export class Connected implements IConnectionState {
     private readonly activeConnection: UD3Connection;
     private readonly autoTerminal: TerminalHandle;
+    private readonly extraState: ExtraConnections;
+    private readonly advOptions: AdvancedOptions;
 
-    public constructor(conn: UD3Connection, autoTerm: TerminalHandle) {
+    public constructor(conn: UD3Connection, autoTerm: TerminalHandle, advOptions: AdvancedOptions) {
         this.activeConnection = conn;
         this.autoTerminal = autoTerm;
+        this.extraState = new ExtraConnections(advOptions);
+        this.advOptions = advOptions;
     }
 
-    public getActiveConnection(): UD3Connection | undefined {
+    public getActiveConnection(): UD3Connection {
         return this.activeConnection;
     }
 
@@ -45,14 +52,20 @@ export class Connected implements IConnectionState {
 
     public tickFast(): IConnectionState {
         this.activeConnection.tick();
+        this.extraState.tickFast();
 
         if (this.isConnectionLost()) {
             ipcs.misc.openToast(
-                'Connection lost', 'Lost connection, will attempt to reconnect', ToastSeverity.warning, 'will-reconnect'
+                'Connection lost',
+                'Lost connection,' +
+                ' will attempt to reconnect',
+                ToastSeverity.warning,
+                'will-reconnect',
             );
             this.activeConnection.disconnect();
+            this.extraState.close();
             ipcs.terminal.onConnectionClosed();
-            return new Reconnecting(this.activeConnection);
+            return new Reconnecting(this.activeConnection, this.advOptions);
         }
 
         return this;
@@ -60,10 +73,34 @@ export class Connected implements IConnectionState {
 
     public tickSlow() {
         this.activeConnection.resetWatchdog();
+        this.extraState.tickSlow();
+    }
+
+    public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
+        if (this.activeConnection instanceof BootloadableConnection) {
+            this.extraState.close();
+            return new Bootloading(this.activeConnection, this.autoTerminal, this.advOptions, cyacd);
+        } else {
+            return undefined;
+        }
     }
 
     public getAutoTerminal(): TerminalHandle | undefined {
         return this.autoTerminal;
+    }
+
+    public async sendMIDI(data: Buffer) {
+        await this.activeConnection.sendMidi(data);
+        await this.activeConnection.setSynth(SynthType.MIDI, true);
+        this.getCommandServer().sendMIDI(data);
+    }
+
+    public getCommandServer() {
+        return this.extraState.getCommandServer();
+    }
+
+    public getCommandRole(): CommandRole {
+        return this.advOptions.commandOptions.state;
     }
 
     private isConnectionLost(): boolean {
@@ -79,6 +116,7 @@ export class Connected implements IConnectionState {
 
     private async disconnectInternal() {
         try {
+            this.extraState.close();
             if (media.media_state.state === PlayerActivity.playing) {
                 media.media_state.stopPlaying();
             }

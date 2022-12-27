@@ -2,6 +2,8 @@ import {SerialPort} from "serialport";
 import {ConnectionOptions, SerialConnectionOptions} from "../../../common/ConnectionOptions";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
 import {AutoSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
+import {CommandRole} from "../../../common/Options";
+import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {resetAlarms} from "../telemetry/Alarms";
@@ -94,7 +96,6 @@ export class Idle implements IConnectionState {
     }
 
     public async pressButton(window: object): Promise<IConnectionState> {
-        //TODO
         return this;
     }
 
@@ -103,5 +104,13 @@ export class Idle implements IConnectionState {
     }
 
     public tickSlow() {
+    }
+
+    public getCommandServer(): ICommandServer {
+        return DUMMY_SERVER;
+    }
+
+    public getCommandRole(): CommandRole {
+        return 'disable';
     }
 }

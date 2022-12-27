@@ -2,7 +2,6 @@ import {SerialPort} from "serialport";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
 
-
 class MinSerialConnection extends MinConnection {
     public readonly port: string;
     public readonly baudrate: number;
@@ -25,7 +24,7 @@ class MinSerialConnection extends MinConnection {
                         console.log("Not connecting, ", e);
                         rej(e);
                     } else {
-                        this.serialPort.on("error", e => console.log(e));
+                        this.serialPort.on("error", err => console.log(err));
                         res();
                     }
                 });
@@ -55,11 +54,11 @@ class MinSerialConnection extends MinConnection {
         this.serialPort.flush();
     }
 
-    registerListener(listener: (data: Buffer) => void): void {
+    public registerListener(listener: (data: Buffer) => void): void {
         this.serialPort.addListener("data", listener);
     }
 
-    send(data: Buffer | number[], onError: (err) => void): void {
+    public send(data: Buffer | number[], onError: (err) => void): void {
         if (this.serialPort) {
             this.serialPort.write(data, onError);
         }

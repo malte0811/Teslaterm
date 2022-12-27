@@ -1,4 +1,6 @@
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
+import {AdvancedOptions, CommandRole} from "../../../common/Options";
+import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connecting} from "./Connecting";
@@ -11,12 +13,14 @@ export class Reconnecting implements IConnectionState {
     private ticksSinceLastFailure: number = 0;
     private failedAttempts: number = 0;
     private readonly connectionToReestablish: UD3Connection;
+    private readonly advOptions: AdvancedOptions;
 
-    public constructor(connection: UD3Connection) {
+    public constructor(connection: UD3Connection, advOptions: AdvancedOptions) {
         this.connectionToReestablish = connection;
+        this.advOptions = advOptions;
     }
 
-    getActiveConnection(): UD3Connection | undefined {
+    public getActiveConnection(): UD3Connection | undefined {
         return undefined;
     }
 
@@ -24,7 +28,7 @@ export class Reconnecting implements IConnectionState {
         return undefined;
     }
 
-    getConnectionStatus(): ConnectionStatus {
+    public getConnectionStatus(): ConnectionStatus {
         return ConnectionStatus.RECONNECTING;
     }
 
@@ -32,7 +36,7 @@ export class Reconnecting implements IConnectionState {
         return new Idle();
     }
 
-    tickFast(): IConnectionState {
+    public tickFast(): IConnectionState {
         if (this.failedAttempts >= Reconnecting.MAX_RETRIES) {
             ipcs.misc.openToast('Reconnect', "Aborting attempts to reconnect", ToastSeverity.error, 'reconnect-fail');
             return new Idle();
@@ -47,12 +51,20 @@ export class Reconnecting implements IConnectionState {
                 ToastSeverity.info,
                 'reconnect-attempt-id',
             );
-            return new Connecting(this.connectionToReestablish, this);
+            return new Connecting(this.connectionToReestablish, this, this.advOptions);
         } else {
             return this;
         }
     }
 
     public tickSlow() {
+    }
+
+    public getCommandServer(): ICommandServer {
+        return DUMMY_SERVER;
+    }
+
+    public getCommandRole(): CommandRole {
+        return this.advOptions.commandOptions.state;
     }
 }

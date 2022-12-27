@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import {ConnectionPreset} from "../common/IPCConstantsToRenderer";
-import {getDefaultAdvanccedOptions} from "../common/TTConfig";
+import {getDefaultAdvancedOptions} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
 import {config} from "./init";
 
@@ -17,7 +17,7 @@ function getFileData() {
         const object: UIConfig = JSON.parse(json);
         for (const preset of object.connectionPresets) {
             if (!preset.options.advanced) {
-                preset.options.advanced = getDefaultAdvanccedOptions(config);
+                preset.options.advanced = getDefaultAdvancedOptions(config);
             }
         }
         return object;

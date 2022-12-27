@@ -1,5 +1,5 @@
+import {ICommandServer} from "../command/CommandServer";
 import {getUD3Connection} from "../connection/connection";
-import {commandServer} from "../init";
 import * as microtime from "../microtime";
 import {ISidConnection} from "./ISidConnection";
 import {FRAME_LENGTH, FRAME_UDTIME_LENGTH, SidFrame} from "./sid_api";
@@ -47,14 +47,16 @@ export class UD3FormattedConnection implements ISidConnection {
     public async sendVMSFrames(data: Buffer) {
     }
 
-    public processFrame(frame: SidFrame): Promise<void> {
+    public processFrame(frame: SidFrame, commandServer: ICommandServer): Promise<void> {
         console.assert(this.lastFrameTime);
         const absoluteTime = this.lastFrameTime;
         this.lastFrameTime += frame.delayMicrosecond;
-        return this.processAbsoluteFrame(frame.data, absoluteTime);
+        return this.processAbsoluteFrame(frame.data, absoluteTime, commandServer);
     }
 
-    public processAbsoluteFrame(frameData: Uint8Array, absoluteTime: number): Promise<void> {
+    public processAbsoluteFrame(
+        frameData: Uint8Array, absoluteTime: number, commandServer: ICommandServer,
+    ): Promise<void> {
         const ud_time = getUD3Connection().toUD3Time(absoluteTime);
         const frameSize = this.ffPrefixBytes + FRAME_LENGTH + FRAME_UDTIME_LENGTH + ( this.needsZeroSuffix ? 1 : 0);
         const data = Buffer.alloc(frameSize);

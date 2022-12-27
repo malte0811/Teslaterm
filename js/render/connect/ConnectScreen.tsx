@@ -4,7 +4,7 @@ import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "
 import {UD3ConnectionType} from "../../common/constants";
 import {AutoSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
-import {getDefaultAdvanccedOptions, TTConfig} from "../../common/TTConfig";
+import {getDefaultAdvancedOptions, TTConfig} from "../../common/TTConfig";
 import {TTComponent} from "../TTComponent";
 import {ConnectForm} from "./ConnectForm";
 import {ConnectionPresets} from "./ConnectionPresets";
@@ -73,7 +73,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
                 currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
                 ...connectOptions.udpOptions,
                 ...connectOptions.serialOptions,
-                advanced: getDefaultAdvanccedOptions(this.props.ttConfig),
+                advanced: getDefaultAdvancedOptions(this.props.ttConfig),
             },
         };
     }

@@ -1,5 +1,5 @@
 import {createServer, Server, Socket} from "net";
-import {config} from "../init";
+import {CommandConnectionConfig} from "../../common/Options";
 import {now} from "../microtime";
 import {BoolOptionCommand, Message, MessageType, NumberOptionCommand, timeout_us, toBytes} from "./CommandMessages";
 
@@ -18,6 +18,8 @@ export interface ICommandServer {
     setBoolOption(option: BoolOptionCommand, value: boolean);
 
     setNumberOption(option: NumberOptionCommand, value: number);
+
+    close();
 }
 
 class CommandServer implements ICommandServer {
@@ -59,6 +61,13 @@ class CommandServer implements ICommandServer {
         this.sendToAll({type: MessageType.number_command, option, value});
     }
 
+    public close() {
+        for (const client of this.clients) {
+            client.socket.resetAndDestroy();
+        }
+        this.telnetSocket.close();
+    }
+
     private sendToAll(msg: Message) {
         const bytes = toBytes(msg);
         for (const client of this.clients) {
@@ -89,12 +98,16 @@ class DummyCommandServer implements ICommandServer {
 
     public tick() {
     }
+
+    public close() {}
 }
 
-export function makeCommandServer(): ICommandServer {
-    if (config.command.state === "server") {
-        return new CommandServer(config.command.port);
+export const DUMMY_SERVER: ICommandServer = new DummyCommandServer();
+
+export function makeCommandServer(cfg: CommandConnectionConfig): ICommandServer {
+    if (cfg.state === "server") {
+        return new CommandServer(cfg.port);
     } else {
-        return new DummyCommandServer();
+        return DUMMY_SERVER;
     }
 }

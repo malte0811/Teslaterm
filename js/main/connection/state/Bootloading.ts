@@ -1,4 +1,6 @@
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
+import {AdvancedOptions, CommandRole} from "../../../common/Options";
+import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
@@ -12,28 +14,28 @@ import {Reconnecting} from "./Reconnecting";
 export class Bootloading implements IConnectionState {
     private readonly connection: BootloadableConnection;
     private readonly autoTerminal: TerminalHandle;
+    private readonly advOptions: AdvancedOptions;
     private done: boolean = false;
     private cancelled: boolean = false;
     private inBootloadMode: boolean = false;
 
-    constructor(connection: BootloadableConnection, autoTerm: TerminalHandle, file: Uint8Array) {
+    constructor(
+        connection: BootloadableConnection, autoTerm: TerminalHandle, advOptions: AdvancedOptions, file: Uint8Array,
+    ) {
         this.connection = connection;
         this.autoTerminal = autoTerm;
+        this.advOptions = advOptions;
         this.bootload(file)
-            .catch(
-                (e) => {
-                    console.error(e);
-                    ipcs.misc.openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
-                }
-            )
-            .then(
-                () => {
-                    this.done = true;
-                }
-            );
+            .catch((e) => {
+                console.error(e);
+                ipcs.misc.openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
+            })
+            .then(() => {
+                this.done = true;
+            });
     }
 
-    getActiveConnection(): UD3Connection | undefined {
+    public getActiveConnection(): UD3Connection | undefined {
         if (this.inBootloadMode) {
             return undefined;
         } else {
@@ -49,7 +51,7 @@ export class Bootloading implements IConnectionState {
         }
     }
 
-    getConnectionStatus(): ConnectionStatus {
+    public getConnectionStatus(): ConnectionStatus {
         return ConnectionStatus.BOOTLOADING;
     }
 
@@ -62,10 +64,21 @@ export class Bootloading implements IConnectionState {
     public tickFast(): IConnectionState {
         if (this.done) {
             this.connection.releaseResources();
-            return new Reconnecting(this.connection);
+            return new Reconnecting(this.connection, this.advOptions);
         } else {
             return this;
         }
+    }
+
+    public tickSlow() {
+    }
+
+    public getCommandServer(): ICommandServer {
+        return DUMMY_SERVER;
+    }
+
+    public getCommandRole(): CommandRole {
+        return this.advOptions.commandOptions.state;
     }
 
     private async bootload(file: Uint8Array) {
@@ -105,8 +118,5 @@ export class Bootloading implements IConnectionState {
         if (this.inBootloadMode) {
             this.connection.leaveBootloaderMode();
         }
-    }
-
-    public tickSlow() {
     }
 }

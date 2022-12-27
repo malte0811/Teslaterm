@@ -2,7 +2,7 @@ import * as path from "path";
 import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {commands, getUD3Connection, hasUD3Connection} from "../connection/connection";
+import {commands, connectionState, getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {transientActive} from "../connection/telemetry/UD3State";
 import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
@@ -106,11 +106,11 @@ export let media_state = new PlayerState();
 
 let lastTimeoutReset: number = 0;
 
-export function checkTransientDisabled() {
+export async function checkTransientDisabled() {
     if (transientActive) {
         const currTime = new Date().getTime();
         if (currTime - lastTimeoutReset > 500) {
-            commands.setTransientEnabled(false);
+            await commands.setTransientEnabled(false);
             lastTimeoutReset = currTime;
         }
     }
@@ -122,8 +122,10 @@ export function isMediaFile(filename: string): boolean {
 }
 
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
-    if (config.command.state === "client") {
-        ipcs.misc.openToast('Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client');
+    if (connectionState.getCommandRole() === "client") {
+        ipcs.misc.openToast(
+            'Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client'
+        );
         return;
     }
     if (media_state.state === PlayerActivity.playing) {

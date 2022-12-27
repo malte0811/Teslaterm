@@ -16,6 +16,8 @@
     "no-consecutive-blank-lines": false,
     "no-console": false,
     "max-classes-per-file": false,
+    "interface-name": false,
+    "arrow-parens": false,
     "variable-name": {
       "options": [
         "check-format",

@@ -1,13 +1,11 @@
 import {SynthType} from "../../../common/CommonTypes";
-import {commandServer} from "../../init";
 import {ISidConnection} from "../../sid/ISidConnection";
-import {SidFrame} from "../../sid/sid_api";
 import {UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {resetResponseTimeout} from "../state/Connected";
 import {TerminalHandle, UD3Connection} from "./UD3Connection";
 
 export class DummyConnection extends UD3Connection {
-    private readonly sidConnection = new UD3FormattedConnection(() => Promise.resolve(), ($) => Promise.resolve());
+    private readonly sidConnection = new UD3FormattedConnection(() => Promise.resolve(), _ => Promise.resolve());
 
     public connect(): Promise<void> {
         return Promise.resolve(undefined);

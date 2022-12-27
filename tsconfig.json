@@ -1,6 +1,5 @@
 {
-  "exclude": ["node_modules"],
-  "include": ["js"],
+  "exclude": ["node_modules", "src/types"],
   "compilerOptions": {
     "typeRoots": [
       "node_modules/@types",
