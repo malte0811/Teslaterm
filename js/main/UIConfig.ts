@@ -1,6 +1,8 @@
 import * as fs from "fs";
 import {ConnectionPreset} from "../common/IPCConstantsToRenderer";
+import {getDefaultAdvanccedOptions} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
+import {config} from "./init";
 
 export interface UIConfig {
     connectionPresets: ConnectionPreset[];
@@ -11,8 +13,14 @@ const FILENAME = 'tt-ui-config.json';
 
 function getFileData() {
     try {
-        const content = convertArrayBufferToString(fs.readFileSync(FILENAME));
-        return JSON.parse(content);
+        const json = convertArrayBufferToString(fs.readFileSync(FILENAME));
+        const object: UIConfig = JSON.parse(json);
+        for (const preset of object.connectionPresets) {
+            if (!preset.options.advanced) {
+                preset.options.advanced = getDefaultAdvanccedOptions(config);
+            }
+        }
+        return object;
     } catch (x) {
         console.log("Failed to read UI config:", x);
     }

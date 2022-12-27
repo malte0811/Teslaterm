@@ -1,6 +1,8 @@
 import {ConnectionOptions} from "../../common/ConnectionOptions";
 import {UD3ConnectionType} from "../../common/constants";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
+import {AdvancedOptions} from "../../common/Options";
+import {getDefaultAdvanccedOptions} from "../../common/TTConfig";
 import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
@@ -40,11 +42,12 @@ export async function autoConnect() {
     if (connectionType === undefined) {
         return;
     }
+    let advanced: AdvancedOptions = getDefaultAdvanccedOptions(config);
     let options: ConnectionOptions;
     if (connectionType === UD3ConnectionType.udp_min) {
-        options = {connectionType, options: config.defaultConnectOptions.udpOptions};
+        options = {connectionType, options: config.defaultConnectOptions.udpOptions, advanced};
     } else {
-        options = {connectionType, options: config.defaultConnectOptions.serialOptions};
+        options = {connectionType, options: config.defaultConnectOptions.serialOptions, advanced};
     }
     const connection = await Idle.connectWithOptions(options);
     if (connection) {

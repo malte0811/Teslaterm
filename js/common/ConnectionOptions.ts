@@ -1,4 +1,5 @@
 import {UD3ConnectionType} from "./constants";
+import {AdvancedOptions, CommandConnectionConfig, MidiConfig, NetSidConfig} from "./Options";
 
 export interface SerialConnectionOptions {
     baudrate: number;
@@ -12,7 +13,7 @@ export interface UDPConnectionOptions {
     udpMinPort: number;
 }
 
-export type ConnectionOptions = {
+export type ConnectionOptionsBase = {
     connectionType: UD3ConnectionType.serial_min | UD3ConnectionType.serial_plain;
     options: SerialConnectionOptions;
 } | {
@@ -22,6 +23,8 @@ export type ConnectionOptions = {
     connectionType: UD3ConnectionType.dummy;
     options: {};
 };
+
+export type ConnectionOptions = ConnectionOptionsBase & { advanced: AdvancedOptions };
 
 export interface FullConnectionOptions {
     defaultConnectionType?: UD3ConnectionType;

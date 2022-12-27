@@ -3,16 +3,19 @@ import {Button, Modal, Table, Toast, ToastContainer} from "react-bootstrap";
 import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
 import {UD3ConnectionType} from "../../common/constants";
 import {AutoSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
-import {TTConfig} from "../../common/TTConfig";
+import {AdvancedOptions} from "../../common/Options";
+import {getDefaultAdvanccedOptions, TTConfig} from "../../common/TTConfig";
 import {TTComponent} from "../TTComponent";
 import {ConnectForm} from "./ConnectForm";
 import {ConnectionPresets} from "./ConnectionPresets";
 
 export interface MergedConnectionOptions extends SerialConnectionOptions, UDPConnectionOptions {
     currentType: UD3ConnectionType;
+    advanced: AdvancedOptions;
 }
 
 export function toSingleOptions(merged: MergedConnectionOptions): ConnectionOptions {
+    const advanced = merged.advanced;
     switch (merged.currentType) {
         case UD3ConnectionType.udp_min:
             return {
@@ -20,7 +23,8 @@ export function toSingleOptions(merged: MergedConnectionOptions): ConnectionOpti
                 options: {
                     udpMinPort: merged.udpMinPort,
                     remoteIP: merged.remoteIP,
-                }
+                },
+                advanced
             };
         case UD3ConnectionType.serial_min:
         case UD3ConnectionType.serial_plain:
@@ -31,10 +35,11 @@ export function toSingleOptions(merged: MergedConnectionOptions): ConnectionOpti
                     autoProductID: merged.autoProductID,
                     autoVendorID: merged.autoVendorID,
                     baudrate: merged.baudrate,
-                }
+                },
+                advanced
             };
         case UD3ConnectionType.dummy:
-            return {connectionType: merged.currentType, options: {}};
+            return {connectionType: merged.currentType, options: {}, advanced};
     }
 }
 
@@ -68,6 +73,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
                 currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
                 ...connectOptions.udpOptions,
                 ...connectOptions.serialOptions,
+                advanced: getDefaultAdvanccedOptions(this.props.ttConfig),
             },
         };
     }

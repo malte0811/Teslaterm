@@ -1,25 +1,22 @@
 import * as os from "os";
 import {FullConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../common/ConnectionOptions";
 import {
-    CONNECTION_TYPE_DESCS,
     FEATURE_TIMEBASE,
     FEATURE_NOTELEMETRY,
     FEATURE_TIMECOUNT,
     FEATURE_MINSID,
     CONNECTION_TYPES_BY_NAME
 } from "../common/constants";
-import {
-    COMMAND_ROLES,
-    CommandConnectionConfig,
-    EthernetConfig,
-    MidiConfig,
-    NetSidConfig,
-    SerialConfig,
-    TTConfig
-} from "../common/TTConfig";
+import {CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
+import {TTConfig} from "../common/TTConfig";
 import {convertArrayBufferToString} from "./helper";
 import * as fs from "fs";
 import * as ini from "ini";
+
+export const COMMAND_ROLES = new Map<string, CommandRole>();
+COMMAND_ROLES.set('disable', 'disable');
+COMMAND_ROLES.set('server', 'server');
+COMMAND_ROLES.set('client', 'client');
 
 interface ChangedFlag {
     changed: boolean;

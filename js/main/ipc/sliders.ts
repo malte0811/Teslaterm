@@ -1,6 +1,6 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, ISliderState} from "../../common/IPCConstantsToRenderer";
-import {CommandRole} from "../../common/TTConfig";
+import {CommandRole} from "../../common/Options";
 import {NumberOptionCommand} from "../command/CommandMessages";
 import {commands} from "../connection/connection";
 import {commandServer, config} from "../init";
