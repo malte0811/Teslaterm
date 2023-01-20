@@ -3,9 +3,10 @@ import {AdvancedOptions, CommandConnectionConfig, MidiConfig, NetSidConfig} from
 
 export interface SerialConnectionOptions {
     baudrate: number;
-    serialPort?: string;
-    autoVendorID?: string;
-    autoProductID?: string;
+    serialPort: string;
+    autoVendorID: string;
+    autoProductID: string;
+    autoconnect: boolean;
 }
 
 export interface UDPConnectionOptions {

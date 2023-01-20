@@ -1,3 +1,4 @@
+import * as os from "os";
 import {SerialPort} from "serialport";
 import {SynthType} from "../../../common/CommonTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
@@ -112,3 +113,14 @@ export class PlainSerialConnection extends UD3Connection {
 export function createPlainSerialConnection(port: string, baudrate: number): UD3Connection {
     return new PlainSerialConnection(port, baudrate);
 }
+
+export function getDefaultSerialPortForConfig() {
+    if (os.platform() === "win32") {
+        return "COM1";
+    } else {
+        return "/dev/ttyACM0";
+    }
+}
+
+export const DEFAULT_SERIAL_VENDOR = "1a86";
+export const DEFAULT_SERIAL_PRODUCT = "7523";

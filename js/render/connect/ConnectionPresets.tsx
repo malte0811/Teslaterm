@@ -4,7 +4,7 @@ import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ConnectionPreset, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
-import {MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
+import {areOptionsValid, MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
 
 export interface PresetsProps {
     mainFormProps: MergedConnectionOptions;
@@ -22,18 +22,18 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
     constructor(props) {
         super(props);
         this.state = {
-            presets: [],
             newEntryName: '',
+            presets: [],
         };
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, (presets) => this.setState({presets}));
         processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.getPresets, undefined);
     }
 
-    render() {
-        let presetList = this.state.presets.length > 0 && (
+    public render() {
+        const presetList = this.state.presets.length > 0 && (
             <div className={'tt-preset-list'}>
                 {this.state.presets.map((preset) => this.makePresetEntry(preset))}
             </div>
@@ -89,7 +89,9 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
 
     private makeNewEntryField() {
         const realName = this.state.newEntryName.trim();
-        const canAdd = realName.length > 0 && this.state.presets.filter(preset => preset.name == realName).length == 0;
+        const canAdd = realName.length > 0 &&
+            this.state.presets.filter(preset => preset.name === realName).length === 0 &&
+            areOptionsValid(this.props.mainFormProps);
         return <Form className={'tt-side-aligned'} onSubmit={e => e.preventDefault()}>
             <Form.Control
                 style={({width: '50%'})}

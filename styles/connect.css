@@ -42,3 +42,7 @@
     overflow-y: auto;
     margin-top: 10px;
 }
+
+.tt-connect-form-row {
+    margin-bottom: 5px;
+}

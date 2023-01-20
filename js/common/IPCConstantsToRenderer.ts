@@ -16,10 +16,9 @@ function makeKey<Type>(channel: string): IPCToRendererKey<Type> {
 
 export const IPC_CONSTANTS_TO_RENDERER = {
     connect: {
-        setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
-        setSerialSuggestions: makeKey<string[]>('suggest-serial'),
         connectionError: makeKey<string>('connection-error'),
-        showAutoPortOptions: makeKey<AutoSerialPort[]>('show-auto-ports'),
+        setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
+        setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
         syncPresets: makeKey<ConnectionPreset[]>('sync-connect-sesets'),
     },
     menu: {
@@ -249,7 +248,7 @@ export interface ToastData {
     mergeKey?: string;
 }
 
-export interface AutoSerialPort {
+export interface AvailableSerialPort {
     path: string;
     manufacturer: string;
     vendorID: string;

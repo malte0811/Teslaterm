@@ -1,25 +1,32 @@
 import React from "react";
-import {Accordion, Button, Col, Form, Row} from "react-bootstrap";
+import {Accordion, Button, Form} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, IUDPConnectionSuggestion} from "../../common/IPCConstantsToRenderer";
+import {
+    AvailableSerialPort,
+    IPC_CONSTANTS_TO_RENDERER,
+    IUDPConnectionSuggestion,
+} from "../../common/IPCConstantsToRenderer";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
 import {AdvancedOptionsForm} from "./AdvancedOptionsForm";
-import {MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
+import {areOptionsValid, MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
+import {FormHelper} from "./FormHelper";
 
 export interface ConnectFormProps {
     currentOptions: MergedConnectionOptions;
     setOptions: (newOptions: Partial<MergedConnectionOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
+    openSerialOptionsScreen: (options: AvailableSerialPort[]) => any;
 }
 
 export interface ConnectFormState {
-    serialSuggestions: string[];
+    availableSerialPorts: AvailableSerialPort[];
     udpSuggestions: IUDPConnectionSuggestion[];
+    serialAutoconnect: boolean;
 }
 
 export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState> {
@@ -28,14 +35,17 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     private readonly firstFieldRef: React.RefObject<HTMLInputElement> = React.createRef();
+    private readonly helper: FormHelper;
 
     constructor(props) {
         super(props);
         this.state = {
-            serialSuggestions: [],
+            availableSerialPorts: [],
+            serialAutoconnect: this.props.currentOptions.serialPort !== undefined,
             udpSuggestions: [],
         };
         this.connect = this.connect.bind(this);
+        this.helper = new FormHelper(this, 9);
     }
 
     public componentDidMount() {
@@ -44,8 +54,8 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                 this.setState({udpSuggestions: suggestion});
             },
         );
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, (suggestions: string[]) => {
-            this.setState({serialSuggestions: suggestions});
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, (ports: AvailableSerialPort[]) => {
+            this.setState({availableSerialPorts: ports});
         });
         processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, undefined);
         if (this.firstFieldRef.current) {
@@ -55,7 +65,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
 
     public render() {
         const currentType = this.props.currentOptions.currentType;
-        const optionsForType: JSX.Element[] = this.getConfigOptions(currentType);
+        const optionsForType = this.getConfigOptions(currentType);
         if (!optionsForType) {
             return <div>Unsupported connection type {currentType}</div>;
         }
@@ -107,81 +117,68 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                     onClick={this.props.connecting ? ConnectForm.abort : this.connect}
                     variant={this.props.connecting ? 'warning' : 'primary'}
                     type={'submit'}
+                    disabled={!this.props.connecting && !areOptionsValid(this.props.currentOptions)}
                 >{this.props.connecting ? 'Abort connection' : 'Connect'}</Button>
             </Form>
         </div>;
     }
 
-    protected makeIntField(label: string, key: keyof MergedConnectionOptions): JSX.Element {
-        return <Form.Group as={Row} key={key}>
-            <Form.Label column>{label}</Form.Label>
-            <Col sm={9}>
-                <Form.Control
-                    type={'number'}
-                    value={this.props.currentOptions[key] as string}
-                    onChange={(ev) => {
-                        const obj = {};
-                        obj[key] = Number.parseInt(ev.target.value, 10);
-                        this.props.setOptions(obj);
-                    }}
-                    disabled={this.props.connecting}
-                    className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
-                />
-            </Col>
-        </Form.Group>;
-    }
-
-    protected makeSuggestedField(
-        label: string,
-        key: keyof MergedConnectionOptions,
-        suggestions: string[],
-        placeholder?: string,
-    ): JSX.Element {
-        return <Form.Group as={Row} style={{marginBottom: '5px'}} key={key}>
-            <Form.Label column>{label}</Form.Label>
-            <Col sm={9}>
-                <Form.Control
-                    type={'text'}
-                    placeholder={placeholder}
-                    value={this.props.currentOptions[key] as string}
-                    onChange={(ev) => {
-                        // TODO is there a better way to do this?
-                        const obj = {};
-                        obj[key as string] = ev.target.value;
-                        this.props.setOptions(obj);
-                    }}
-                    list={'suggestions'}
-                    ref={this.firstFieldRef}
-                    disabled={this.props.connecting}
-                    className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
-                />
-                <datalist id={'suggestions'}>
-                    {suggestions.map((s, i) => <option value={s} key={i}/>)}
-                </datalist>
-            </Col>
-        </Form.Group>;
-    }
-
-    private getConfigOptions(currentType: UD3ConnectionType) {
+    private getConfigOptions(currentType: UD3ConnectionType): JSX.Element[] {
         switch (currentType) {
             case UD3ConnectionType.serial_min:
             case UD3ConnectionType.serial_plain:
-                return [
-                    this.makeSuggestedField(
-                        'Port', 'serialPort', this.state.serialSuggestions, 'Autoconnect',
-                    ),
-                    this.makeIntField('Baudrate', 'baudrate'),
-                    // TODO vendor setting for autoconnect?
-                ];
+                return this.makeSerialOptions();
             case UD3ConnectionType.udp_min:
+                const options = this.props.currentOptions;
                 const suggestionStrings = this.state.udpSuggestions.map(
                     (s) => s.desc ? s.desc + ' (' + s.remoteIP + ')' : s.remoteIP,
                 );
                 return [
-                    this.makeSuggestedField('Remote IP', 'remoteIP', suggestionStrings),
-                    this.makeIntField('Remote port', 'udpMinPort'),
+                    this.helper.makeSuggestedField(
+                        'Remote IP',
+                        options.remoteIP,
+                        remoteIP => this.props.setOptions({remoteIP}),
+                        suggestionStrings,
+                        this.firstFieldRef,
+                    ),
+                    this.helper.makeIntField(
+                        'Remote port', options.udpMinPort, udpMinPort => this.props.setOptions({udpMinPort}),
+                    ),
                 ];
         }
+    }
+
+    private makeSerialOptions(): JSX.Element[] {
+        const options = this.props.currentOptions;
+        const auto = options.autoconnect;
+        const formElements = [
+            this.helper.makeCheckbox(
+                "Autoconnect", auto, autoconnect => this.props.setOptions({autoconnect}), this.firstFieldRef,
+            ),
+        ];
+        if (options.autoconnect) {
+            formElements.push(this.helper.makeString(
+                "Vendor", options.autoVendorID, autoVendorID => this.props.setOptions({autoVendorID}),
+            ));
+            formElements.push(this.helper.makeString(
+                "Product", options.autoProductID, pid => this.props.setOptions({autoProductID: pid}),
+            ));
+        } else {
+            formElements.push(this.helper.makeSuggestedField(
+                'Port',
+                options.serialPort,
+                serialPort => this.props.setOptions({serialPort}),
+                this.state.availableSerialPorts.map(p => p.path),
+            ));
+        }
+        formElements.push(this.helper.makeButton(
+            'Show connected devices',
+            () => this.props.openSerialOptionsScreen(this.state.availableSerialPorts),
+        ));
+        formElements.push(this.helper.makeIntField(
+            'Baudrate', options.baudrate, baudrate => this.props.setOptions({baudrate}),
+        ));
+        return formElements;
     }
 
     private connect() {

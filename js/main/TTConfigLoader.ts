@@ -11,6 +11,11 @@ import {
 } from "../common/constants";
 import {AdvancedOptions, CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
 import {TTConfig} from "../common/TTConfig";
+import {
+    DEFAULT_SERIAL_PRODUCT,
+    DEFAULT_SERIAL_VENDOR,
+    getDefaultSerialPortForConfig
+} from "./connection/types/serial_plain";
 import {convertArrayBufferToString} from "./helper";
 
 export const COMMAND_ROLES = new Map<string, CommandRole>();
@@ -161,17 +166,13 @@ function readEthernetConfig(cfg: Config, changed: ChangedFlag): UDPConnectionOpt
 
 function readSerialConfig(cfg: Config, changed: ChangedFlag): SerialConnectionOptions {
     const serial = cfg.getOrCreateSection("serial", "Default settings for serial connections (plain or MIN)");
-    let defaultPort: string;
-    if (os.platform() === "win32") {
-        defaultPort = "COM1";
-    } else {
-        defaultPort = "/dev/ttyACM0";
-    }
+    const serialPort = serial.getOrWrite<string>("port", getDefaultSerialPortForConfig(), changed);
     return {
-        autoProductID: serial.getOrWrite<string>("product_id", "7523", changed),
-        autoVendorID: serial.getOrWrite<string>("vendor_id", "1a86", changed),
+        autoProductID: serial.getOrWrite<string>("product_id", DEFAULT_SERIAL_PRODUCT, changed),
+        autoVendorID: serial.getOrWrite<string>("vendor_id", DEFAULT_SERIAL_VENDOR, changed),
+        autoconnect: serialPort !== undefined,
         baudrate: serial.getOrWrite<number>("baudrate", 460_800, changed),
-        serialPort: serial.getOrWrite<string>("port", defaultPort, changed),
+        serialPort,
     };
 }
 

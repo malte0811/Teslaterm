@@ -1,5 +1,5 @@
 import {SerialPort} from "serialport";
-import {IUDPConnectionSuggestion} from "../../../common/IPCConstantsToRenderer";
+import {AvailableSerialPort, IUDPConnectionSuggestion} from "../../../common/IPCConstantsToRenderer";
 import {convertArrayBufferToString, sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {createBroadcastSocket} from "../udp_helper";
@@ -42,8 +42,13 @@ async function sendUDPConnectionSuggestions(windowKey: any) {
 }
 
 async function sendSerialConnectionSuggestions(windowKey: any) {
-    const serialPorts: string[] = (await SerialPort.list())
+    const serialPorts: AvailableSerialPort[] = (await SerialPort.list())
         .filter((port) => port.productId)
-        .map((port) => port.path);
+        .map((port) => ({
+            manufacturer: port.manufacturer,
+            path: port.path,
+            productID: port.productId,
+            vendorID: port.vendorId,
+        }));
     ipcs.connectionUI.suggestSerial(windowKey, serialPorts);
 }

@@ -1,7 +1,7 @@
 import {SerialPort} from "serialport";
 import {ConnectionOptions, SerialConnectionOptions} from "../../../common/ConnectionOptions";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
-import {AutoSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
+import {AvailableSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {CommandRole} from "../../../common/Options";
 import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {config} from "../../init";
@@ -49,10 +49,10 @@ export class Idle implements IConnectionState {
     private static async connectSerial(
         options: SerialConnectionOptions, create: (port: string, baudrate: number) => UD3Connection
     ): Promise<UD3Connection | undefined> {
-        if (options.serialPort) {
-            return create(options.serialPort, options.baudrate);
-        } else {
+        if (options.autoconnect) {
             return this.autoConnectSerial(options.baudrate, create, options);
+        } else {
+            return create(options.serialPort, options.baudrate);
         }
     }
 
@@ -65,24 +65,16 @@ export class Idle implements IConnectionState {
             return undefined;
         }
         const all = await SerialPort.list();
-        const candidates: AutoSerialPort[] = [];
         for (const port of all) {
             if (port.vendorId === options.autoVendorID && port.productId === options.autoProductID) {
                 console.log("Auto connecting to " + port.path);
                 return create(port.path, baudrate);
             }
-            if (port.vendorId && port.productId) {
-                candidates.push({
-                    path: port.path,
-                    manufacturer: port.manufacturer,
-                    vendorID: port.vendorId,
-                    productID: port.productId,
-                });
-            }
         }
-        ipcs.connectionUI.sendAutoOptions(candidates);
+        ipcs.connectionUI.sendConnectionError("Did not find device with specified product/vendor ID");
         return undefined;
     }
+
     public getActiveConnection(): UD3Connection | undefined {
         return undefined;
     }
