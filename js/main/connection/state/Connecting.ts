@@ -30,7 +30,7 @@ export class Connecting implements IConnectionState {
         this.connection = connection;
         this.advOptions = advOptions;
         this.connect().catch((error) => {
-            ipcs.connectionUI.sendConnectionError('Error: ' + error);
+            ipcs.connectionUI.sendConnectionError(this.removeErrorPrefixes(error + ''));
             console.log("While connecting: ", error);
             connection.releaseResources();
             this.state = State.failed;
@@ -108,5 +108,13 @@ export class Connecting implements IConnectionState {
         await ipcs.terminal.onSlotsAvailable(true);
         this.doneInitializingAt = Date.now();
         this.state = State.connected;
+    }
+
+    private removeErrorPrefixes(withError: string): string {
+        const prefix = "Error:";
+        while (withError.startsWith(prefix)) {
+            withError = withError.substring(prefix.length).trim();
+        }
+        return withError;
     }
 }

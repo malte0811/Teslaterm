@@ -56,7 +56,7 @@ export abstract class UD3Connection {
     }
 
     public abstract sendDisconnectData(): Promise<void>;
-    
+
     public abstract releaseResources(): void;
 
     public abstract resetWatchdog(): void;

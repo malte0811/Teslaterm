@@ -140,7 +140,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
                 show={this.state.showingError}
                 onClose={() => this.setState({showingError: false})}
                 className={'tt-' + style + '-toast'}
-                bg={style}
+                bg={'danger'}
             >
                 <Toast.Header>Failed to connect</Toast.Header>
                 <Toast.Body>{this.state.error}</Toast.Body>
