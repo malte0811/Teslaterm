@@ -104,7 +104,7 @@ export class Script {
             return;
         }
         this.starterKey = starterKey;
-        ipcs.sliders.setRelativeAllowed(false);
+        ipcs.sliders.setOnlyMaxOntimeSettable(true);
         this.running = true;
         try {
             for (const entry of this.queue) {
@@ -128,7 +128,7 @@ export class Script {
             console.error(x);
         }
         this.running = false;
-        ipcs.sliders.setRelativeAllowed(true);
+        ipcs.sliders.setOnlyMaxOntimeSettable(false);
     }
 
     private wrapForSandboxNonPromise(func: (...args: any[]) => void): (...args: any[]) => void {

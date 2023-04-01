@@ -13,7 +13,7 @@ export class SliderState implements ISliderState {
     public bps: number = 20;
     public burstOntime: number = 500;
     public burstOfftime: number = 0;
-    public relativeAllowed: boolean = true;
+    public onlyMaxOntimeSettable: boolean = true;
     public maxOntime: number = 400;
     public maxBPS: number = 1000;
     public startAtRelativeOntime: boolean;
@@ -21,7 +21,7 @@ export class SliderState implements ISliderState {
     constructor(role: CommandRole) {
         this.ontimeAbs = role !== "disable" ? this.maxOntime : 0;
         this.ontimeRel = role !== "disable" ? 0 : 100;
-        this.relativeAllowed = role !== "client";
+        this.onlyMaxOntimeSettable = role === "client";
         this.startAtRelativeOntime = role === "server";
     }
 
@@ -107,8 +107,8 @@ export class SlidersIPC {
         this.sendSliderSync(key);
     }
 
-    public setRelativeAllowed(allowed: boolean, key?: object) {
-        this.state.relativeAllowed = allowed;
+    public setOnlyMaxOntimeSettable(allowed: boolean, key?: object) {
+        this.state.onlyMaxOntimeSettable = allowed;
         this.sendSliderSync(key);
     }
 

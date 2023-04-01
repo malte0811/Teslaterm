@@ -26,9 +26,9 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
             controllingRelativeOntime: false,
             maxBPS: 1000,
             maxOntime: 400,
+            onlyMaxOntimeSettable: false,
             ontimeAbs: 0,
             ontimeRel: 100,
-            relativeAllowed: true,
             startAtRelativeOntime: false,
         };
     }
@@ -44,7 +44,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 if (sync.startAtRelativeOntime !== this.state.startAtRelativeOntime) {
                     newState.controllingRelativeOntime = sync.startAtRelativeOntime;
                 }
-                if (!sync.relativeAllowed) {
+                if (sync.onlyMaxOntimeSettable) {
                     newState.controllingRelativeOntime = false;
                 }
                 this.setState(newState);
@@ -72,7 +72,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 valueAbsolute={this.state.ontimeAbs}
                 valueRelative={this.state.ontimeRel}
                 setValue={setOntime}
-                relativeAllowed={this.state.relativeAllowed}
+                relativeAllowed={!this.state.onlyMaxOntimeSettable}
                 visuallyEnabled={busOn}
                 disabled={this.props.disabled}
                 relativeIsDefault={this.state.startAtRelativeOntime}
@@ -90,7 +90,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                     processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, v);
                 }}
                 visuallyEnabled={trOn}
-                disabled={this.props.disabled}
+                disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
             />
             <SimpleSlider
                 title={'Burst Ontime'}
@@ -103,7 +103,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                     processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, v);
                 }}
                 visuallyEnabled={trOn}
-                disabled={this.props.disabled}
+                disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
             />
             <SimpleSlider
                 title={'Burst Offtime'}
@@ -116,7 +116,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                     processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, v);
                 }}
                 visuallyEnabled={trOn}
-                disabled={this.props.disabled}
+                disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
             />
             <MidiSourceSelect/>
         </div>;

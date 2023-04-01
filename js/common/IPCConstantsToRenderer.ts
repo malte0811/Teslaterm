@@ -201,7 +201,7 @@ export interface ISliderState {
     readonly bps: number;
     readonly burstOntime: number;
     readonly burstOfftime: number;
-    readonly relativeAllowed: boolean;
+    readonly onlyMaxOntimeSettable: boolean;
     readonly maxOntime: number;
     readonly maxBPS: number;
     readonly startAtRelativeOntime: boolean;
