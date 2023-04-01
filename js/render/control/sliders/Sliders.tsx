@@ -17,23 +17,23 @@ export class Sliders extends TTComponent<SlidersProps, ISliderState> {
         super(props);
         this.state = {
             bps: 0,
-            ontimeAbs: 0,
-            ontimeRel: 100,
             burstOfftime: 0,
             burstOntime: 500,
             maxBPS: 1000,
-            relativeAllowed: true,
             maxOntime: 400,
+            ontimeAbs: 0,
+            ontimeRel: 100,
+            relativeAllowed: true,
         };
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, (sync: ISliderState) => this.setState(sync)
         );
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const setOntime = (val: number, relative: boolean) => {
             const channel = relative ?
                 IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative :
@@ -42,7 +42,7 @@ export class Sliders extends TTComponent<SlidersProps, ISliderState> {
             if (relative) {
                 this.setState({ontimeRel: val});
             } else {
-                this.setState({ontimeAbs: val})
+                this.setState({ontimeAbs: val});
             }
         };
         const busOn = this.props.ud3State.busActive || !this.props.ud3State.busControllable;
@@ -64,7 +64,7 @@ export class Sliders extends TTComponent<SlidersProps, ISliderState> {
                 min={20}
                 max={this.state.maxBPS}
                 setValue={(v) => {
-                    this.setState({bps: v})
+                    this.setState({bps: v});
                     processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, v);
                 }}
                 visuallyEnabled={trOn}

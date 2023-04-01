@@ -13,7 +13,8 @@ export class CommandIPC {
             IPC_CONSTANTS_TO_MAIN.commands.setKillState, ($, enable) => setBoolOption(BoolOptionCommand.kill, enable),
         );
         processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.commands.setTRState, ($, enable) => setBoolOption(BoolOptionCommand.transient, enable),
+            IPC_CONSTANTS_TO_MAIN.commands.setTRState,
+            ($, enable) => setBoolOption(BoolOptionCommand.transient, enable),
         );
         processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.commands.setParms, async ($, parms) => {
             for (const [key, value] of parms) {
