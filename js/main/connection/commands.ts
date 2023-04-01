@@ -50,14 +50,10 @@ export class CommandInterface {
         connectionState.getCommandServer().setNumberOption(NumberOptionCommand.burst_off, offtime);
     }
 
-    public async setOfftime(offtime: number) {
-        await this.setParam('pwd', offtime.toFixed(0));
-        connectionState.getCommandServer().setNumberOption(NumberOptionCommand.offtime, offtime);
-    }
-
     public async setBPS(bps: number) {
         const pwd = Math.floor(1000000 / bps);
-        await this.setOfftime(Number(pwd));
+        await this.setParam('pwd', pwd.toFixed(0));
+        connectionState.getCommandServer().setNumberOption(NumberOptionCommand.bps, bps);
     }
 
     public async setParam(param: string, value: string) {

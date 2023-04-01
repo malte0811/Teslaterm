@@ -15,7 +15,7 @@ export enum MessageType {
 
 export enum BoolOptionCommand {bus, kill, transient}
 
-export enum NumberOptionCommand {relative_ontime, offtime, burst_on, burst_off}
+export enum NumberOptionCommand {relative_ontime, bps, burst_on, burst_off}
 
 export function setBoolOption(option: BoolOptionCommand, value: boolean) {
     switch (option) {
@@ -32,12 +32,12 @@ export function setNumberOption(option: NumberOptionCommand, value: number) {
     switch (option) {
         case NumberOptionCommand.relative_ontime:
             return ipcs.sliders.setRelativeOntime(value);
-        case NumberOptionCommand.offtime:
-            return commands.setOfftime(value);
+        case NumberOptionCommand.bps:
+            return ipcs.sliders.setBPS(value);
         case NumberOptionCommand.burst_on:
-            return commands.setBurstOntime(value);
+            return ipcs.sliders.setBurstOntime(value);
         case NumberOptionCommand.burst_off:
-            return commands.setBurstOfftime(value);
+            return ipcs.sliders.setBurstOfftime(value);
     }
 }
 
