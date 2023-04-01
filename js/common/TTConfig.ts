@@ -3,10 +3,9 @@ import {AdvancedOptions, CommandConnectionConfig, MidiConfig, NetSidConfig} from
 
 export interface TTConfig {
     readonly defaultConnectOptions: FullConnectionOptions;
-    readonly midi: MidiConfig;
-    readonly netsid: NetSidConfig;
-    // TODO remove more references
-    readonly command: CommandConnectionConfig;
+    readonly defaultMidiConfig: MidiConfig;
+    readonly defaultNetSIDConfig: NetSidConfig;
+    readonly defaultCommandOptions: CommandConnectionConfig;
 
     readonly udConfigPages: Map<string, number>;
     readonly defaultUDFeatures: Map<string, string>;
@@ -14,8 +13,8 @@ export interface TTConfig {
 
 export function getDefaultAdvancedOptions(cfg: TTConfig): AdvancedOptions {
     return {
-        commandOptions: cfg.command,
-        midiOptions: cfg.midi,
-        netSidOptions: cfg.netsid,
+        commandOptions: cfg.defaultCommandOptions,
+        midiOptions: cfg.defaultMidiConfig,
+        netSidOptions: cfg.defaultNetSIDConfig,
     };
 }

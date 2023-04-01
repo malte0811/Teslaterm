@@ -229,10 +229,10 @@ export function loadConfig(filename: string): TTConfig {
     const changed: ChangedFlag = {changed: false};
 
     const ttConfigBase = {
-        command: readCommandConfig(config, changed),
+        defaultCommandOptions: readCommandConfig(config, changed),
         defaultConnectOptions: readConnectOptions(config, changed),
-        midi: readMIDIConfig(config, changed),
-        netsid: readSIDConfig(config, changed),
+        defaultMidiConfig: readMIDIConfig(config, changed),
+        defaultNetSIDConfig: readSIDConfig(config, changed),
     };
     const udconfig = config.getOrCreateSection(
         "udconfig",
