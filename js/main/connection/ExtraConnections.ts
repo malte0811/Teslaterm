@@ -5,6 +5,7 @@ import {ICommandServer, makeCommandServer} from "../command/CommandServer";
 import {ipcs} from "../ipc/IPCProvider";
 import {MidiServer} from "../midi/MidiServer";
 import {NetworkSIDServer} from "../sid/NetworkSIDServer";
+import {commands} from "./connection";
 
 export class ExtraConnections {
     private readonly midiServer?: MidiServer;
@@ -33,6 +34,7 @@ export class ExtraConnections {
             ipcs.misc.openToast(
                 "Command server", "Command server timed out, reconnecting", ToastSeverity.warning, 'command-timeout',
             );
+            commands.setKill().catch(e => console.warn("While killing output: ", e));
             this.initCommandClient();
         }
     }
