@@ -59,7 +59,9 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
     private fitManually() {
         // Hack: The layout rules don't seem to be enough to make the fitter only take the height it has if the terminal
         // already exceeds that, so shrink the terminal vertically and then let the fitter expand it again
-        this.props.terminal.terminal.resize(this.props.terminal.terminal.cols, 1);
-        this.props.terminal.fitter.fit();
+        if (this.props.terminal.terminal) {
+            this.props.terminal.terminal.resize(this.props.terminal.terminal.cols, 1);
+            this.props.terminal.fitter.fit();
+        }
     }
 }
