@@ -12,24 +12,43 @@ export interface SlidersProps {
     disabled: boolean;
 }
 
-export class Sliders extends TTComponent<SlidersProps, ISliderState> {
+interface SliderUIState extends ISliderState {
+    controllingRelativeOntime: boolean;
+}
+
+export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
     constructor(props: any) {
         super(props);
         this.state = {
             bps: 0,
             burstOfftime: 0,
             burstOntime: 500,
+            controllingRelativeOntime: false,
             maxBPS: 1000,
             maxOntime: 400,
             ontimeAbs: 0,
             ontimeRel: 100,
             relativeAllowed: true,
+            startAtRelativeOntime: false,
         };
     }
 
     public componentDidMount() {
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, (sync: ISliderState) => this.setState(sync)
+            IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings,
+            (sync: ISliderState) => {
+                const newState: SliderUIState = {
+                    ...sync,
+                    controllingRelativeOntime: this.state.controllingRelativeOntime,
+                };
+                if (sync.startAtRelativeOntime !== this.state.startAtRelativeOntime) {
+                    newState.controllingRelativeOntime = sync.startAtRelativeOntime;
+                }
+                if (!sync.relativeAllowed) {
+                    newState.controllingRelativeOntime = false;
+                }
+                this.setState(newState);
+            },
         );
     }
 
@@ -56,6 +75,9 @@ export class Sliders extends TTComponent<SlidersProps, ISliderState> {
                 relativeAllowed={this.state.relativeAllowed}
                 visuallyEnabled={busOn}
                 disabled={this.props.disabled}
+                relativeIsDefault={this.state.startAtRelativeOntime}
+                controllingRelative={this.state.controllingRelativeOntime}
+                setControllingRelative={b => this.setState({controllingRelativeOntime: b})}
             />
             <SimpleSlider
                 title={'BPS'}

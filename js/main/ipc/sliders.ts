@@ -16,11 +16,13 @@ export class SliderState implements ISliderState {
     public relativeAllowed: boolean = true;
     public maxOntime: number = 400;
     public maxBPS: number = 1000;
+    public startAtRelativeOntime: boolean;
 
     constructor(role: CommandRole) {
         this.ontimeAbs = role !== "disable" ? this.maxOntime : 0;
         this.ontimeRel = role !== "disable" ? 0 : 100;
         this.relativeAllowed = role !== "client";
+        this.startAtRelativeOntime = role === "server";
     }
 
     public get ontime() {

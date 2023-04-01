@@ -42,7 +42,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
     sliders: {
-        syncSettings: makeKey<SliderState>('slider-sync'),
+        syncSettings: makeKey<ISliderState>('slider-sync'),
     },
     updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
     terminal: makeKey<string>('terminal'),
@@ -204,6 +204,7 @@ export interface ISliderState {
     readonly relativeAllowed: boolean;
     readonly maxOntime: number;
     readonly maxBPS: number;
+    readonly startAtRelativeOntime: boolean;
 }
 
 export interface IUDPConnectionSuggestion {
