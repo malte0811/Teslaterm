@@ -48,7 +48,11 @@ export class UD3FormattedConnection implements ISidConnection {
     }
 
     public processFrame(frame: SidFrame, commandServer: ICommandServer): Promise<void> {
-        console.assert(this.lastFrameTime);
+        if (!this.lastFrameTime) {
+            console.warn("SID: No previous frame time?");
+            this.lastFrameTime = microtime.now();
+            return;
+        }
         const absoluteTime = this.lastFrameTime;
         this.lastFrameTime += frame.delayMicrosecond;
         return this.processAbsoluteFrame(frame.data, absoluteTime, commandServer);

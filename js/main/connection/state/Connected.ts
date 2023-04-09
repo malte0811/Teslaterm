@@ -3,6 +3,7 @@ import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRen
 import {AdvancedOptions, CommandRole} from "../../../common/Options";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as media from "../../media/media_player";
+import {media_state} from "../../media/media_player";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {commands} from "../connection";
 import {ExtraConnections} from "../ExtraConnections";
@@ -63,7 +64,7 @@ export class Connected implements IConnectionState {
                 'will-reconnect',
             );
             this.activeConnection.disconnect();
-            this.extraState.close();
+            this.closeAdditionalConnections();
             ipcs.terminal.onConnectionClosed();
             return new Reconnecting(this.activeConnection, this.advOptions);
         }
@@ -78,7 +79,7 @@ export class Connected implements IConnectionState {
 
     public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
         if (this.activeConnection instanceof BootloadableConnection) {
-            this.extraState.close();
+            this.closeAdditionalConnections();
             return new Bootloading(this.activeConnection, this.autoTerminal, this.advOptions, cyacd);
         } else {
             return undefined;
@@ -116,14 +117,18 @@ export class Connected implements IConnectionState {
 
     private async disconnectInternal() {
         try {
-            this.extraState.close();
-            if (media.media_state.state === PlayerActivity.playing) {
-                media.media_state.stopPlaying();
-            }
+            this.closeAdditionalConnections();
             await commands.stop();
         } catch (e) {
             console.error("Failed to send stop command:", e);
         }
         await this.activeConnection.disconnect();
+    }
+
+    private closeAdditionalConnections() {
+        this.extraState.close();
+        if (media.media_state.state === PlayerActivity.playing) {
+            media.media_state.stopPlaying();
+        }
     }
 }
