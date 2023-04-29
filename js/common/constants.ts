@@ -30,7 +30,6 @@ export enum UD3ConnectionType {
     udp_min,
     serial_min,
     serial_plain,
-    dummy,
 }
 
 export const CONNECTION_TYPES_BY_NAME = new Map<string, UD3ConnectionType>();

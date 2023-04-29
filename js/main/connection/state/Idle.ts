@@ -7,7 +7,6 @@ import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {resetAlarms} from "../telemetry/Alarms";
-import {DummyConnection} from "../types/DummyConnection";
 import {createPlainSerialConnection} from "../types/serial_plain";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
@@ -28,8 +27,6 @@ export class Idle implements IConnectionState {
                 return createMinUDPConnection(
                     options.options.udpMinPort, Idle.addressFromString(options.options.remoteIP)
                 );
-            case UD3ConnectionType.dummy:
-                return new DummyConnection();
             default:
                 ipcs.connectionUI.sendConnectionError("Connection type \"" + CONNECTION_TYPE_DESCS.get(type) +
                     "\" (" + type + ") is currently not supported");

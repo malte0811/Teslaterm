@@ -27,8 +27,6 @@ export function areOptionsValid(options: MergedConnectionOptions): boolean {
             } else {
                 return isNonEmpty(options.serialPort);
             }
-        case UD3ConnectionType.dummy:
-            return true;
     }
 }
 
@@ -57,8 +55,6 @@ export function toSingleOptions(merged: MergedConnectionOptions): ConnectionOpti
                     serialPort: merged.serialPort,
                 },
             };
-        case UD3ConnectionType.dummy:
-            return {connectionType: merged.currentType, options: {}, advanced};
     }
 }
 

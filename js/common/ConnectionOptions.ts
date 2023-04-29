@@ -20,9 +20,6 @@ export type ConnectionOptionsBase = {
 } | {
     connectionType: UD3ConnectionType.udp_min;
     options: UDPConnectionOptions;
-} | {
-    connectionType: UD3ConnectionType.dummy;
-    options: {};
 };
 
 export type ConnectionOptions = ConnectionOptionsBase & { advanced: AdvancedOptions };
