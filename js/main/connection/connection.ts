@@ -7,6 +7,7 @@ import {config} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {CommandInterface} from "./commands";
+import {FlightEventType, getFlightRecorder} from "./FlightRecorder";
 import {Connected} from "./state/Connected";
 import {Connecting} from "./state/Connecting";
 import {IConnectionState} from "./state/IConnectionState";
@@ -72,6 +73,7 @@ export function updateFast() {
     const newStatus = connectionState.getConnectionStatus();
     if (newStatus !== lastStatus) {
         ipcs.misc.setConnectionState(newStatus);
+        getFlightRecorder().addEvent(FlightEventType.connection_state_change, [newStatus]);
     }
     lastStatus = newStatus;
 }

@@ -61,7 +61,10 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             undefined,
         );
         this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
-        this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined);
+        this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined, true);
+        this.makeIPCItem(
+            items, 'Export Flight Recording', IPC_CONSTANTS_TO_MAIN.menu.dumpFlightRecorder, undefined, true,
+        );
         return <>
             <TTDropdown title={'Commands'} darkMode={this.props.darkMode}>{items}</TTDropdown>
             {this.makeWarningModal()}
@@ -88,12 +91,14 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         </Dropdown.Item>);
     }
 
-    private makeIPCItem<T>(items: JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T) {
+    private makeIPCItem<T>(
+        items: JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T, alwaysEnable: boolean = false,
+    ) {
         items.push(<Dropdown.Item
             as={Button}
             onClick={() => processIPC.send(channel, arg)}
             key={items.length}
-            disabled={this.props.disabled}
+            disabled={this.props.disabled && !alwaysEnable}
         >
             {text}
         </Dropdown.Item>);

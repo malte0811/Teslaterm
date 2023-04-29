@@ -29,11 +29,12 @@ export const IPC_CONSTANTS_TO_MAIN = {
     },
     menu: {
         connectButton: makeKey<undefined>('press-connect-button'),
+        dumpFlightRecorder: makeKey<undefined>('dump-flight-recorder'),
+        requestAlarmList: makeKey<undefined>('request-alarms'),
         downloadUD3ConfigElectron: makeKey<undefined>('download-ud-config-electron'),
         requestUDConfig: makeKey<undefined>('request-ud-config'),
         startMedia: makeKey<undefined>('start-media'),
         stopMedia: makeKey<undefined>('stop-media'),
-        requestAlarmList: makeKey<undefined>('request-alarms'),
     },
     midiMessage: makeKey<Uint8Array>('midi-message'),
     requestFullSync: makeKey<undefined>('request-full-sync'),

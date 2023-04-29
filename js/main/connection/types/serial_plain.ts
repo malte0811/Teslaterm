@@ -2,6 +2,7 @@ import * as os from "os";
 import {SerialPort} from "serialport";
 import {SynthType} from "../../../common/CommonTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
+import {FlightEventType, getFlightRecorder} from "../FlightRecorder";
 import {toCommandID, UD3Connection} from "./UD3Connection";
 
 export class PlainSerialConnection extends UD3Connection {
@@ -27,6 +28,7 @@ export class PlainSerialConnection extends UD3Connection {
                         rej(e);
                     } else {
                         this.serialPort.on('data', (data: Buffer) => {
+                            getFlightRecorder().addEvent(FlightEventType.data_from_ud3, data);
                             for (const terminal of this.terminalCallbacks.values()) {
                                 terminal.callback(data);
                             }
@@ -91,8 +93,10 @@ export class PlainSerialConnection extends UD3Connection {
 
     private async sendAsync(rawData: Buffer): Promise<void> {
         return new Promise<void>((res, rej) => {
+            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, rawData);
             this.serialPort.write(rawData, err => {
                 if (err) {
+                    getFlightRecorder().addEventString(FlightEventType.transmit_error, err.message);
                     rej(err);
                 } else {
                     res();

@@ -7,6 +7,7 @@ import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
+import {FlightEventType, getFlightRecorder} from "../FlightRecorder";
 import {TerminalHandle} from "./UD3Connection";
 
 const MIN_ID_WD = 10;
@@ -44,6 +45,7 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public async connect(): Promise<void> {
         this.registerListener(data => {
+            getFlightRecorder().addEvent(FlightEventType.data_from_ud3, data);
             if (this.isBootloading()) {
                 this.bootloaderCallback(data);
             } else {
@@ -124,6 +126,7 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public sendBootloaderData(data: Buffer): Promise<void> {
         return new Promise<void>((res, rej) => {
+            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
                 if (err) {
                     rej(err);
@@ -225,6 +228,7 @@ export abstract class MinConnection extends BootloadableConnection {
             if (this.isBootloading()) {
                 return;
             }
+            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
                 if (err) {
                     console.error("Error while sending data: ", err);
