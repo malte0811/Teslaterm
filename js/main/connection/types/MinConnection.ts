@@ -98,7 +98,7 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public async sendTelnet(data: Buffer, handle: TerminalHandle) {
         if (this.min_wrapper) {
-            await this.min_wrapper.min_queue_frame(handle, data);
+            await this.min_wrapper.enqueueFrame(handle, data);
         }
     }
 
@@ -146,7 +146,7 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public resetWatchdog(): void {
         if (this.min_wrapper) {
-            this.min_wrapper.min_queue_frame(MIN_ID_WD, []);
+            this.min_wrapper.enqueueFrame(MIN_ID_WD, []);
         }
     }
 
@@ -165,7 +165,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 frameParts.unshift(Buffer.from([frameParts.length]));
             }
             let frame = Buffer.concat(frameParts);
-            this.min_wrapper.min_queue_frame(minID, frame).catch(err => {
+            this.min_wrapper.enqueueFrame(minID, frame).catch(err => {
                 console.log("Failed to send media packet: " + err);
             });
         }
@@ -175,7 +175,7 @@ export abstract class MinConnection extends BootloadableConnection {
         while (this.min_wrapper.get_relative_fifo_size() < 0.75 && buf.length > 0) {
             //console.log(buf[0]);
             console.log("send_frame");
-            this.min_wrapper.min_queue_frame(minID, buf.shift()).catch(err => {
+            this.min_wrapper.enqueueFrame(minID, buf.shift()).catch(err => {
                 console.log("Failed to send media packet: " + err);
             });
         }
@@ -210,7 +210,7 @@ export abstract class MinConnection extends BootloadableConnection {
             let tries = 0;
             while (!done && this.min_wrapper && tries < 16) {
                 try {
-                    await this.min_wrapper.min_queue_frame(MIN_ID_SOCKET, infoBuffer);
+                    await this.min_wrapper.enqueueFrame(MIN_ID_SOCKET, infoBuffer);
                     done = true;
                 } catch (e) {
                     console.error(e);
@@ -267,13 +267,13 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public async flushSynth(): Promise<void> {
         if (this.min_wrapper) {
-            await this.min_wrapper.min_queue_frame(MIN_ID_SYNTH, [SYNTH_CMD_FLUSH]);
+            await this.min_wrapper.enqueueFrame(MIN_ID_SYNTH, [SYNTH_CMD_FLUSH]);
         }
     }
 
     public async setSynthImpl(type: SynthType): Promise<void> {
         if (this.min_wrapper) {
-            await this.min_wrapper.min_queue_frame(MIN_ID_SYNTH, [type]);
+            await this.min_wrapper.enqueueFrame(MIN_ID_SYNTH, [type]);
         }
     }
 

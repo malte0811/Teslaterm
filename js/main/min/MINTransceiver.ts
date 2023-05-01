@@ -1,5 +1,5 @@
-import {CRCCalculator} from "./CRCCalculator";
-import {ACK, HEADER_BYTE, RESET, STUFF_BYTE} from "./MINConstants";
+import {ACK_BYTE, RESET} from "./MINConstants";
+import {MINFrameBuilder} from "./MINFrameBuilder";
 import {MINReceiver, ReceivedMINFrame} from "./MINReceiver";
 
 export type MinAckPayloadGetter = () => number[];
@@ -10,9 +10,6 @@ const TRANSPORT_IDLE_TIMEOUT_MS = 1000;
 const TRANSPORT_MAX_WINDOW_SIZE = 16;
 const TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS = 25;
 const TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
-
-const ACK_BYTE = 0xff;
-const EOF_BYTE = 0x55;
 
 interface SendingMinFrame {
     payload: number[];
@@ -42,33 +39,21 @@ interface TransportFifo {
     frames: SendingMinFrame[];
 }
 
-interface MinTransmitter {
-    header_byte_countdown: number;
-    crc: CRCCalculator;
-}
-
 export class MINTransceiver {
     private readonly sendByte: MinByteSender;
     private readonly handler: MinHandler;
     private readonly get_ack_payload: MinAckPayloadGetter;
 
     private readonly rx: MINReceiver;
-    private readonly tx: MinTransmitter;
     private readonly rx_space: number;
     private remote_rx_space: number;
     private readonly transport_fifo: TransportFifo;
-    private serial_buffer: number[];
     private now: number;
     private readonly debug: boolean;
 
     constructor(get_ack_payload: MinAckPayloadGetter, sendByte: MinByteSender, handler: MinHandler) {
         this.get_ack_payload = get_ack_payload;
         this.rx = new MINReceiver();
-
-        this.tx = {
-            crc: new CRCCalculator(),
-            header_byte_countdown: 0,
-        };
 
         this.rx_space = 512;
 
@@ -94,13 +79,11 @@ export class MINTransceiver {
         this.sendByte = sendByte;
         this.handler = handler;
 
-        this.serial_buffer = [];
-
         this.now = Date.now();
         this.debug = false;
     }
 
-    public min_queue_frame(min_id, payload) {
+    public enqueueFrame(min_id: number, payload: number[] | Buffer) {
         return new Promise<void>((res, rej) => {
             // We are just queueing here: the poll() function puts the frame into the window and on to the wire
             if (this.transport_fifo.frames.length < TRANSPORT_MAX_WINDOW_SIZE) {
@@ -149,13 +132,15 @@ export class MINTransceiver {
             const window_size = this.transport_fifo.sn_max - this.transport_fifo.sn_min; // Window size
             if ((window_size < TRANSPORT_MAX_WINDOW_SIZE) && (this.transport_fifo.frames.length > window_size)) {
                 if (this.transport_fifo.frames.length) {
-                    const wire_size = this.on_wire_size(this.transport_fifo.frames[window_size].payload.length);
+                    const wire_size = MINFrameBuilder.getPacketSize(
+                        this.transport_fifo.frames[window_size].payload.length,
+                    );
                     if (wire_size < this.remote_rx_space) {
                         this.transport_fifo.frames[window_size].seq = this.transport_fifo.sn_max;
                         this.transport_fifo.last_sent_seq = this.transport_fifo.sn_max;
                         this.transport_fifo.frames[window_size].last_send = this.now;
                         if (this.debug) { console.log("tx frame seq=" + this.transport_fifo.frames[window_size].seq); }
-                        this.on_wire_bytes(
+                        this.sendFrame(
                             this.transport_fifo.frames[window_size].min_id | 0x80,
                             this.transport_fifo.frames[window_size].seq,
                             this.transport_fifo.frames[window_size].payload,
@@ -181,7 +166,7 @@ export class MINTransceiver {
                     const frameToSend = this.transport_fifo.frames[resend_frame_num];
                     const sinceLast = this.now - frameToSend.last_send;
                     if (resend_frame_num > -1 && sinceLast >= TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
-                        const wire_size = this.on_wire_size(frameToSend.payload.length);
+                        const wire_size = MINFrameBuilder.getPacketSize(frameToSend.payload.length);
                         if (wire_size < this.remote_rx_space) {
                             if (this.debug) { console.log("tx olfFrame seq=" + frameToSend.seq); }
                             if (frameToSend.seq === this.transport_fifo.last_sent_seq) {
@@ -194,7 +179,7 @@ export class MINTransceiver {
                                 this.min_transport_reset(true);
                                 this.transport_fifo.last_sent_seq_cnt = 0;
                             } else {
-                                this.on_wire_bytes(frameToSend.min_id | 0x80, frameToSend.seq, frameToSend.payload);
+                                this.sendFrame(frameToSend.min_id | 0x80, frameToSend.seq, frameToSend.payload);
                                 frameToSend.last_send = this.now;
                             }
                         }
@@ -253,12 +238,12 @@ export class MINTransceiver {
                     }
                     // Now retransmit the number of frames that were requested
                     for (let i = 0; i < num_nacked; i++) {
-                        const wire_size = this.on_wire_size(this.transport_fifo.frames[i].payload.length);
+                        const wire_size = MINFrameBuilder.getPacketSize(this.transport_fifo.frames[i].payload.length);
                         if (wire_size >= this.remote_rx_space) {
                             break;
                         }
                         this.transport_fifo.frames[i].last_send = this.now;
-                        this.on_wire_bytes(
+                        this.sendFrame(
                             this.transport_fifo.frames[i].min_id | 0x80,
                             this.transport_fifo.frames[i].seq,
                             this.transport_fifo.frames[i].payload,
@@ -345,7 +330,7 @@ export class MINTransceiver {
 
     private send_reset() {
         if (this.debug) { console.log("send RESET"); }
-        this.on_wire_bytes(RESET, 0, []);
+        this.sendFrame(RESET, 0, []);
     }
 
     private send_ack() {
@@ -362,70 +347,10 @@ export class MINTransceiver {
             this.rx_space & 0xff,
         ];
         sq = sq.concat(this.get_ack_payload());
-        this.on_wire_bytes(ACK, this.transport_fifo.rn, sq);
+        this.sendFrame(ACK_BYTE, this.transport_fifo.rn, sq);
         this.transport_fifo.last_sent_ack_time_ms = Date.now();
     }
 
-    private on_wire_bytes(id_control: number, seq: number, payload: number[]) {
-        this.serial_buffer = [];
-        this.tx.header_byte_countdown = 2;
-        this.tx.crc.init();
-        // Header is 3 bytes; because unstuffed will reset receiver immediately
-        this.serial_buffer.push(HEADER_BYTE);
-        this.serial_buffer.push(HEADER_BYTE);
-        this.serial_buffer.push(HEADER_BYTE);
-
-        this.stuffed_tx_byte(id_control);
-        if (id_control & 0x80) {
-            // Send the sequence number if it is a transport frame
-            this.stuffed_tx_byte((seq >>> 24) & 0xff);
-            this.stuffed_tx_byte((seq >>> 16) & 0xff);
-            this.stuffed_tx_byte((seq >>> 8) & 0xff);
-            this.stuffed_tx_byte((seq >>> 0) & 0xff);
-
-        }
-
-        this.stuffed_tx_byte(payload.length);
-
-        for (const byte of payload) {
-            this.stuffed_tx_byte(byte);
-        }
-
-        const checksum = this.tx.crc.getValue();
-        // Network order is big-endian. A decent C compiler will spot that this
-        // is extracting bytes and will use efficient instructions.
-        this.stuffed_tx_byte((checksum >>> 24) & 0xff);
-        this.stuffed_tx_byte((checksum >>> 16) & 0xff);
-        this.stuffed_tx_byte((checksum >>> 8) & 0xff);
-        this.stuffed_tx_byte(checksum & 0xff);
-
-        // Ensure end-of-frame doesn't contain 0xaa and confuse search for start-of-frame
-        this.serial_buffer.push(EOF_BYTE);
-        this.sendByte(this.serial_buffer);
-    }
-
-    private stuffed_tx_byte(byte) {
-        // Transmit the byte
-        if (typeof byte === "string") {
-            byte = byte.charCodeAt(0);
-        }
-        this.serial_buffer.push(byte);
-        this.tx.crc.step(byte);
-
-        // See if an additional stuff byte is needed
-        if (byte === HEADER_BYTE) {
-            if (--this.tx.header_byte_countdown === 0) {
-                this.serial_buffer.push(STUFF_BYTE);        // Stuff byte
-                this.tx.header_byte_countdown = 2;
-            }
-        } else {
-            this.tx.header_byte_countdown = 2;
-        }
-    }
-
-    private on_wire_size(p: number) {
-        return p + 14;
-    }
 
     private min_transport_reset(inform_other_side: boolean) {
         if (inform_other_side) {
@@ -455,5 +380,9 @@ export class MINTransceiver {
         this.transport_fifo.frames = [];
         this.transport_fifo.last_sent_seq = -1;
         this.transport_fifo.last_sent_seq_cnt = 0;
+    }
+
+    private sendFrame(id_control: number, seq: number, payload: number[]) {
+        this.sendByte(new MINFrameBuilder(id_control, seq, payload).getBytes());
     }
 }
