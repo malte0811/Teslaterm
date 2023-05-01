@@ -1,6 +1,38 @@
 type AckPayloadGetter = () => number[];
 
+enum RXState {
+    SOF,
+    ID_CONTROL,
+    SEQ_3,
+    SEQ_2,
+    SEQ_1,
+    SEQ_0,
+    LENGTH,
+    PAYLOAD,
+    CRC_3,
+    CRC_2,
+    CRC_1,
+    CRC_0,
+    EOF,
+}
+
+const RX_MAGIC = {
+    ACK: 0xff,
+    EOF_BYTE: 0x55,
+    HEADER_BYTE: 0xaa,
+    RESET: 0xfe,
+    STUFF_BYTE: 0x55,
+};
+
+const TRANSPORT_IDLE_TIMEOUT_MS = 1000;
+const TRANSPORT_MAX_WINDOW_SIZE = 16;
+const TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS = 25;
+const TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
+
 export class minprot {
+    public sendByte: any;
+    public handler: any;
+
     private readonly get_ack_payload: AckPayloadGetter;
     private readonly rx: any;
     private readonly tx: any;
@@ -8,43 +40,15 @@ export class minprot {
     private remote_rx_space: number;
     private crc: number;
     private readonly transport_fifo: any;
-    public sendByte: any;
-    public handler: any;
     private conf: any;
     private serial_buffer: number[];
     private now: number;
     private readonly debug: boolean;
-    private readonly TRANSPORT_IDLE_TIMEOUT_MS: number;
-    private readonly TRANSPORT_MAX_WINDOW_SIZE: number;
-    private readonly TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS: number;
-    private readonly TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS: number;
 
     constructor(get_ack_payload: AckPayloadGetter) {
         this.get_ack_payload = get_ack_payload;
         this.rx = [];
-        this.rx.states = {
-            SOF: 'sof',
-            ID_CONTROL: 'id_control',
-            SEQ_3: 'seq_3',
-            SEQ_2: 'seq_2',
-            SEQ_1: 'seq_1',
-            SEQ_0: 'seq_0',
-            LENGTH: 'length',
-            PAYLOAD: 'payload',
-            CRC_3: 'crc_3',
-            CRC_2: 'crc_2',
-            CRC_1: 'crc_1',
-            CRC_0: 'crc_0',
-            EOF: 'eof'
-        };
 
-        this.rx.magic = {
-            HEADER_BYTE: 0xaa,
-            STUFF_BYTE: 0x55,
-            EOF_BYTE: 0x55,
-            ACK: 0xff,
-            RESET: 0xfe
-        };
         this.rx.frame = [];
         this.rx.frame.payload_bytes = 0;      // Length of payload received so far
         this.rx.frame.id_control = 0;         // ID and control bit of frame being received
@@ -59,7 +63,7 @@ export class minprot {
         this.crc = 0;
 
         this.rx.header_bytes_seen = 0;
-        this.rx.frame_state = this.rx.states.SOF;
+        this.rx.frame_state = RXState.SOF;
         this.remote_rx_space = 512;
 
         // Counters for diagnosis purposes
@@ -78,10 +82,6 @@ export class minprot {
         this.transport_fifo.last_received_anything_ms = Date.now();
         this.transport_fifo.last_received_frame_ms = 0;
         this.transport_fifo.frames = [];
-        this.TRANSPORT_IDLE_TIMEOUT_MS = 1000;
-        this.TRANSPORT_MAX_WINDOW_SIZE = 16;
-        this.TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS = 25;
-        this.TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
 
         this.sendByte = 0;
         this.handler = 0;
@@ -118,21 +118,21 @@ export class minprot {
         let crc;
         if (this.rx.header_bytes_seen == 2) {
             this.rx.header_bytes_seen = 0;
-            if (byte == this.rx.magic.HEADER_BYTE) {
-                this.rx.frame_state = this.rx.states.ID_CONTROL;
+            if (byte == RX_MAGIC.HEADER_BYTE) {
+                this.rx.frame_state = RXState.ID_CONTROL;
                 return;
             }
-            if (byte == this.rx.magic.STUFF_BYTE) {
+            if (byte == RX_MAGIC.STUFF_BYTE) {
                 /* Discard this byte; carry on receiving on the next character */
                 return;
             } else {
                 /* Something has gone wrong, give up on this frame and look for header again */
-                this.rx.frame_state = this.rx.states.SOF;
+                this.rx.frame_state = RXState.SOF;
                 return;
             }
         }
 
-        if (byte == this.rx.magic.HEADER_BYTE) {
+        if (byte == RX_MAGIC.HEADER_BYTE) {
             this.rx.header_bytes_seen++;
 
         } else {
@@ -140,86 +140,86 @@ export class minprot {
         }
 
         switch (this.rx.frame_state) {
-            case this.rx.states.SOF:
+            case RXState.SOF:
                 break;
-            case this.rx.states.ID_CONTROL:
+            case RXState.ID_CONTROL:
                 this.rx.frame.id_control = byte;
                 this.rx.frame.payload_bytes = 0;
                 this.crc32_init_context();
                 this.crc32_step(byte);
                 if (byte & 0x80) {
-                    this.rx.frame_state = this.rx.states.SEQ_3;
+                    this.rx.frame_state = RXState.SEQ_3;
                 } else {
                     this.rx.frame.seq = 0;
-                    this.rx.frame_state = this.rx.states.LENGTH;
+                    this.rx.frame_state = RXState.LENGTH;
                 }
                 break;
-            case this.rx.states.SEQ_3:
+            case RXState.SEQ_3:
                 this.rx.frame.seq = byte << 24;
                 this.crc32_step(byte);
-                this.rx.frame_state = this.rx.states.SEQ_2;
+                this.rx.frame_state = RXState.SEQ_2;
                 break;
-            case this.rx.states.SEQ_2:
+            case RXState.SEQ_2:
                 this.rx.frame.seq |= byte << 16;
                 this.crc32_step(byte);
-                this.rx.frame_state = this.rx.states.SEQ_1;
+                this.rx.frame_state = RXState.SEQ_1;
                 break;
-            case this.rx.states.SEQ_1:
+            case RXState.SEQ_1:
                 this.rx.frame.seq |= byte << 8;
                 this.crc32_step(byte);
-                this.rx.frame_state = this.rx.states.SEQ_0;
+                this.rx.frame_state = RXState.SEQ_0;
                 break;
-            case this.rx.states.SEQ_0:
+            case RXState.SEQ_0:
                 this.rx.frame.seq |= byte;
                 this.crc32_step(byte);
-                this.rx.frame_state = this.rx.states.LENGTH;
+                this.rx.frame_state = RXState.LENGTH;
                 break;
-            case this.rx.states.LENGTH:
+            case RXState.LENGTH:
                 this.rx.frame.payload = [];
                 this.rx.frame.length = byte;
                 this.crc32_step(byte);
                 if (this.rx.frame.length > 0) {
                     if (this.rx.frame.length <= this.conf.max_payload) {
-                        this.rx.frame_state = this.rx.states.PAYLOAD;
+                        this.rx.frame_state = RXState.PAYLOAD;
                     } else {
                         // Frame dropped because it's longer than any frame we can buffer
-                        this.rx.frame_state = this.rx.states.SOF;
+                        this.rx.frame_state = RXState.SOF;
                     }
                 } else {
-                    this.rx.frame_state = this.rx.states.CRC_3;
+                    this.rx.frame_state = RXState.CRC_3;
                 }
                 break;
-            case this.rx.states.PAYLOAD:
+            case RXState.PAYLOAD:
                 this.rx.frame.payload[this.rx.frame.payload_bytes++] = byte;
                 this.crc32_step(byte);
                 if (--this.rx.frame.length == 0) {
-                    this.rx.frame_state = this.rx.states.CRC_3;
+                    this.rx.frame_state = RXState.CRC_3;
                 }
                 break;
-            case this.rx.states.CRC_3:
+            case RXState.CRC_3:
                 this.rx.frame.checksum = byte << 24;
-                this.rx.frame_state = this.rx.states.CRC_2;
+                this.rx.frame_state = RXState.CRC_2;
                 break;
-            case this.rx.states.CRC_2:
+            case RXState.CRC_2:
                 this.rx.frame.checksum |= byte << 16;
-                this.rx.frame_state = this.rx.states.CRC_1;
+                this.rx.frame_state = RXState.CRC_1;
                 break;
-            case this.rx.states.CRC_1:
+            case RXState.CRC_1:
                 this.rx.frame.checksum |= byte << 8;
-                this.rx.frame_state = this.rx.states.CRC_0;
+                this.rx.frame_state = RXState.CRC_0;
                 break;
-            case this.rx.states.CRC_0:
+            case RXState.CRC_0:
                 this.rx.frame.checksum |= byte;
                 crc = this.crc32_finalize();
                 if (crc != this.rx.frame.checksum) {
                     // Frame fails the checksum and so is dropped
-                    this.rx.frame_state = this.rx.states.SOF;
+                    this.rx.frame_state = RXState.SOF;
                 } else {
                     // Checksum passes, go on to check for the end-of-frame marker
-                    this.rx.frame_state = this.rx.states.EOF;
+                    this.rx.frame_state = RXState.EOF;
                 }
                 break;
-            case this.rx.states.EOF:
+            case RXState.EOF:
                 if (byte == 0x55) {
                     // Frame received OK, pass up data to handler
                     //console.log(this.rx.frame);
@@ -228,11 +228,11 @@ export class minprot {
                 }
                 // else discard
                 // Look for next frame */
-                this.rx.frame_state = this.rx.states.SOF;
+                this.rx.frame_state = RXState.SOF;
                 break;
             default:
                 // Should never get here but in case we do then reset to a safe state
-                this.rx.frame_state = this.rx.states.SOF;
+                this.rx.frame_state = RXState.SOF;
                 break;
         }
     }
@@ -248,7 +248,7 @@ export class minprot {
         this.transport_fifo.last_received_anything_ms = this.now;
 
         switch (frame.id_control) {
-            case this.rx.magic.ACK:
+            case RX_MAGIC.ACK:
                 // If we get an ACK then we remove all the acknowledged frames with seq < rn
                 // The payload byte specifies the number of NACKed frames: how many we want retransmitted because
                 // they have gone missing.
@@ -293,7 +293,7 @@ export class minprot {
                     this.transport_fifo.spurious_acks++;
                 }
                 break;
-            case this.rx.magic.RESET:
+            case RX_MAGIC.RESET:
                 // If we get a RESET demand then we reset the transport protocol (empty the FIFO, reset the
                 // sequence numbers, etc.)
                 // We don't send anything, we just do it. The other end can send frames to see if this end is
@@ -365,7 +365,7 @@ export class minprot {
         //if(ON_WIRE_SIZE(0) <= min_tx_space(self->port)) {
         let pay = [];
         //pay[0] = '0';
-        this.on_wire_bytes(this.rx.magic.RESET, 0, pay);
+        this.on_wire_bytes(RX_MAGIC.RESET, 0, pay);
         //}
     }
 
@@ -386,7 +386,7 @@ export class minprot {
         sq[6] = (this.rx_space >>> 8) & 0xff;
         sq[7] = this.rx_space & 0xff;
         sq = sq.concat(this.get_ack_payload());
-        this.on_wire_bytes(this.rx.magic.ACK, this.transport_fifo.rn, sq);
+        this.on_wire_bytes(RX_MAGIC.ACK, this.transport_fifo.rn, sq);
         this.transport_fifo.last_sent_ack_time_ms = Date.now();
         //}
     }
@@ -397,9 +397,9 @@ export class minprot {
         this.tx.header_byte_countdown = 2;
         this.crc32_init_context();
         // Header is 3 bytes; because unstuffed will reset receiver immediately
-        this.serial_buffer.push(this.rx.magic.HEADER_BYTE);
-        this.serial_buffer.push(this.rx.magic.HEADER_BYTE);
-        this.serial_buffer.push(this.rx.magic.HEADER_BYTE);
+        this.serial_buffer.push(RX_MAGIC.HEADER_BYTE);
+        this.serial_buffer.push(RX_MAGIC.HEADER_BYTE);
+        this.serial_buffer.push(RX_MAGIC.HEADER_BYTE);
 
         this.stuffed_tx_byte(id_control);
         if (id_control & 0x80) {
@@ -426,7 +426,7 @@ export class minprot {
         this.stuffed_tx_byte(checksum & 0xff);
 
         // Ensure end-of-frame doesn't contain 0xaa and confuse search for start-of-frame
-        this.serial_buffer.push(this.rx.magic.EOF_BYTE);
+        this.serial_buffer.push(RX_MAGIC.EOF_BYTE);
         this.sendByte(this.serial_buffer);
 
         //min_tx_finished(self->port);
@@ -442,9 +442,9 @@ export class minprot {
         this.crc32_step(byte);
 
         // See if an additional stuff byte is needed
-        if (byte == this.rx.magic.HEADER_BYTE) {
+        if (byte == RX_MAGIC.HEADER_BYTE) {
             if (--this.tx.header_byte_countdown == 0) {
-                this.serial_buffer.push(this.rx.magic.STUFF_BYTE);        // Stuff byte
+                this.serial_buffer.push(RX_MAGIC.STUFF_BYTE);        // Stuff byte
                 this.tx.header_byte_countdown = 2;
             }
         } else {
@@ -463,18 +463,18 @@ export class minprot {
             }
         }
 
-        if (this.rx.frame_state == this.rx.states.SOF) {
+        if (this.rx.frame_state == RXState.SOF) {
             this.now = Date.now();
 
-            let remote_connected = (this.now - this.transport_fifo.last_received_anything_ms < this.TRANSPORT_IDLE_TIMEOUT_MS);
-            let remote_active = (this.now - this.transport_fifo.last_received_frame_ms < this.TRANSPORT_IDLE_TIMEOUT_MS);
+            let remote_connected = (this.now - this.transport_fifo.last_received_anything_ms < TRANSPORT_IDLE_TIMEOUT_MS);
+            let remote_active = (this.now - this.transport_fifo.last_received_frame_ms < TRANSPORT_IDLE_TIMEOUT_MS);
 
             if (!remote_connected) this.min_transport_reset(true);
 
             // This sends one new frame or resends one old frame
 
             let window_size = this.transport_fifo.sn_max - this.transport_fifo.sn_min; // Window size
-            if ((window_size < this.TRANSPORT_MAX_WINDOW_SIZE) && (this.transport_fifo.frames.length > window_size)) {
+            if ((window_size < TRANSPORT_MAX_WINDOW_SIZE) && (this.transport_fifo.frames.length > window_size)) {
                 if (this.transport_fifo.frames.length) {
                     let wire_size = this.on_wire_size(this.transport_fifo.frames[window_size].length);
                     if (wire_size < this.remote_rx_space) {
@@ -501,7 +501,7 @@ export class minprot {
                             oldest = this.transport_fifo.frames[i].last_send;
                         }
                     }
-                    if (resend_frame_num > -1 && (this.now - this.transport_fifo.frames[resend_frame_num].last_send) >= this.TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
+                    if (resend_frame_num > -1 && (this.now - this.transport_fifo.frames[resend_frame_num].last_send) >= TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
                         let wire_size = this.on_wire_size(this.transport_fifo.frames[resend_frame_num].length);
                         if (wire_size < this.remote_rx_space) {
                             if (this.debug) console.log("tx olfFrame seq=" + this.transport_fifo.frames[resend_frame_num].seq);
@@ -525,7 +525,7 @@ export class minprot {
 
 
                 // Periodically transmit the ACK with the rn value, unless the line has gone idle
-                if (this.now - this.transport_fifo.last_sent_ack_time_ms > this.TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS) {
+                if (this.now - this.transport_fifo.last_sent_ack_time_ms > TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS) {
                     if (remote_active) {
                         //if (this.debug) console.log("retransmit ACK: seq=" + this.transport_fifo.rn);
                         this.send_ack();
@@ -568,7 +568,7 @@ export class minprot {
     min_queue_frame(min_id, payload) {
         return new Promise((res, rej) => {
             // We are just queueing here: the poll() function puts the frame into the window and on to the wire
-            if (this.transport_fifo.frames.length < this.TRANSPORT_MAX_WINDOW_SIZE) {
+            if (this.transport_fifo.frames.length < TRANSPORT_MAX_WINDOW_SIZE) {
                 // Copy frame details into frame slot, copy payload into ring buffer
                 //console.log(payload.length);
                 let frame: any = [];
@@ -590,6 +590,6 @@ export class minprot {
     }
 
     get_relative_fifo_size() {
-        return this.transport_fifo.frames.length / this.TRANSPORT_MAX_WINDOW_SIZE;
+        return this.transport_fifo.frames.length / TRANSPORT_MAX_WINDOW_SIZE;
     }
 }
