@@ -169,7 +169,6 @@ export class minprot {
         // should reset the frame buffer and be ready to receive frame data
         //
         // Two in a row in over the frame means to expect a stuff byte.
-        let crc;
         if (this.rx.header_bytes_seen == 2) {
             this.rx.header_bytes_seen = 0;
             if (byte == RX_MAGIC.HEADER_BYTE) {
@@ -262,9 +261,9 @@ export class minprot {
                 this.rx.frame.checksum |= byte << 8;
                 this.rx.frame_state = RXState.CRC_0;
                 break;
-            case RXState.CRC_0:
+            case RXState.CRC_0: {
                 this.rx.frame.checksum |= byte;
-                crc = this.crc32_finalize();
+                const crc = this.crc32_finalize();
                 if (crc != this.rx.frame.checksum) {
                     // Frame fails the checksum and so is dropped
                     this.rx.frame_state = RXState.SOF;
@@ -273,6 +272,7 @@ export class minprot {
                     this.rx.frame_state = RXState.EOF;
                 }
                 break;
+            }
             case RXState.EOF:
                 if (byte == 0x55) {
                     // Frame received OK, pass up data to handler
@@ -293,27 +293,23 @@ export class minprot {
 
     private valid_frame_received(frame: ReceivingMinFrame) {
 
-        let seq = frame.seq;
-        let num_acked;
-        let num_nacked;
-        let num_in_window;
-
+        const seq = frame.seq;
         // When we receive anything we know the other end is still active and won't shut down
         this.transport_fifo.last_received_anything_ms = this.now;
 
         switch (frame.id_control) {
-            case RX_MAGIC.ACK:
+            case RX_MAGIC.ACK: {
                 // If we get an ACK then we remove all the acknowledged frames with seq < rn
                 // The payload byte specifies the number of NACKed frames: how many we want retransmitted because
                 // they have gone missing.
                 // But we need to make sure we don't accidentally ACK too many because of a stale ACK from an old session
-                num_acked = seq - this.transport_fifo.sn_min;
-                num_nacked = (frame.payload[0] << 24);
+                const num_acked = seq - this.transport_fifo.sn_min;
+                let num_nacked = (frame.payload[0] << 24);
                 num_nacked |= (frame.payload[1] << 16);
                 num_nacked |= (frame.payload[2] << 8);
                 num_nacked |= (frame.payload[3]);
                 num_nacked -= seq;
-                num_in_window = this.transport_fifo.sn_max - this.transport_fifo.sn_min;
+                const num_in_window = this.transport_fifo.sn_max - this.transport_fifo.sn_min;
 
                 this.remote_rx_space = (frame.payload[4] << 24);
                 this.remote_rx_space |= (frame.payload[5] << 16);
@@ -328,13 +324,13 @@ export class minprot {
                     if (this.debug && (num_acked != 0)) console.log(((num_acked == 0) ? "Retransmitted Ack: seq=" : "Received ACK seq=") + seq + ", num_acked=" + num_acked + ", num_nacked=" + num_nacked);
                     for (let i = 0; i < num_acked; i++) {
                         //transport_fifo_pop(self);
-                        let last_pop = this.transport_fifo.frames.shift();
+                        const last_pop = this.transport_fifo.frames.shift();
                         if (last_pop) last_pop.resolve();
                         if (this.debug) console.log("Popping frame id=" + last_pop.min_id + " seq=" + last_pop.seq);
                     }
                     // Now retransmit the number of frames that were requested
                     for (let i = 0; i < num_nacked; i++) {
-                        let wire_size = this.on_wire_size(this.transport_fifo.frames[i].payload.length);
+                        const wire_size = this.on_wire_size(this.transport_fifo.frames[i].payload.length);
                         if (wire_size >= this.remote_rx_space) {
                             break;
                         }
@@ -347,6 +343,7 @@ export class minprot {
                     this.transport_fifo.spurious_acks++;
                 }
                 break;
+            }
             case RX_MAGIC.RESET:
                 // If we get a RESET demand then we reset the transport protocol (empty the FIFO, reset the
                 // sequence numbers, etc.)
@@ -416,37 +413,28 @@ export class minprot {
 
     private send_reset() {
         if (this.debug) console.log("send RESET");
-        //if(ON_WIRE_SIZE(0) <= min_tx_space(self->port)) {
-        let pay = [];
-        //pay[0] = '0';
-        this.on_wire_bytes(RX_MAGIC.RESET, 0, pay);
-        //}
+        this.on_wire_bytes(RX_MAGIC.RESET, 0, []);
     }
 
     private send_ack() {
         // In the embedded end we don't reassemble out-of-order frames and so never ask for retransmits. Payload is
         // always the same as the sequence number.
-        //if (this.debug) console.log("send ACK: seq=" + this.transport_fifo.rn);
-        //if(ON_WIRE_SIZE(8) <= min_tx_space(self->port)) {
-        //on_wire_bytes(self, ACK, self->transport_fifo.rn, &self->transport_fifo.rn, 0, 0xffU, 1U);
-        let sq = [];
-        //self->rx_space=min_rx_space(self->port);
-        sq[0] = (this.transport_fifo.rn >>> 24) & 0xff;
-        sq[1] = (this.transport_fifo.rn >>> 16) & 0xff;
-        sq[2] = (this.transport_fifo.rn >>> 8) & 0xff;
-        sq[3] = this.transport_fifo.rn & 0xff;
-        sq[4] = (this.rx_space >>> 24) & 0xff;
-        sq[5] = (this.rx_space >>> 16) & 0xff;
-        sq[6] = (this.rx_space >>> 8) & 0xff;
-        sq[7] = this.rx_space & 0xff;
+        let sq = [
+            (this.transport_fifo.rn >>> 24) & 0xff,
+            (this.transport_fifo.rn >>> 16) & 0xff,
+            (this.transport_fifo.rn >>> 8) & 0xff,
+            this.transport_fifo.rn & 0xff,
+            (this.rx_space >>> 24) & 0xff,
+            (this.rx_space >>> 16) & 0xff,
+            (this.rx_space >>> 8) & 0xff,
+            this.rx_space & 0xff,
+        ];
         sq = sq.concat(this.get_ack_payload());
         this.on_wire_bytes(RX_MAGIC.ACK, this.transport_fifo.rn, sq);
         this.transport_fifo.last_sent_ack_time_ms = Date.now();
-        //}
     }
 
     private on_wire_bytes(id_control: number, seq: number, payload: number[]) {
-        let checksum;
         this.serial_buffer = [];
         this.tx.header_byte_countdown = 2;
         this.crc32_init_context();
@@ -467,11 +455,11 @@ export class minprot {
 
         this.stuffed_tx_byte(payload.length);
 
-        for (let i = 0; i < payload.length; i++) {
-            this.stuffed_tx_byte(payload[i]);
+        for (const byte of payload) {
+            this.stuffed_tx_byte(byte);
         }
 
-        checksum = this.crc32_finalize();
+        const checksum = this.crc32_finalize();
         // Network order is big-endian. A decent C compiler will spot that this
         // is extracting bytes and will use efficient instructions.
         this.stuffed_tx_byte((checksum >>> 24) & 0xff);
@@ -482,22 +470,19 @@ export class minprot {
         // Ensure end-of-frame doesn't contain 0xaa and confuse search for start-of-frame
         this.serial_buffer.push(RX_MAGIC.EOF_BYTE);
         this.sendByte(this.serial_buffer);
-
-        //min_tx_finished(self->port);
     }
 
     private stuffed_tx_byte(byte) {
         // Transmit the byte
-        //this.sendByte(String.fromCharCode(byte));
-        if (typeof byte == "string") {
+        if (typeof byte === "string") {
             byte = byte.charCodeAt(0);
         }
         this.serial_buffer.push(byte);
         this.crc32_step(byte);
 
         // See if an additional stuff byte is needed
-        if (byte == RX_MAGIC.HEADER_BYTE) {
-            if (--this.tx.header_byte_countdown == 0) {
+        if (byte === RX_MAGIC.HEADER_BYTE) {
+            if (--this.tx.header_byte_countdown === 0) {
                 this.serial_buffer.push(RX_MAGIC.STUFF_BYTE);        // Stuff byte
                 this.tx.header_byte_countdown = 2;
             }
@@ -506,7 +491,7 @@ export class minprot {
         }
     }
 
-    private on_wire_size(p) {
+    private on_wire_size(p: number) {
         return p + 14;
     }
 
@@ -517,25 +502,25 @@ export class minprot {
             }
         }
 
-        if (this.rx.frame_state == RXState.SOF) {
+        if (this.rx.frame_state === RXState.SOF) {
             this.now = Date.now();
 
-            let remote_connected = (this.now - this.transport_fifo.last_received_anything_ms < TRANSPORT_IDLE_TIMEOUT_MS);
-            let remote_active = (this.now - this.transport_fifo.last_received_frame_ms < TRANSPORT_IDLE_TIMEOUT_MS);
+            const remote_connected = (this.now - this.transport_fifo.last_received_anything_ms < TRANSPORT_IDLE_TIMEOUT_MS);
+            const remote_active = (this.now - this.transport_fifo.last_received_frame_ms < TRANSPORT_IDLE_TIMEOUT_MS);
 
-            if (!remote_connected) this.min_transport_reset(true);
+            if (!remote_connected) { this.min_transport_reset(true); }
 
             // This sends one new frame or resends one old frame
 
-            let window_size = this.transport_fifo.sn_max - this.transport_fifo.sn_min; // Window size
+            const window_size = this.transport_fifo.sn_max - this.transport_fifo.sn_min; // Window size
             if ((window_size < TRANSPORT_MAX_WINDOW_SIZE) && (this.transport_fifo.frames.length > window_size)) {
                 if (this.transport_fifo.frames.length) {
-                    let wire_size = this.on_wire_size(this.transport_fifo.frames[window_size].payload.length);
+                    const wire_size = this.on_wire_size(this.transport_fifo.frames[window_size].payload.length);
                     if (wire_size < this.remote_rx_space) {
                         this.transport_fifo.frames[window_size].seq = this.transport_fifo.sn_max;
                         this.transport_fifo.last_sent_seq = this.transport_fifo.sn_max;
                         this.transport_fifo.frames[window_size].last_send = this.now;
-                        if (this.debug) console.log("tx frame seq=" + this.transport_fifo.frames[window_size].seq);
+                        if (this.debug) { console.log("tx frame seq=" + this.transport_fifo.frames[window_size].seq); }
                         this.on_wire_bytes(this.transport_fifo.frames[window_size].min_id | 0x80, this.transport_fifo.frames[window_size].seq, this.transport_fifo.frames[window_size].payload);
                         this.transport_fifo.sn_max++;
                     }
@@ -556,10 +541,10 @@ export class minprot {
                         }
                     }
                     if (resend_frame_num > -1 && (this.now - this.transport_fifo.frames[resend_frame_num].last_send) >= TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
-                        let wire_size = this.on_wire_size(this.transport_fifo.frames[resend_frame_num].payload.length);
+                        const wire_size = this.on_wire_size(this.transport_fifo.frames[resend_frame_num].payload.length);
                         if (wire_size < this.remote_rx_space) {
                             if (this.debug) console.log("tx olfFrame seq=" + this.transport_fifo.frames[resend_frame_num].seq);
-                            if (this.transport_fifo.frames[resend_frame_num].seq == this.transport_fifo.last_sent_seq) {
+                            if (this.transport_fifo.frames[resend_frame_num].seq === this.transport_fifo.last_sent_seq) {
                                 this.transport_fifo.last_sent_seq_cnt++;
                             } else {
                                 this.transport_fifo.last_sent_seq_cnt = 0;
@@ -581,7 +566,6 @@ export class minprot {
                 // Periodically transmit the ACK with the rn value, unless the line has gone idle
                 if (this.now - this.transport_fifo.last_sent_ack_time_ms > TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS) {
                     if (remote_active) {
-                        //if (this.debug) console.log("retransmit ACK: seq=" + this.transport_fifo.rn);
                         this.send_ack();
                     }
                 }
@@ -589,7 +573,7 @@ export class minprot {
         }
     }
 
-    private min_transport_reset(inform_other_side) {
+    private min_transport_reset(inform_other_side: boolean) {
         if (inform_other_side) {
             // Tell the other end we have gone away
             this.send_reset();
@@ -610,8 +594,8 @@ export class minprot {
         this.transport_fifo.last_sent_ack_time_ms = this.now;
         this.transport_fifo.last_received_frame_ms = 0;
 
-        console.log("Resetting min FIFO")
-        for (let frame of this.transport_fifo.frames) {
+        console.log("Resetting min FIFO");
+        for (const frame of this.transport_fifo.frames) {
             frame.reject("Resetting min FIFO");
         }
         this.transport_fifo.frames = [];
@@ -624,15 +608,14 @@ export class minprot {
             // We are just queueing here: the poll() function puts the frame into the window and on to the wire
             if (this.transport_fifo.frames.length < TRANSPORT_MAX_WINDOW_SIZE) {
                 // Copy frame details into frame slot, copy payload into ring buffer
-                //console.log(payload.length);
                 this.transport_fifo.frames.push({
                     last_send: Date.now(),
                     min_id: min_id & 0x3f,
                     payload: Array.from(payload),
-                    resolve: res,
                     reject: rej,
+                    resolve: res,
                 });
-                if (this.debug) console.log("Queued ID=" + min_id + " len=" + payload.length);
+                if (this.debug) { console.log("Queued ID=" + min_id + " len=" + payload.length); }
             } else {
                 this.transport_fifo.dropped_frames++;
                 rej("Max fifo size exceeded");
