@@ -1,4 +1,6 @@
-type AckPayloadGetter = () => number[];
+export type MinAckPayloadGetter = () => number[];
+export type MinByteSender = (data: number[]) => any;
+export type MinHandler = (id: number, payload: number[]) => any;
 
 enum RXState {
     SOF,
@@ -29,35 +31,87 @@ const TRANSPORT_MAX_WINDOW_SIZE = 16;
 const TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS = 25;
 const TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
 
-export class minprot {
-    public sendByte: any;
-    public handler: any;
+interface ReceivingMinFrame {
+    payload_bytes: number;      // Length of payload received so far
+    id_control: number;         // ID and control bit of frame being received
+    seq: number;				// Sequence number of frame being received
+    length: number;			// Length of frame
+    payload: number[];
+    checksum: number;
+}
 
-    private readonly get_ack_payload: AckPayloadGetter;
-    private readonly rx: any;
-    private readonly tx: any;
+interface SendingMinFrame {
+    payload: number[];
+    resolve: () => any;
+    reject: (error) => any;
+    min_id: number;
+    last_send: number;
+    seq?: number;
+}
+
+interface TransportFifo {
+    spurious_acks: number;
+    sequence_mismatch_drop: number;
+    sequential_sequence_mismatch_drop: number;
+    dropped_frames: number;
+    resets_received: number;
+    sn_min: number;
+    sn_max: number;
+    rn: number;
+    last_sent_ack_time_ms: number;
+    last_sent_seq: number;
+    last_sent_seq_cnt: number;
+    last_received_anything_ms: number;
+    last_received_frame_ms: number;
+    frames: SendingMinFrame[];
+}
+
+interface MinReceiver {
+    frame: ReceivingMinFrame;
+    header_bytes_seen: number;
+    frame_state: RXState;
+}
+
+interface MinTransmitter {
+    header_byte_countdown: number;
+}
+
+interface MinConfig {
+    max_payload: number;
+}
+
+export class minprot {
+    private readonly sendByte: MinByteSender;
+    private readonly handler: MinHandler;
+    private readonly get_ack_payload: MinAckPayloadGetter;
+
+    private readonly rx: MinReceiver;
+    private readonly tx: MinTransmitter;
     private readonly rx_space: number;
     private remote_rx_space: number;
     private crc: number;
-    private readonly transport_fifo: any;
-    private conf: any;
+    private readonly transport_fifo: TransportFifo;
+    private conf: MinConfig;
     private serial_buffer: number[];
     private now: number;
     private readonly debug: boolean;
 
-    constructor(get_ack_payload: AckPayloadGetter) {
+    constructor(get_ack_payload: MinAckPayloadGetter, sendByte: MinByteSender, handler: MinHandler) {
         this.get_ack_payload = get_ack_payload;
-        this.rx = {};
+        this.rx = {
+            frame: {
+                payload_bytes: 0,
+                id_control: 0,
+                seq: 0,
+                length: 0,
+                payload: [],
+                checksum: 0,
+            },
+            frame_state: RXState.SOF,
+            header_bytes_seen: 0,
+        };
 
-        this.rx.frame = {};
-        this.rx.frame.payload_bytes = 0;      // Length of payload received so far
-        this.rx.frame.id_control = 0;         // ID and control bit of frame being received
-        this.rx.frame.seq = 0;				// Sequence number of frame being received
-        this.rx.frame.length = 0;			// Length of frame
-        this.rx.frame.payload = [];
-
-        this.tx = {};
-        this.tx.header_byte_countdown = 0;
+        this.tx = {header_byte_countdown: 0};
 
         this.rx_space = 512;
         this.crc = 0;
@@ -67,50 +121,50 @@ export class minprot {
         this.remote_rx_space = 512;
 
         // Counters for diagnosis purposes
-        this.transport_fifo = {};
-        this.transport_fifo.spurious_acks = 0;
-        this.transport_fifo.sequence_mismatch_drop = 0;
-        this.transport_fifo.sequential_sequence_mismatch_drop = 0;
-        this.transport_fifo.dropped_frames = 0;
-        this.transport_fifo.resets_received = 0;
-        this.transport_fifo.sn_min = 0;
-        this.transport_fifo.sn_max = 0;
-        this.transport_fifo.rn = 0;
-        this.transport_fifo.last_sent_ack_time_ms = 0;
-        this.transport_fifo.last_sent_seq = -1;
-        this.transport_fifo.last_sent_seq_cnt = 0;
-        this.transport_fifo.last_received_anything_ms = Date.now();
-        this.transport_fifo.last_received_frame_ms = 0;
-        this.transport_fifo.frames = [];
+        this.transport_fifo = {
+            spurious_acks: 0,
+            sequence_mismatch_drop: 0,
+            sequential_sequence_mismatch_drop: 0,
+            dropped_frames: 0,
+            resets_received: 0,
+            sn_min: 0,
+            sn_max: 0,
+            rn: 0,
+            last_sent_ack_time_ms: 0,
+            last_sent_seq: -1,
+            last_sent_seq_cnt: 0,
+            last_received_anything_ms: Date.now(),
+            last_received_frame_ms: 0,
+            frames: [],
+        };
 
-        this.sendByte = 0;
-        this.handler = 0;
+        this.sendByte = sendByte;
+        this.handler = handler;
 
-        this.conf = {};
-        this.conf.max_payload = 255;
+        this.conf = {max_payload: 255};
         this.serial_buffer = [];
 
         this.now = Date.now();
         this.debug = false;
     }
 
-    crc32_init_context() {
+    private crc32_init_context() {
         this.crc = 0xFFFFFFFF;
     }
 
-    crc32_step(byte) {
+    private crc32_step(byte: number) {
         this.crc ^= byte;
         for (let j = 0; j < 8; j++) {
-            let mask = -(this.crc & 1);
+            const mask = -(this.crc & 1);
             this.crc = (this.crc >>> 1) ^ (0xedb88320 & mask);
         }
     }
 
-    crc32_finalize() {
+    private crc32_finalize() {
         return ~this.crc;
     }
 
-    rx_byte(byte, f?) {
+    private rx_byte(byte: number) {
         // Regardless of state, three header bytes means "start of frame" and
         // should reset the frame buffer and be ready to receive frame data
         //
@@ -237,7 +291,7 @@ export class minprot {
         }
     }
 
-    valid_frame_received(frame) {
+    private valid_frame_received(frame: ReceivingMinFrame) {
 
         let seq = frame.seq;
         let num_acked;
@@ -360,7 +414,7 @@ export class minprot {
 
     }
 
-    send_reset() {
+    private send_reset() {
         if (this.debug) console.log("send RESET");
         //if(ON_WIRE_SIZE(0) <= min_tx_space(self->port)) {
         let pay = [];
@@ -369,7 +423,7 @@ export class minprot {
         //}
     }
 
-    send_ack() {
+    private send_ack() {
         // In the embedded end we don't reassemble out-of-order frames and so never ask for retransmits. Payload is
         // always the same as the sequence number.
         //if (this.debug) console.log("send ACK: seq=" + this.transport_fifo.rn);
@@ -391,7 +445,7 @@ export class minprot {
         //}
     }
 
-    on_wire_bytes(id_control, seq, payload) {
+    private on_wire_bytes(id_control: number, seq: number, payload: number[]) {
         let checksum;
         this.serial_buffer = [];
         this.tx.header_byte_countdown = 2;
@@ -432,7 +486,7 @@ export class minprot {
         //min_tx_finished(self->port);
     }
 
-    stuffed_tx_byte(byte) {
+    private stuffed_tx_byte(byte) {
         // Transmit the byte
         //this.sendByte(String.fromCharCode(byte));
         if (typeof byte == "string") {
@@ -452,14 +506,14 @@ export class minprot {
         }
     }
 
-    on_wire_size(p) {
+    private on_wire_size(p) {
         return p + 14;
     }
 
-    min_poll(buf?) {
-        if (typeof buf != 'undefined') {
-            for (let i = 0; i < buf.length; i++) {
-                this.rx_byte(buf[i], this.get_ack_payload());
+    public min_poll(buf?: Buffer) {
+        if (buf) {
+            for (const byte of buf) {
+                this.rx_byte(byte);
             }
         }
 
@@ -535,7 +589,7 @@ export class minprot {
         }
     }
 
-    min_transport_reset(inform_other_side) {
+    private min_transport_reset(inform_other_side) {
         if (inform_other_side) {
             // Tell the other end we have gone away
             this.send_reset();
@@ -545,7 +599,7 @@ export class minprot {
         this.transport_fifo_reset();
     }
 
-    transport_fifo_reset() {
+    private transport_fifo_reset() {
         // Clear down the transmission FIFO queue
         this.transport_fifo.sn_max = 0;
         this.transport_fifo.sn_min = 0;
@@ -565,22 +619,19 @@ export class minprot {
         this.transport_fifo.last_sent_seq_cnt = 0;
     }
 
-    min_queue_frame(min_id, payload) {
-        return new Promise((res, rej) => {
+    public min_queue_frame(min_id, payload) {
+        return new Promise<void>((res, rej) => {
             // We are just queueing here: the poll() function puts the frame into the window and on to the wire
             if (this.transport_fifo.frames.length < TRANSPORT_MAX_WINDOW_SIZE) {
                 // Copy frame details into frame slot, copy payload into ring buffer
                 //console.log(payload.length);
-                let frame: any = {};
-                frame.min_id = min_id & 0x3f;
-                frame.last_send = Date.now();
-                frame.payload = [];
-                for (let i = 0; i < payload.length; i++) {
-                    frame.payload.push(payload[i]);
-                }
-                frame.resolve = res;
-                frame.reject = rej;
-                this.transport_fifo.frames.push(frame);
+                this.transport_fifo.frames.push({
+                    last_send: Date.now(),
+                    min_id: min_id & 0x3f,
+                    payload: Array.from(payload),
+                    resolve: res,
+                    reject: rej,
+                });
                 if (this.debug) console.log("Queued ID=" + min_id + " len=" + payload.length);
             } else {
                 this.transport_fifo.dropped_frames++;
@@ -589,7 +640,7 @@ export class minprot {
         });
     }
 
-    get_relative_fifo_size() {
+    public get_relative_fifo_size() {
         return this.transport_fifo.frames.length / TRANSPORT_MAX_WINDOW_SIZE;
     }
 }

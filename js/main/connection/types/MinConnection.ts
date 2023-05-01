@@ -221,8 +221,7 @@ export abstract class MinConnection extends BootloadableConnection {
     }
 
     private async init_min_wrapper(): Promise<void> {
-        this.min_wrapper = new minprot(() => this.toUD3Time(microtime.now()));
-        this.min_wrapper.sendByte = (data) => {
+        const sender = (data) => {
             if (this.isBootloading()) {
                 return;
             }
@@ -232,7 +231,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 }
             });
         };
-        this.min_wrapper.handler = async (id, data) => {
+        const handler = async (id, data) => {
             if (id === MIN_ID_MEDIA) {
                 if (data[0] === 0x78) {
                     this.sidConnection.setBusy(true);
@@ -263,6 +262,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 console.warn("Unexpected MIN message at " + id + ": " + convertBufferToString(data));
             }
         };
+        this.min_wrapper = new minprot(() => this.toUD3Time(microtime.now()), sender, handler);
     }
 
     public async flushSynth(): Promise<void> {
