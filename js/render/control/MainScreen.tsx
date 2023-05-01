@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import React from "react";
 import {Button, Modal} from "react-bootstrap";
 import * as xterm from "xterm";
