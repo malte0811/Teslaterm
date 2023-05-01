@@ -67,7 +67,6 @@
     "assets": [
       "index_node.html",
       "dist/bundle.js",
-      "libs/*",
       "styles/*",
       "node_modules/raphael/raphael.js",
       "node_modules/xterm/css/xterm.css",

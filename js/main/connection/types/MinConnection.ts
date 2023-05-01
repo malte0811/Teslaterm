@@ -3,11 +3,11 @@ import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";
 import * as microtime from "../../microtime";
+import {minprot} from "../../min/min";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {TerminalHandle} from "./UD3Connection";
-import minprot = require('../../../../libs/min');
 
 const MIN_ID_WD = 10;
 const MIN_ID_MEDIA = 20;

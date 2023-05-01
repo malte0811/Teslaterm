@@ -1,5 +1,25 @@
-module.exports = class minprot {
-	constructor(get_ack_payload) {
+type AckPayloadGetter = () => number[];
+
+export class minprot {
+	private readonly get_ack_payload: AckPayloadGetter;
+	private readonly rx: any;
+	private readonly tx: any;
+	private readonly rx_space: number;
+	private remote_rx_space: number;
+	private crc: number;
+	private readonly transport_fifo: any;
+	public sendByte: any;
+	public handler: any;
+	private conf: any;
+	private serial_buffer: number[];
+	private now: number;
+	private readonly debug: boolean;
+	private readonly TRANSPORT_IDLE_TIMEOUT_MS: number;
+	private readonly TRANSPORT_MAX_WINDOW_SIZE: number;
+	private readonly TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS: number;
+	private readonly TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS: number;
+
+	constructor(get_ack_payload: AckPayloadGetter) {
 		this.get_ack_payload = get_ack_payload;
 		this.rx = [];
 		this.rx.states = {
@@ -90,7 +110,7 @@ module.exports = class minprot {
 		return ~this.crc;
 	}
 
-	rx_byte(byte) {
+	rx_byte(byte, f?) {
 		// Regardless of state, three header bytes means "start of frame" and
 		// should reset the frame buffer and be ready to receive frame data
 		//
@@ -436,7 +456,7 @@ module.exports = class minprot {
 		return p + 14;
 	}
 
-	min_poll(buf) {
+	min_poll(buf?) {
 		if (typeof buf != 'undefined') {
 			for (let i = 0; i < buf.length; i++) {
 				this.rx_byte(buf[i], this.get_ack_payload());
@@ -551,7 +571,7 @@ module.exports = class minprot {
 			if (this.transport_fifo.frames.length < this.TRANSPORT_MAX_WINDOW_SIZE) {
 				// Copy frame details into frame slot, copy payload into ring buffer
 				//console.log(payload.length);
-				let frame = [];
+				let frame: any = [];
 				frame.min_id = min_id & 0x3f;
 				frame.last_send = Date.now();
 				frame.payload = [];
