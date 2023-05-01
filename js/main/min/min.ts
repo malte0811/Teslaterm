@@ -280,7 +280,7 @@ export class minprot {
                     }
                     // Now retransmit the number of frames that were requested
                     for (let i = 0; i < num_nacked; i++) {
-                        let wire_size = this.on_wire_size(this.transport_fifo.frames[i].length);
+                        let wire_size = this.on_wire_size(this.transport_fifo.frames[i].payload.length);
                         if (wire_size >= this.remote_rx_space) {
                             break;
                         }
@@ -476,7 +476,7 @@ export class minprot {
             let window_size = this.transport_fifo.sn_max - this.transport_fifo.sn_min; // Window size
             if ((window_size < TRANSPORT_MAX_WINDOW_SIZE) && (this.transport_fifo.frames.length > window_size)) {
                 if (this.transport_fifo.frames.length) {
-                    let wire_size = this.on_wire_size(this.transport_fifo.frames[window_size].length);
+                    let wire_size = this.on_wire_size(this.transport_fifo.frames[window_size].payload.length);
                     if (wire_size < this.remote_rx_space) {
                         this.transport_fifo.frames[window_size].seq = this.transport_fifo.sn_max;
                         this.transport_fifo.last_sent_seq = this.transport_fifo.sn_max;
@@ -502,7 +502,7 @@ export class minprot {
                         }
                     }
                     if (resend_frame_num > -1 && (this.now - this.transport_fifo.frames[resend_frame_num].last_send) >= TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS) {
-                        let wire_size = this.on_wire_size(this.transport_fifo.frames[resend_frame_num].length);
+                        let wire_size = this.on_wire_size(this.transport_fifo.frames[resend_frame_num].payload.length);
                         if (wire_size < this.remote_rx_space) {
                             if (this.debug) console.log("tx olfFrame seq=" + this.transport_fifo.frames[resend_frame_num].seq);
                             if (this.transport_fifo.frames[resend_frame_num].seq == this.transport_fifo.last_sent_seq) {
