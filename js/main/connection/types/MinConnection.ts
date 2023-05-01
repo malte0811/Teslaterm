@@ -3,7 +3,7 @@ import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";
 import * as microtime from "../../microtime";
-import {minprot} from "../../min/min";
+import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
@@ -24,7 +24,7 @@ const SYNTH_CMD_MIDI = 0x03;
 const SYNTH_CMD_OFF = 0x04;
 
 export abstract class MinConnection extends BootloadableConnection {
-    private min_wrapper: minprot | undefined;
+    private min_wrapper: MINTransceiver | undefined;
     private readonly sidConnection: UD3FormattedConnection;
     private mediaFramesForBatching: Buffer[] = [];
     private mediaFramesForBatchingSID: Buffer[] = [];
@@ -262,7 +262,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 console.warn("Unexpected MIN message at " + id + ": " + convertBufferToString(data));
             }
         };
-        this.min_wrapper = new minprot(() => this.toUD3Time(microtime.now()), sender, handler);
+        this.min_wrapper = new MINTransceiver(() => this.toUD3Time(microtime.now()), sender, handler);
     }
 
     public async flushSynth(): Promise<void> {
