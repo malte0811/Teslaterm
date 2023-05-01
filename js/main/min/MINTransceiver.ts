@@ -1,44 +1,18 @@
+import {CRCCalculator} from "./CRCCalculator";
+import {ACK, HEADER_BYTE, RESET, STUFF_BYTE} from "./MINConstants";
+import {MINReceiver, ReceivedMINFrame} from "./MINReceiver";
+
 export type MinAckPayloadGetter = () => number[];
 export type MinByteSender = (data: number[]) => any;
 export type MinHandler = (id: number, payload: number[]) => any;
-
-enum RXState {
-    SOF,
-    ID_CONTROL,
-    SEQ_3,
-    SEQ_2,
-    SEQ_1,
-    SEQ_0,
-    LENGTH,
-    PAYLOAD,
-    CRC_3,
-    CRC_2,
-    CRC_1,
-    CRC_0,
-    EOF,
-}
-
-const RX_MAGIC = {
-    ACK: 0xff,
-    EOF_BYTE: 0x55,
-    HEADER_BYTE: 0xaa,
-    RESET: 0xfe,
-    STUFF_BYTE: 0x55,
-};
 
 const TRANSPORT_IDLE_TIMEOUT_MS = 1000;
 const TRANSPORT_MAX_WINDOW_SIZE = 16;
 const TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS = 25;
 const TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
 
-interface ReceivingMinFrame {
-    payload_bytes: number;      // Length of payload received so far
-    id_control: number;         // ID and control bit of frame being received
-    seq: number;				// Sequence number of frame being received
-    length: number;			// Length of frame
-    payload: number[];
-    checksum: number;
-}
+const ACK_BYTE = 0xff;
+const EOF_BYTE = 0x55;
 
 interface SendingMinFrame {
     payload: number[];
@@ -68,18 +42,9 @@ interface TransportFifo {
     frames: SendingMinFrame[];
 }
 
-interface MinReceiver {
-    frame: ReceivingMinFrame;
-    header_bytes_seen: number;
-    frame_state: RXState;
-}
-
 interface MinTransmitter {
     header_byte_countdown: number;
-}
-
-interface MinConfig {
-    max_payload: number;
+    crc: CRCCalculator;
 }
 
 export class MINTransceiver {
@@ -87,39 +52,26 @@ export class MINTransceiver {
     private readonly handler: MinHandler;
     private readonly get_ack_payload: MinAckPayloadGetter;
 
-    private readonly rx: MinReceiver;
+    private readonly rx: MINReceiver;
     private readonly tx: MinTransmitter;
     private readonly rx_space: number;
     private remote_rx_space: number;
-    private crc: number;
     private readonly transport_fifo: TransportFifo;
-    private conf: MinConfig;
     private serial_buffer: number[];
     private now: number;
     private readonly debug: boolean;
 
     constructor(get_ack_payload: MinAckPayloadGetter, sendByte: MinByteSender, handler: MinHandler) {
         this.get_ack_payload = get_ack_payload;
-        this.rx = {
-            frame: {
-                checksum: 0,
-                id_control: 0,
-                length: 0,
-                payload: [],
-                payload_bytes: 0,
-                seq: 0,
-            },
-            frame_state: RXState.SOF,
-            header_bytes_seen: 0,
+        this.rx = new MINReceiver();
+
+        this.tx = {
+            crc: new CRCCalculator(),
+            header_byte_countdown: 0,
         };
 
-        this.tx = {header_byte_countdown: 0};
-
         this.rx_space = 512;
-        this.crc = 0;
 
-        this.rx.header_bytes_seen = 0;
-        this.rx.frame_state = RXState.SOF;
         this.remote_rx_space = 512;
 
         this.transport_fifo = {
@@ -142,7 +94,6 @@ export class MINTransceiver {
         this.sendByte = sendByte;
         this.handler = handler;
 
-        this.conf = {max_payload: 255};
         this.serial_buffer = [];
 
         this.now = Date.now();
@@ -176,11 +127,14 @@ export class MINTransceiver {
     public min_poll(buf?: Buffer) {
         if (buf) {
             for (const byte of buf) {
-                this.rx_byte(byte);
+                const frame = this.rx.receiveByte(byte);
+                if (frame) {
+                    this.valid_frame_received(frame);
+                }
             }
         }
 
-        if (this.rx.frame_state === RXState.SOF) {
+        if (this.rx.isAtSOF()) {
             this.now = Date.now();
 
             const sinceAnyReceive = this.now - this.transport_fifo.last_received_anything_ms;
@@ -259,156 +213,13 @@ export class MINTransceiver {
         }
     }
 
-    private crc32_init_context() {
-        this.crc = 0xFFFFFFFF;
-    }
-
-    private crc32_step(byte: number) {
-        this.crc ^= byte;
-        for (let j = 0; j < 8; j++) {
-            const mask = -(this.crc & 1);
-            this.crc = (this.crc >>> 1) ^ (0xedb88320 & mask);
-        }
-    }
-
-    private crc32_finalize() {
-        return ~this.crc;
-    }
-
-    private rx_byte(byte: number) {
-        // Regardless of state, three header bytes means "start of frame" and
-        // should reset the frame buffer and be ready to receive frame data
-        //
-        // Two in a row in over the frame means to expect a stuff byte.
-        if (this.rx.header_bytes_seen === 2) {
-            this.rx.header_bytes_seen = 0;
-            if (byte === RX_MAGIC.HEADER_BYTE) {
-                this.rx.frame_state = RXState.ID_CONTROL;
-                return;
-            }
-            if (byte === RX_MAGIC.STUFF_BYTE) {
-                /* Discard this byte; carry on receiving on the next character */
-                return;
-            } else {
-                /* Something has gone wrong, give up on this frame and look for header again */
-                this.rx.frame_state = RXState.SOF;
-                return;
-            }
-        }
-
-        if (byte === RX_MAGIC.HEADER_BYTE) {
-            this.rx.header_bytes_seen++;
-
-        } else {
-            this.rx.header_bytes_seen = 0;
-        }
-
-        switch (this.rx.frame_state) {
-            case RXState.SOF:
-                break;
-            case RXState.ID_CONTROL:
-                this.rx.frame.id_control = byte;
-                this.rx.frame.payload_bytes = 0;
-                this.crc32_init_context();
-                this.crc32_step(byte);
-                if (byte & 0x80) {
-                    this.rx.frame_state = RXState.SEQ_3;
-                } else {
-                    this.rx.frame.seq = 0;
-                    this.rx.frame_state = RXState.LENGTH;
-                }
-                break;
-            case RXState.SEQ_3:
-                this.rx.frame.seq = byte << 24;
-                this.crc32_step(byte);
-                this.rx.frame_state = RXState.SEQ_2;
-                break;
-            case RXState.SEQ_2:
-                this.rx.frame.seq |= byte << 16;
-                this.crc32_step(byte);
-                this.rx.frame_state = RXState.SEQ_1;
-                break;
-            case RXState.SEQ_1:
-                this.rx.frame.seq |= byte << 8;
-                this.crc32_step(byte);
-                this.rx.frame_state = RXState.SEQ_0;
-                break;
-            case RXState.SEQ_0:
-                this.rx.frame.seq |= byte;
-                this.crc32_step(byte);
-                this.rx.frame_state = RXState.LENGTH;
-                break;
-            case RXState.LENGTH:
-                this.rx.frame.payload = [];
-                this.rx.frame.length = byte;
-                this.crc32_step(byte);
-                if (this.rx.frame.length > 0) {
-                    if (this.rx.frame.length <= this.conf.max_payload) {
-                        this.rx.frame_state = RXState.PAYLOAD;
-                    } else {
-                        // Frame dropped because it's longer than any frame we can buffer
-                        this.rx.frame_state = RXState.SOF;
-                    }
-                } else {
-                    this.rx.frame_state = RXState.CRC_3;
-                }
-                break;
-            case RXState.PAYLOAD:
-                this.rx.frame.payload[this.rx.frame.payload_bytes++] = byte;
-                this.crc32_step(byte);
-                if (--this.rx.frame.length === 0) {
-                    this.rx.frame_state = RXState.CRC_3;
-                }
-                break;
-            case RXState.CRC_3:
-                this.rx.frame.checksum = byte << 24;
-                this.rx.frame_state = RXState.CRC_2;
-                break;
-            case RXState.CRC_2:
-                this.rx.frame.checksum |= byte << 16;
-                this.rx.frame_state = RXState.CRC_1;
-                break;
-            case RXState.CRC_1:
-                this.rx.frame.checksum |= byte << 8;
-                this.rx.frame_state = RXState.CRC_0;
-                break;
-            case RXState.CRC_0: {
-                this.rx.frame.checksum |= byte;
-                const crc = this.crc32_finalize();
-                if (crc !== this.rx.frame.checksum) {
-                    // Frame fails the checksum and so is dropped
-                    this.rx.frame_state = RXState.SOF;
-                } else {
-                    // Checksum passes, go on to check for the end-of-frame marker
-                    this.rx.frame_state = RXState.EOF;
-                }
-                break;
-            }
-            case RXState.EOF:
-                if (byte === 0x55) {
-                    // Frame received OK, pass up data to handler
-                    this.valid_frame_received(this.rx.frame);
-                    this.rx.frame.payload = [];
-                }
-                // else discard
-                // Look for next frame */
-                this.rx.frame_state = RXState.SOF;
-                break;
-            default:
-                // Should never get here but in case we do then reset to a safe state
-                this.rx.frame_state = RXState.SOF;
-                break;
-        }
-    }
-
-    private valid_frame_received(frame: ReceivingMinFrame) {
-
+    private valid_frame_received(frame: ReceivedMINFrame) {
         const seq = frame.seq;
         // When we receive anything we know the other end is still active and won't shut down
         this.transport_fifo.last_received_anything_ms = this.now;
 
         switch (frame.id_control) {
-            case RX_MAGIC.ACK: {
+            case ACK_BYTE: {
                 // If we get an ACK then we remove all the acknowledged frames with seq < rn
                 // The payload byte specifies the number of NACKed frames: how many we want retransmitted because
                 // they have gone missing.
@@ -460,7 +271,7 @@ export class MINTransceiver {
                 }
                 break;
             }
-            case RX_MAGIC.RESET:
+            case RESET:
                 // If we get a RESET demand then we reset the transport protocol (empty the FIFO, reset the
                 // sequence numbers, etc.)
                 // We don't send anything, we just do it. The other end can send frames to see if this end is
@@ -534,7 +345,7 @@ export class MINTransceiver {
 
     private send_reset() {
         if (this.debug) { console.log("send RESET"); }
-        this.on_wire_bytes(RX_MAGIC.RESET, 0, []);
+        this.on_wire_bytes(RESET, 0, []);
     }
 
     private send_ack() {
@@ -551,18 +362,18 @@ export class MINTransceiver {
             this.rx_space & 0xff,
         ];
         sq = sq.concat(this.get_ack_payload());
-        this.on_wire_bytes(RX_MAGIC.ACK, this.transport_fifo.rn, sq);
+        this.on_wire_bytes(ACK, this.transport_fifo.rn, sq);
         this.transport_fifo.last_sent_ack_time_ms = Date.now();
     }
 
     private on_wire_bytes(id_control: number, seq: number, payload: number[]) {
         this.serial_buffer = [];
         this.tx.header_byte_countdown = 2;
-        this.crc32_init_context();
+        this.tx.crc.init();
         // Header is 3 bytes; because unstuffed will reset receiver immediately
-        this.serial_buffer.push(RX_MAGIC.HEADER_BYTE);
-        this.serial_buffer.push(RX_MAGIC.HEADER_BYTE);
-        this.serial_buffer.push(RX_MAGIC.HEADER_BYTE);
+        this.serial_buffer.push(HEADER_BYTE);
+        this.serial_buffer.push(HEADER_BYTE);
+        this.serial_buffer.push(HEADER_BYTE);
 
         this.stuffed_tx_byte(id_control);
         if (id_control & 0x80) {
@@ -580,7 +391,7 @@ export class MINTransceiver {
             this.stuffed_tx_byte(byte);
         }
 
-        const checksum = this.crc32_finalize();
+        const checksum = this.tx.crc.getValue();
         // Network order is big-endian. A decent C compiler will spot that this
         // is extracting bytes and will use efficient instructions.
         this.stuffed_tx_byte((checksum >>> 24) & 0xff);
@@ -589,7 +400,7 @@ export class MINTransceiver {
         this.stuffed_tx_byte(checksum & 0xff);
 
         // Ensure end-of-frame doesn't contain 0xaa and confuse search for start-of-frame
-        this.serial_buffer.push(RX_MAGIC.EOF_BYTE);
+        this.serial_buffer.push(EOF_BYTE);
         this.sendByte(this.serial_buffer);
     }
 
@@ -599,12 +410,12 @@ export class MINTransceiver {
             byte = byte.charCodeAt(0);
         }
         this.serial_buffer.push(byte);
-        this.crc32_step(byte);
+        this.tx.crc.step(byte);
 
         // See if an additional stuff byte is needed
-        if (byte === RX_MAGIC.HEADER_BYTE) {
+        if (byte === HEADER_BYTE) {
             if (--this.tx.header_byte_countdown === 0) {
-                this.serial_buffer.push(RX_MAGIC.STUFF_BYTE);        // Stuff byte
+                this.serial_buffer.push(STUFF_BYTE);        // Stuff byte
                 this.tx.header_byte_countdown = 2;
             }
         } else {
