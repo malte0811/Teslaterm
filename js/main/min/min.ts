@@ -47,16 +47,16 @@ export class minprot {
 
     constructor(get_ack_payload: AckPayloadGetter) {
         this.get_ack_payload = get_ack_payload;
-        this.rx = [];
+        this.rx = {};
 
-        this.rx.frame = [];
+        this.rx.frame = {};
         this.rx.frame.payload_bytes = 0;      // Length of payload received so far
         this.rx.frame.id_control = 0;         // ID and control bit of frame being received
         this.rx.frame.seq = 0;				// Sequence number of frame being received
         this.rx.frame.length = 0;			// Length of frame
         this.rx.frame.payload = [];
 
-        this.tx = [];
+        this.tx = {};
         this.tx.header_byte_countdown = 0;
 
         this.rx_space = 512;
@@ -67,7 +67,7 @@ export class minprot {
         this.remote_rx_space = 512;
 
         // Counters for diagnosis purposes
-        this.transport_fifo = [];
+        this.transport_fifo = {};
         this.transport_fifo.spurious_acks = 0;
         this.transport_fifo.sequence_mismatch_drop = 0;
         this.transport_fifo.sequential_sequence_mismatch_drop = 0;
@@ -86,7 +86,7 @@ export class minprot {
         this.sendByte = 0;
         this.handler = 0;
 
-        this.conf = [];
+        this.conf = {};
         this.conf.max_payload = 255;
         this.serial_buffer = [];
 
@@ -571,7 +571,7 @@ export class minprot {
             if (this.transport_fifo.frames.length < TRANSPORT_MAX_WINDOW_SIZE) {
                 // Copy frame details into frame slot, copy payload into ring buffer
                 //console.log(payload.length);
-                let frame: any = [];
+                let frame: any = {};
                 frame.min_id = min_id & 0x3f;
                 frame.last_send = Date.now();
                 frame.payload = [];
