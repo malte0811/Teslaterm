@@ -47,7 +47,7 @@ export abstract class MinConnection extends BootloadableConnection {
             if (this.isBootloading()) {
                 this.bootloaderCallback(data);
             } else {
-                this.min_wrapper.min_poll(data);
+                this.min_wrapper.onReceived(data);
             }
         });
         await this.init_min_wrapper();
@@ -194,7 +194,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 this.counter++;
             }
 
-            this.min_wrapper.min_poll();
+            this.min_wrapper.tick();
         }
     }
 

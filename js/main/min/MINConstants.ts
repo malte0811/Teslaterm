@@ -4,4 +4,23 @@ export const HEADER_BYTE = 0xaa;
 export const RESET = 0xfe;
 export const STUFF_BYTE = 0x55;
 
+export const TRANSPORT_MAX_WINDOW_SIZE = 16;
+export const TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
 export const MAX_PAYLOAD = 255;
+export const MIN_DEBUG = false;
+
+export function get4ByteBigEndian(data: number[], firstByteIndex: number) {
+    return (data[firstByteIndex] << 24)
+        | (data[firstByteIndex + 1] << 16)
+        | (data[firstByteIndex + 2] << 8)
+        | (data[firstByteIndex + 3]);
+}
+
+export function toBigEndianBytes(value: number) {
+    return [
+        (value >>> 24) & 0xff,
+        (value >>> 16) & 0xff,
+        (value >>> 8) & 0xff,
+        value & 0xff,
+    ];
+}

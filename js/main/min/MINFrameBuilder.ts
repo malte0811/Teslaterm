@@ -1,5 +1,5 @@
 import {CRCCalculator} from "./CRCCalculator";
-import {EOF_BYTE, HEADER_BYTE, STUFF_BYTE} from "./MINConstants";
+import {EOF_BYTE, HEADER_BYTE, STUFF_BYTE, toBigEndianBytes} from "./MINConstants";
 
 export class MINFrameBuilder {
     public static getPacketSize(payloadSize: number) {
@@ -19,23 +19,14 @@ export class MINFrameBuilder {
         this.addTXByte(id_control);
         if (id_control & 0x80) {
             // Send the sequence number if it is a transport frame
-            this.addTXByte((seq >>> 24) & 0xff);
-            this.addTXByte((seq >>> 16) & 0xff);
-            this.addTXByte((seq >>> 8) & 0xff);
-            this.addTXByte((seq >>> 0) & 0xff);
+            this.add4ByteBigEndian(seq);
         }
 
         this.addTXByte(payload.length);
-
         for (const byte of payload) {
             this.addTXByte(byte);
         }
-
-        const checksum = this.crc.getValue();
-        this.addTXByte((checksum >>> 24) & 0xff);
-        this.addTXByte((checksum >>> 16) & 0xff);
-        this.addTXByte((checksum >>> 8) & 0xff);
-        this.addTXByte(checksum & 0xff);
+        this.add4ByteBigEndian(this.crc.getValue());
 
         // Ensure end-of-frame doesn't contain 0xaa and confuse search for start-of-frame
         this.buffer.push(EOF_BYTE);
@@ -45,7 +36,13 @@ export class MINFrameBuilder {
         return this.buffer;
     }
 
-    private addTXByte(byte) {
+    private add4ByteBigEndian(value: number) {
+        for (const byte of toBigEndianBytes(value)) {
+            this.addTXByte(byte);
+        }
+    }
+
+    private addTXByte(byte: string | number) {
         // Transmit the byte
         if (typeof byte === "string") {
             byte = byte.charCodeAt(0);
