@@ -248,7 +248,6 @@ export class MINTransceiver {
                             this.transport_fifo.frames[i].seq,
                             this.transport_fifo.frames[i].payload,
                         );
-                        this.transport_fifo.sn_max++;
                     }
                 } else {
                     if (this.debug) { console.log("Received spurious ACK seq=" + seq); }
