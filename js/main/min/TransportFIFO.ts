@@ -67,7 +67,8 @@ export class TransportFifo {
         this.last_sent_seq_cnt = 0;
     }
 
-    public nextSequentialFrame(bufferIndex: number, remoteRXSpace: number) {
+    public nextSequentialFrame(remoteRXSpace: number) {
+        const bufferIndex = this.sn_max - this.sn_min;
         if (this.frames.length <= bufferIndex) {
             return undefined;
         }
@@ -90,6 +91,9 @@ export class TransportFifo {
                 frameToResend = frame;
                 oldest = frame.last_send;
             }
+        }
+        if (!frameToResend) {
+            return undefined;
         }
         const sinceLast = Date.now() - frameToResend.last_send;
         if (sinceLast >= TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS && frameToResend.canSend(remoteRXSpace)) {

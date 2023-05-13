@@ -82,38 +82,33 @@ export class MINTransceiver {
 
         // This sends one new frame or resends one old frame
 
-        const windowSize = this.transport_fifo.sn_max - this.transport_fifo.sn_min; // Window size
-        if (windowSize < TRANSPORT_MAX_WINDOW_SIZE) {
-            const frame = this.transport_fifo.nextSequentialFrame(windowSize, this.remote_rx_space);
-            if (frame) {
-                if (MIN_DEBUG) {
-                    console.log("tx frame seq=" + this.transport_fifo.frames[windowSize].seq);
-                }
-                this.sendFrame(frame.min_id | 0x80, frame.seq, frame.payload);
+        const frame = this.transport_fifo.nextSequentialFrame(this.remote_rx_space);
+        if (frame) {
+            if (MIN_DEBUG) {
+                console.log("tx frame seq=" + frame.seq);
             }
+            this.sendFrame(frame.min_id | 0x80, frame.seq, frame.payload);
             // There are new frames we can send; but don't even bother if there's no buffer space for them
-        } else {
+        } else if (remote_connected) {
             // Sender cannot send new frames so resend old ones (if there's anyone there)
-            if ((windowSize > 0) && remote_connected) {
+            const frameToSend = this.transport_fifo.getFrameToReSend(this.remote_rx_space);
+            if (frameToSend) {
                 // There are unacknowledged frames. Can re-send an old frame. Pick the least recently sent one.
-                const frameToSend = this.transport_fifo.getFrameToReSend(this.remote_rx_space);
-                if (frameToSend) {
-                    if (MIN_DEBUG) {
-                        console.log("tx olfFrame seq=" + frameToSend.seq);
-                    }
-                    if (this.transport_fifo.pollResend(frameToSend)) {
-                        this.sendFrame(frameToSend.min_id | 0x80, frameToSend.seq, frameToSend.payload);
-                    } else {
-                        this.resetTransport(true);
-                    }
+                if (MIN_DEBUG) {
+                    console.log("tx olfFrame seq=" + frameToSend.seq);
+                }
+                if (this.transport_fifo.pollResend(frameToSend)) {
+                    this.sendFrame(frameToSend.min_id | 0x80, frameToSend.seq, frameToSend.payload);
+                } else {
+                    this.resetTransport(true);
                 }
             }
+        }
 
-            // Periodically transmit the ACK with the rn value, unless the line has gone idle
-            const sinceLastSentAck = this.now - this.transport_fifo.last_sent_ack_time_ms;
-            if (sinceLastSentAck > TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS && remote_active) {
-                this.sendACK();
-            }
+        // Periodically transmit the ACK with the rn value, unless the line has gone idle
+        const sinceLastSentAck = this.now - this.transport_fifo.last_sent_ack_time_ms;
+        if (sinceLastSentAck > TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS && remote_active) {
+            this.sendACK();
         }
     }
 
