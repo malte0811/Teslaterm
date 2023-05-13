@@ -75,7 +75,7 @@ export class Connecting implements IConnectionState {
     }
 
     public getAutoTerminal(): TerminalHandle | undefined {
-        return undefined;
+        return this.autoTerminal;
     }
 
     public getCommandServer(): ICommandServer {
