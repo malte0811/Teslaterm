@@ -8,6 +8,7 @@ export const TRANSPORT_MAX_WINDOW_SIZE = 16;
 export const TRANSPORT_FRAME_RETRANSMIT_TIMEOUT_MS = 50;
 export const MAX_PAYLOAD = 255;
 export const MIN_DEBUG = false;
+export const MIN_INJECT_ERRORS = false;
 
 export function get4ByteBigEndian(data: number[], firstByteIndex: number) {
     return (data[firstByteIndex] << 24)
@@ -23,4 +24,14 @@ export function toBigEndianBytes(value: number) {
         (value >>> 8) & 0xff,
         value & 0xff,
     ];
+}
+
+export function injectErrors(data: Buffer | number[]) {
+    for (let i = 0; i < data.length; ++i) {
+        const bitToModify = Math.floor(1000 * 8 * Math.random());
+        if (bitToModify < 8) {
+            data[i] ^= 1 << bitToModify;
+            console.log("Injected error");
+        }
+    }
 }

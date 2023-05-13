@@ -1,5 +1,5 @@
 import {CRCCalculator} from "./CRCCalculator";
-import {EOF_BYTE, HEADER_BYTE, STUFF_BYTE, toBigEndianBytes} from "./MINConstants";
+import {EOF_BYTE, HEADER_BYTE, injectErrors, MIN_INJECT_ERRORS, STUFF_BYTE, toBigEndianBytes} from "./MINConstants";
 
 export class MINFrameBuilder {
     public static getPacketSize(payloadSize: number) {
@@ -30,6 +30,10 @@ export class MINFrameBuilder {
 
         // Ensure end-of-frame doesn't contain 0xaa and confuse search for start-of-frame
         this.buffer.push(EOF_BYTE);
+
+        if (MIN_INJECT_ERRORS) {
+            injectErrors(this.buffer);
+        }
     }
 
     public getBytes() {

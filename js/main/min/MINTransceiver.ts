@@ -1,7 +1,7 @@
 import {
     ACK_BYTE,
-    get4ByteBigEndian,
-    MIN_DEBUG,
+    get4ByteBigEndian, injectErrors,
+    MIN_DEBUG, MIN_INJECT_ERRORS,
     RESET,
     toBigEndianBytes,
     TRANSPORT_MAX_WINDOW_SIZE,
@@ -57,6 +57,9 @@ export class MINTransceiver {
     }
 
     public onReceived(buf: Buffer) {
+        if (MIN_INJECT_ERRORS) {
+            injectErrors(buf);
+        }
         for (const byte of buf) {
             const frame = this.rx.receiveByte(byte);
             if (frame) {
