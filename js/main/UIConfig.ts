@@ -5,13 +5,14 @@ import {getDefaultAdvancedOptions} from "../common/TTConfig";
 import {
     DEFAULT_SERIAL_PRODUCT,
     DEFAULT_SERIAL_VENDOR,
-    getDefaultSerialPortForConfig
+    getDefaultSerialPortForConfig,
 } from "./connection/types/serial_plain";
 import {convertArrayBufferToString} from "./helper";
 import {config} from "./init";
 
 export interface UIConfig {
     connectionPresets: ConnectionPreset[];
+    darkMode: boolean;
 }
 
 let uiConfig: UIConfig | undefined;
@@ -36,6 +37,9 @@ function getFileData() {
                 options.autoVendorID = options.autoVendorID || DEFAULT_SERIAL_VENDOR;
             }
         }
+        if (object.darkMode === undefined) {
+            object.darkMode = false;
+        }
         return object;
     } catch (x) {
         console.log("Failed to read UI config:", x);
@@ -49,7 +53,7 @@ export function getUIConfig() {
     return uiConfig;
 }
 
-export function setUIConfig(newConfig: UIConfig) {
-    uiConfig = newConfig;
-    fs.writeFileSync(FILENAME, JSON.stringify(newConfig));
+export function setUIConfig(newConfig: Partial<UIConfig>) {
+    uiConfig = {...uiConfig, ...newConfig};
+    fs.writeFileSync(FILENAME, JSON.stringify(uiConfig));
 }

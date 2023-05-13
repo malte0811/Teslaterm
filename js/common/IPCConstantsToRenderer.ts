@@ -15,6 +15,7 @@ function makeKey<Type>(channel: string): IPCToRendererKey<Type> {
 }
 
 export const IPC_CONSTANTS_TO_RENDERER = {
+    alarmList: makeKey<UD3Alarm[]>('alarms'),
     connect: {
         connectionError: makeKey<string>('connection-error'),
         setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
@@ -30,6 +31,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         configure: makeKey<MeterConfig>('meter-config'),
         setValue: makeKey<SetMeters>('meter-set-value'),
     },
+    openToast: makeKey<ToastData>('open-toast'),
     scope: {
         addValues: makeKey<ScopeValues>('scope-values'),
         configure: makeKey<ScopeTraceConfig>('scope-config'),
@@ -44,12 +46,11 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     sliders: {
         syncSettings: makeKey<ISliderState>('slider-sync'),
     },
-    updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
+    syncDarkMode: makeKey<boolean>('syncDarkMode'),
     terminal: makeKey<string>('terminal'),
     ttConfig: makeKey<TTConfig>('tt-config'),
     udConfig: makeKey<UD3ConfigOption[]>('ud-config'),
-    openToast: makeKey<ToastData>('open-toast'),
-    alarmList: makeKey<UD3Alarm[]>('alarms'),
+    updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
 };
 
 export class SetMeters {

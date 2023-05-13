@@ -7,7 +7,6 @@ import {ConnectScreen} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
-import {loadUIConfig, storeUIConfig, UIConfig} from "./UIConfig";
 
 interface TopLevelState {
     connectionStatus: ConnectionStatus;
@@ -15,7 +14,7 @@ interface TopLevelState {
     // If connection is lost, it may be because the UD3 died. In that case we want to stay on the "main" screen so the
     // last telemetry is still visible.
     wasConnected: boolean;
-    uiConfig: UIConfig;
+    darkMode: boolean;
 }
 
 export class App extends TTComponent<{}, TopLevelState> {
@@ -23,27 +22,32 @@ export class App extends TTComponent<{}, TopLevelState> {
         super(props);
         this.state = {
             connectionStatus: ConnectionStatus.IDLE,
+            darkMode: false,
             ttConfig: undefined,
             wasConnected: false,
-            uiConfig: loadUIConfig(),
         };
-        storeUIConfig(this.state.uiConfig);
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.updateConnectionState, status => this.onConnectionChange(status)
+            IPC_CONSTANTS_TO_RENDERER.updateConnectionState, status => this.onConnectionChange(status),
         );
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg})
+            IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.syncDarkMode, (darkMode) => this.setState({darkMode}),
         );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
-    render(): React.ReactNode {
-        return <div className={this.state.uiConfig.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
+    public render(): React.ReactNode {
+        return <div className={this.state.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
             {this.getMainElement()}
-        </div>
+        </div>;
     }
 
     private getMainElement(): JSX.Element {
@@ -54,18 +58,17 @@ export class App extends TTComponent<{}, TopLevelState> {
                 ttConfig={this.state.ttConfig}
                 connectionStatus={this.state.connectionStatus}
                 clearWasConnected={() => this.setState({wasConnected: false})}
-                darkMode={this.state.uiConfig.darkMode}
+                darkMode={this.state.darkMode}
             />;
-        } else if (this.state.connectionStatus == ConnectionStatus.CONNECTING || this.state.connectionStatus == ConnectionStatus.IDLE) {
+        } else if (
+            this.state.connectionStatus === ConnectionStatus.CONNECTING ||
+            this.state.connectionStatus === ConnectionStatus.IDLE
+        ) {
             return <ConnectScreen
                 ttConfig={this.state.ttConfig}
                 connecting={this.state.connectionStatus === ConnectionStatus.CONNECTING}
-                darkMode={this.state.uiConfig.darkMode}
-                setDarkMode={newVal => {
-                    const newConfig: UIConfig = {...this.state.uiConfig, darkMode: newVal};
-                    storeUIConfig(newConfig);
-                    this.setState({uiConfig: newConfig});
-                }}
+                darkMode={this.state.darkMode}
+                setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setDarkMode, newVal)}
             />;
         } else {
             return <>Unsupported status {this.state.connectionStatus} :(</>;
@@ -75,7 +78,7 @@ export class App extends TTComponent<{}, TopLevelState> {
     private onConnectionChange(newState: ConnectionStatus) {
         this.setState(oldState => ({
             connectionStatus: newState,
-            wasConnected: oldState.wasConnected || newState == ConnectionStatus.CONNECTED
+            wasConnected: oldState.wasConnected || newState === ConnectionStatus.CONNECTED,
         }));
     }
 }

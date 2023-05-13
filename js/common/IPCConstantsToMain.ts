@@ -41,6 +41,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         startScript: makeKey<undefined>('start-script'),
         stopScript: makeKey<undefined>('stop-script'),
     },
+    setDarkMode: makeKey<boolean>('setDarkMode'),
     sliders: {
         setBPS: makeKey<number>('slider-set-bps'),
         setBurstOfftime: makeKey<number>('slider-set-burst-offtime'),

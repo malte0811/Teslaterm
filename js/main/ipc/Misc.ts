@@ -3,11 +3,12 @@ import {
     ConnectionStatus,
     IPC_CONSTANTS_TO_RENDERER, ToastData,
     ToastSeverity,
-    UD3ConfigOption
+    UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {config} from "../init";
 import {playMidiData} from "../midi/midi";
+import {getUIConfig, setUIConfig} from "../UIConfig";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
 import {TermSetupResult} from "./terminal";
 
@@ -24,15 +25,20 @@ export class MiscIPC {
             }
             ipcs.menu.sendFullState(source);
             this.processIPC.sendToWindow(
-                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, source, this.lastConnectionState
+                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, source, this.lastConnectionState,
             );
             ipcs.scope.sendConfig(source);
             ipcs.meters.sendConfig(source);
             ipcs.sliders.sendSliderSync();
             this.syncTTConfig(config, source);
+            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, source, getUIConfig().darkMode);
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (source: object, msg) => {
             playMidiData(msg);
+        });
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (source, darkMode) => {
+            setUIConfig({darkMode});
+            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
         });
     }
 
