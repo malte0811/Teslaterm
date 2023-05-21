@@ -12,10 +12,20 @@ import {
 import {UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
+import {commands} from "../connection";
 import {addAlarm} from "./Alarms";
 import {updateStateFromTelemetry} from "./UD3State";
 
-export let configRequestQueue: object[] = [];
+export type UD3ConfigConsumer = (cfg: UD3ConfigOption[]) => any;
+let configRequestQueue: UD3ConfigConsumer[] = [];
+
+export function requestConfig(out: UD3ConfigConsumer) {
+    configRequestQueue.push(out);
+    if (configRequestQueue.length === 1) {
+        commands.sendCommand("config_get\r").catch((err) => console.error("While getting config:", err));
+    }
+}
+
 let udconfig: UD3ConfigOption[] = [];
 
 export class TelemetryFrame {
@@ -134,13 +144,11 @@ export class TelemetryFrame {
                 this.data.splice(0, 1);
                 const str = convertBufferToString(this.data, false);
                 if (str === "NULL;NULL") {
-                    if (!source && configRequestQueue.length > 0) {
-                        source = configRequestQueue.shift();
-                    }
-                    if (source) {
-                        ipcs.misc.openUDConfig(udconfig, source);
+                    for (const request of configRequestQueue) {
+                        request(udconfig);
                     }
                     udconfig = [];
+                    configRequestQueue = [];
                 } else {
                     const substrings = str.split(";");
                     const type = getOptionType(substrings[2]);

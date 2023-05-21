@@ -1,9 +1,9 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, UD3State} from "../../common/IPCConstantsToRenderer";
-import {commands, pressButton} from "../connection/connection";
-import {configRequestQueue} from "../connection/telemetry/TelemetryFrame";
+import {pressButton} from "../connection/connection";
+import {requestConfig} from "../connection/telemetry/TelemetryFrame";
 import {media_state} from "../media/media_player";
-import {MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
 export class MenuIPC {
     private lastUD3State: UD3State = UD3State.DEFAULT_STATE;
@@ -16,12 +16,7 @@ export class MenuIPC {
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.connectButton, pressButton);
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, async (source) => {
-            configRequestQueue.push(source);
-            try {
-                await commands.sendCommand("config_get\r");
-            } catch (err) {
-                console.error("While getting config:", err);
-            }
+            requestConfig((cfg) => ipcs.misc.openUDConfig(cfg, source));
         });
         this.processIPC = processIPC;
     }
