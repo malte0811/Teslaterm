@@ -10,7 +10,7 @@ permissions:
 jobs:
   create-artifacts:
     name: Create artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       release: ${{ github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')}}
     steps:
@@ -18,9 +18,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Downgrade packages conflicting with wine???
         run: |
-          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list
-          sudo apt-get update
-          sudo apt-get remove -qq libmono* moby* mono* nginx* php* libgdiplus libpcre2-posix3 libzip4
+          sudo apt-add-repository -y ppa:ondrej/php
+          sudo apt-get install ppa-purge
+          sudo ppa-purge -y ppa:ondrej/php
       - name: Install wine
         run: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get -f install wine32
       - name: Cache node modules
