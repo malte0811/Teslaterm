@@ -29,6 +29,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
     },
     menu: {
         connectButton: makeKey<undefined>('press-connect-button'),
+        downloadUD3ConfigElectron: makeKey<undefined>('download-ud-config-electron'),
         requestUDConfig: makeKey<undefined>('request-ud-config'),
         startMedia: makeKey<undefined>('start-media'),
         stopMedia: makeKey<undefined>('stop-media'),

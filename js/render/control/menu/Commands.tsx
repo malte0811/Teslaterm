@@ -32,19 +32,19 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         this.state = {};
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.udConfig, cfg => this.setState({originalSettings: cfg}));
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.alarmList, alarmList => this.setState({alarmList}));
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const items: JSX.Element[] = [];
         if (this.props.udState.busControllable) {
             if (this.props.udState.busActive) {
                 this.makeIPCItem(items, 'Bus off', IPC_CONSTANTS_TO_MAIN.commands.setBusState, false);
             } else {
                 this.makeWarningItem(
-                    items, 'Bus on', 'The coil will be energized', IPC_CONSTANTS_TO_MAIN.commands.setBusState, true
+                    items, 'Bus on', 'The coil will be energized', IPC_CONSTANTS_TO_MAIN.commands.setBusState, true,
                 );
             }
         }
@@ -58,7 +58,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             'Save EEPROM',
             'Are you sure to save the configuration to EEPROM?',
             IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM,
-            undefined
+            undefined,
         );
         this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
         this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined);

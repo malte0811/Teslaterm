@@ -37,12 +37,18 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         return (
             <div>
                 {this.makeTabs()}
-                <Button onClick={() => this.sendAndClose()}>Send to UD3</Button>
-                <Button onClick={() => {
-                    this.sendAndClose();
-                    commands.saveEEPROM();
-                }}>Send to UD3 & save to EEPROM</Button>
-                <Button onClick={this.props.close}>Discard</Button>
+                <div>
+                    <Button onClick={() => this.sendAndClose()}>Send to UD3</Button>
+                    <Button onClick={() => {
+                        this.sendAndClose();
+                        commands.saveEEPROM();
+                    }}>Send & save to EEPROM</Button>
+                    <Button onClick={this.props.close}>Discard</Button>
+                </div>
+                <div>
+                    <Button onClick={() => this.saveJSON()}>Save as JSON</Button>
+                    <Button onClick={() => this.loadJSON()}>Load from JSON</Button>
+                </div>
             </div>
         );
     }
@@ -131,5 +137,46 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
 
     private getMutedClass() {
         return this.props.darkMode ? 'tt-dark-text-muted' : 'text-muted';
+    }
+
+    private saveJSON() {
+        const saveJSON = {};
+        for (const option of this.state.current) {
+            saveJSON[option.name] = option.current;
+        }
+        const dummyElement = document.createElement('a');
+        document.body.appendChild(dummyElement);
+        dummyElement.download = 'ud3-config.json';
+        dummyElement.href = "data:application/json," + encodeURIComponent(JSON.stringify(saveJSON, null, 4));
+        dummyElement.click();
+        document.body.removeChild(dummyElement);
+    }
+
+    private loadJSON() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = () => {
+            const reader = new FileReader();
+            reader.readAsText(input.files[0]);
+            reader.onload = readerEvent => {
+                const content = readerEvent.target.result as string;
+                try {
+                    const jsonData = JSON.parse(content);
+                    const newOptions = [...this.state.current];
+                    for (let i = 0; i < newOptions.length; ++i) {
+                        const newValue = jsonData[newOptions[i].name];
+                        if (newValue !== undefined) {
+                            newOptions[i] = {...newOptions[i], current: newValue};
+                        }
+                    }
+                    this.setState({current: newOptions});
+                } catch (e) {
+                    console.log("Failed to load data: ", e);
+                }
+                document.removeChild(input);
+            };
+        };
+        input.click();
     }
 }
