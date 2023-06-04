@@ -2,7 +2,7 @@ import * as os from "os";
 import {SerialPort} from "serialport";
 import {SynthType} from "../../../common/CommonTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
-import {FlightEventType, getFlightRecorder} from "../FlightRecorder";
+import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {toCommandID, UD3Connection} from "./UD3Connection";
 
 export class PlainSerialConnection extends UD3Connection {

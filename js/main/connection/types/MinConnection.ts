@@ -7,7 +7,7 @@ import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
-import {FlightEventType, getFlightRecorder} from "../FlightRecorder";
+import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {TerminalHandle} from "./UD3Connection";
 
 const MIN_ID_WD = 10;

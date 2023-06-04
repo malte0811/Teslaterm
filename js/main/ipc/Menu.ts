@@ -1,7 +1,7 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, UD3State} from "../../common/IPCConstantsToRenderer";
 import {pressButton} from "../connection/connection";
-import {getFlightRecorder} from "../connection/FlightRecorder";
+import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {requestConfig} from "../connection/telemetry/TelemetryFrame";
 import {media_state} from "../media/media_player";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
@@ -21,7 +21,7 @@ export class MenuIPC {
         });
         processIPC.on(
             IPC_CONSTANTS_TO_MAIN.menu.dumpFlightRecorder,
-            async (source) => getFlightRecorder().exportAsFile(source)
+            async () => getFlightRecorder().exportAsFile(),
         );
         this.processIPC = processIPC;
     }
