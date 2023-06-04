@@ -1,6 +1,6 @@
 import React, {CSSProperties} from "react";
 import {TTComponent} from "../../TTComponent";
-import {TraceStats, TraceConfig, OscilloscopeTrace} from "./Trace";
+import {OscilloscopeTrace, TraceConfig, TraceStats} from "./Trace";
 
 interface SingleStatProps {
     stat: TraceStats;
@@ -8,7 +8,7 @@ interface SingleStatProps {
 }
 
 class SingleTraceStats extends TTComponent<SingleStatProps, {}> {
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const style: CSSProperties = {
             color: this.props.config.wavecolor,
         };
@@ -22,11 +22,18 @@ class SingleTraceStats extends TTComponent<SingleStatProps, {}> {
 
 export interface StatisticsProps {
     traces: OscilloscopeTrace[];
+    clearStats: () => any;
 }
 
 export class ScopeStatistics extends TTComponent<StatisticsProps, {}> {
-    render(): React.ReactNode {
-        return <div className={'tt-scope-stats'}>
+    public render(): React.ReactNode {
+        return <div
+            className={'tt-scope-stats'}
+            onClick={(ev) => {
+                ev.stopPropagation();
+                this.props.clearStats();
+            }}
+        >
             {this.props.traces.map((t, i) => <SingleTraceStats stat={t.stats} config={t.config} key={i}/>)}
         </div>;
     }

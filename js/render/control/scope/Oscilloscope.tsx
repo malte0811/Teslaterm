@@ -161,7 +161,10 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
                 <Traces traces={realTraces}/>
                 <ScopeSettings configs={realTraces.map((t) => t.config)}/>
             </div>
-            <ScopeStatistics traces={realTraces}/>
+            <ScopeStatistics
+                traces={realTraces}
+                clearStats={() => this.setState({traces: this.state.traces.map((t) => t && t.withClearedStats())})}
+            />
         </div>;
     }
 

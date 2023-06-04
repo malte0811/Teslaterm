@@ -82,6 +82,10 @@ export class OscilloscopeTrace {
         }
     }
 
+    public withClearedStats(): OscilloscopeTrace {
+        return new OscilloscopeTrace(this.config, this.data);
+    }
+
     private withScaledValue(value: number): OscilloscopeTrace {
         const newData = [...this.data];
         newData.push(value);
