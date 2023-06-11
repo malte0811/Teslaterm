@@ -33,7 +33,10 @@ let activeEvents: FlightRecorderEvent[] = [];
 let currentPayloadBytes: number = 0;
 
 async function doExport(filename: string) {
-    const eventToJSON = (ev) => ({...ev, data: Array.from(ev.data)});
+    const eventToJSON = (ev: FlightRecorderEvent) => ({
+        ...ev,
+        data: Buffer.from(ev.data).toString('base64'),
+    });
     const jsonArray = [...oldEvents.map(eventToJSON), ...activeEvents.map(eventToJSON)];
     const jsonString = JSON.stringify(jsonArray, null, 2);
     const zip = JSZip();
