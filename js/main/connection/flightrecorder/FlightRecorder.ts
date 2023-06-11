@@ -2,7 +2,7 @@ import {Worker} from "worker_threads";
 import {ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
-import {makeFlightRecorderWorker} from "./FlightRecordingExporter";
+import {makeFlightRecorderWorker} from "./FlightRecordingWorker";
 
 export enum FlightEventType {
     data_from_ud3,

@@ -65,7 +65,10 @@
     },
     "linux": {
       "artifactName": "electron/${productName}-linux.${ext}"
-    }
+    },
+    "asarUnpack": [
+      "js/main/connection/flightrecorder/FlightRecordingWorker.js"
+    ]
   },
   "pkg": {
     "assets": [
