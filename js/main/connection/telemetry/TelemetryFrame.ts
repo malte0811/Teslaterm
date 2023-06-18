@@ -1,14 +1,4 @@
-import assert = require("assert");
-import {
-    DATA_NUM, DATA_TYPE,
-    TT_CHART, TT_CHART32,
-    TT_CHART32_CONF, TT_CHART_CLEAR, TT_CHART_CONF, TT_CHART_DRAW, TT_CHART_LINE, TT_CHART_TEXT,
-    TT_CHART_TEXT_CENTER,
-    TT_CONFIG_GET, TT_EVENT,
-    TT_GAUGE,
-    TT_GAUGE32, TT_GAUGE32_CONF, TT_GAUGE_CONF,
-    TT_STATE_SYNC, UD3AlarmLevel, UNITS,
-} from "../../../common/constants";
+import {DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
 import {UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
@@ -28,7 +18,67 @@ export function requestConfig(out: UD3ConfigConsumer) {
 
 let udconfig: UD3ConfigOption[] = [];
 
-export class TelemetryFrame {
+interface MeasuredValue {
+    type: TelemetryEvent.GAUGE | TelemetryEvent.GAUGE32 | TelemetryEvent.CHART | TelemetryEvent.CHART32;
+    value: number;
+    index: number;
+}
+
+interface GaugeConf {
+    type: TelemetryEvent.GAUGE32_CONF | TelemetryEvent.GAUGE_CONF;
+    index: number;
+    min: number;
+    max: number;
+    divider: number;
+    name: string;
+}
+
+interface TraceConf {
+    type: TelemetryEvent.CHART32_CONF | TelemetryEvent.CHART_CONF;
+    traceId: number;
+    min: number;
+    max: number;
+    offset: number;
+    unit: string;
+    divider: number;
+    name: string;
+}
+
+interface ChartLine {
+    type: TelemetryEvent.CHART_LINE;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    colorIndex: number;
+}
+
+interface ChartText {
+    type: TelemetryEvent.CHART_TEXT_CENTER | TelemetryEvent.CHART_TEXT;
+    text: string;
+    x: number;
+    y: number;
+    colorIndex: number;
+    size: number;
+}
+
+interface StateSync {
+    type: TelemetryEvent.STATE_SYNC;
+    packedState: number;
+    maxPw?: number;
+    maxPrf?: number;
+}
+
+type TelemetryFrame = MeasuredValue |
+    GaugeConf |
+    TraceConf |
+    {type: TelemetryEvent.CHART_DRAW | TelemetryEvent.CHART_CLEAR} |
+    ChartLine |
+    ChartText |
+    StateSync |
+    { type: TelemetryEvent.CONFIG_GET | TelemetryEvent.EVENT, data: string };
+
+export class TelemetryFrameParser {
     private readonly length: number;
     private readonly data: number[];
 
@@ -37,148 +87,203 @@ export class TelemetryFrame {
         this.data = [];
     }
 
-    public addByte(byte: number) {
-        assert(!this.isFull());
+    public addByte(byte: number): TelemetryFrame | undefined {
         this.data.push(byte);
+        if (this.data.length >= this.length) {
+            return this.convertFrame();
+        } else {
+            return undefined;
+        }
     }
 
-    public isFull(): boolean {
-        return this.data.length >= this.length;
-    }
-
-    public process(source: object, initializing: boolean) {
+    private convertFrame(): TelemetryFrame {
         const type = this.data[DATA_TYPE];
         const num = this.data[DATA_NUM];
         switch (type) {
-            case TT_GAUGE:
-                ipcs.meters.setValue(num, bytes_to_signed(this.data[2], this.data[3]));
-                break;
-            case TT_GAUGE32:
-                ipcs.meters.setValue(num, from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN));
-                break;
-            case TT_GAUGE_CONF: {
-                const index = num;
-                const gauge_min = bytes_to_signed(this.data[2], this.data[3]);
-                const gauge_max = bytes_to_signed(this.data[4], this.data[5]);
-                this.data.splice(0, 6);
-                const str = convertBufferToString(this.data);
-                ipcs.meters.configure(index, gauge_min, gauge_max, 1, str);
-                break;
-            }
-            case TT_GAUGE32_CONF: {
-                const index = num;
-                const min = from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN);
-                const max = from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN);
-                const div = from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN);
-                this.data.splice(0, 14);
-                const str = convertBufferToString(this.data);
-                ipcs.meters.configure(index, min, max, div, str);
-                break;
-            }
-            case TT_CHART32_CONF: {
-                const traceId = this.data[1].valueOf();
-                const min = from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN);
-                const max = from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN);
-                const offset = from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN);
-                const div = from_32_bit_bytes(this.data.slice(14, 18), Endianness.LITTLE_ENDIAN);
-                const unit = UNITS[this.data[18]];
-                this.data.splice(0, 19);
-                const name = convertBufferToString(this.data);
-                ipcs.scope.configure(traceId, min, max, offset, div, unit, name);
-                break;
-            }
-            case TT_CHART_CONF: {
-                const traceId = this.data[1].valueOf();
-                const min = bytes_to_signed(this.data[2], this.data[3]);
-                const max = bytes_to_signed(this.data[4], this.data[5]);
-                const offset = bytes_to_signed(this.data[6], this.data[7]);
-                const unit = UNITS[this.data[8]];
-                this.data.splice(0, 9);
-                const name = convertBufferToString(this.data);
-                ipcs.scope.configure(traceId, min, max, offset, 1, unit, name);
-                break;
-            }
-            case TT_CHART: {
-                const val = bytes_to_signed(this.data[2], this.data[3]);
-                const chart_num = num.valueOf();
-                ipcs.scope.addValue(chart_num, val);
-                break;
-            }
-            case TT_CHART32: {
-                const val = from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN);
-                const chart_num = num.valueOf();
-                ipcs.scope.addValue(chart_num, val);
-                break;
-            }
-            case TT_CHART_DRAW:
-                ipcs.scope.drawChart();
-                break;
-            case TT_CHART_CLEAR:
-                ipcs.scope.startControlledDraw(source);
-                break;
-            case TT_CHART_LINE:
-                const x1 = bytes_to_signed(this.data[1], this.data[2]);
-                const y1 = bytes_to_signed(this.data[3], this.data[4]);
-                const x2 = bytes_to_signed(this.data[5], this.data[6]);
-                const y2 = bytes_to_signed(this.data[7], this.data[8]);
-                const color = this.data[9].valueOf();
-                ipcs.scope.drawLine(x1, y1, x2, y2, color, source);
-                break;
-            case TT_CHART_TEXT:
-                drawString(this.data, false, source);
-                break;
-            case TT_CHART_TEXT_CENTER:
-                drawString(this.data, true, source);
-                break;
-            case TT_STATE_SYNC:
-                updateStateFromTelemetry(this.data[1]);
+            case TelemetryEvent.GAUGE:
+                return {
+                    index: num,
+                    type,
+                    value: bytes_to_signed(this.data[2], this.data[3]),
+                };
+            case TelemetryEvent.GAUGE32:
+                return {
+                    index: num,
+                    type,
+                    value: from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN),
+                };
+            case TelemetryEvent.GAUGE_CONF:
+                return {
+                    divider: 1,
+                    index: num,
+                    max: bytes_to_signed(this.data[4], this.data[5]),
+                    min: bytes_to_signed(this.data[2], this.data[3]),
+                    name: convertBufferToString(this.data.slice(6)),
+                    type,
+                };
+            case TelemetryEvent.GAUGE32_CONF:
+                return {
+                    divider: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
+                    index: num,
+                    max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
+                    min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
+                    name: convertBufferToString(this.data.slice(14)),
+                    type,
+                };
+            case TelemetryEvent.CHART32_CONF:
+                return {
+                    divider: from_32_bit_bytes(this.data.slice(14, 18), Endianness.LITTLE_ENDIAN),
+                    max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
+                    min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
+                    name: convertBufferToString(this.data.slice(19)),
+                    offset: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
+                    traceId: num,
+                    type,
+                    unit: UNITS[this.data[18]],
+                };
+            case TelemetryEvent.CHART_CONF:
+                return {
+                    divider: 1,
+                    max: bytes_to_signed(this.data[4], this.data[5]),
+                    min: bytes_to_signed(this.data[2], this.data[3]),
+                    name: convertBufferToString(this.data.slice(9)),
+                    offset: bytes_to_signed(this.data[6], this.data[7]),
+                    traceId: num,
+                    type,
+                    unit: UNITS[this.data[8]],
+                };
+            case TelemetryEvent.CHART:
+                return {
+                    index: num,
+                    type,
+                    value: bytes_to_signed(this.data[2], this.data[3]),
+                };
+            case TelemetryEvent.CHART32:
+                return {
+                    index: num,
+                    type,
+                    value: from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN),
+                };
+            case TelemetryEvent.CHART_DRAW:
+            case TelemetryEvent.CHART_CLEAR:
+                return {type};
+            case TelemetryEvent.CHART_LINE:
+                return {
+                    colorIndex: this.data[9],
+                    type,
+                    x1: bytes_to_signed(this.data[1], this.data[2]),
+                    x2: bytes_to_signed(this.data[5], this.data[6]),
+                    y1: bytes_to_signed(this.data[3], this.data[4]),
+                    y2: bytes_to_signed(this.data[7], this.data[8]),
+                };
+            case TelemetryEvent.CHART_TEXT:
+            case TelemetryEvent.CHART_TEXT_CENTER:
+                return parseStringDraw(this.data, type);
+            case TelemetryEvent.STATE_SYNC:
                 if (this.data.length >= 6) {
-                    const maxPw = this.data[2] | (this.data[3] << 8);
-                    const maxPrf = this.data[4] | (this.data[5] << 8);
-                    ipcs.sliders.setSliderRanges(maxPw, maxPrf).catch(
-                        (err) => console.log("While updating slider ranges", err),
-                    );
-                }
-                break;
-            case TT_CONFIG_GET: {
-                this.data.splice(0, 1);
-                const str = convertBufferToString(this.data, false);
-                if (str === "NULL;NULL") {
-                    for (const request of configRequestQueue) {
-                        request(udconfig);
-                    }
-                    udconfig = [];
-                    configRequestQueue = [];
+                    return {
+                        maxPrf: this.data[4] | (this.data[5] << 8),
+                        maxPw: this.data[2] | (this.data[3] << 8),
+                        packedState: this.data[1],
+                        type,
+                    };
                 } else {
-                    const substrings = str.split(";");
-                    const type = getOptionType(substrings[2]);
-                    if (type !== undefined) {
-                        udconfig.push({
-                            name: substrings[0],
-                            current: substrings[1],
-                            type: type,
-                            min: parseOptionMinMax(substrings[4]),
-                            max: parseOptionMinMax(substrings[5]),
-                            help: substrings[6],
-                        });
-                    } else {
-                        console.error("Unknown type in option ", str);
-                    }
+                    return {type, packedState: this.data[1]};
                 }
-                break;
-            }
-            case TT_EVENT:
-                this.data.splice(0, 1);
-                const data = convertBufferToString(this.data, false);
-                const [levelStr, timestampStr, message, valueStr] = data.split(';');
-                const level = Number.parseInt(levelStr) as UD3AlarmLevel;
-                const timestamp = Number.parseInt(timestampStr);
-                const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr);
-                addAlarm({message, value, level, timestamp}, initializing);
+            case TelemetryEvent.CONFIG_GET:
+            case TelemetryEvent.EVENT:
+                return {data: convertBufferToString(this.data.slice(1), false), type};
         }
     }
 }
 
+export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initializing: boolean) {
+    switch (frame.type) {
+        case TelemetryEvent.GAUGE32:
+        case TelemetryEvent.GAUGE: {
+            ipcs.meters.setValue(frame.index, frame.value);
+            break;
+        }
+        case TelemetryEvent.GAUGE32_CONF:
+        case TelemetryEvent.GAUGE_CONF: {
+            ipcs.meters.configure(frame.index, frame.min, frame.max, frame.divider, frame.name);
+            break;
+        }
+        case TelemetryEvent.CHART_CONF:
+        case TelemetryEvent.CHART32_CONF: {
+            ipcs.scope.configure(
+                frame.traceId, frame.min, frame.max, frame.offset, frame.divider, frame.unit, frame.name
+            );
+            break;
+        }
+        case TelemetryEvent.CHART32:
+        case TelemetryEvent.CHART: {
+            ipcs.scope.addValue(frame.index, frame.value);
+            break;
+        }
+        case TelemetryEvent.CHART_DRAW: {
+            ipcs.scope.drawChart();
+            break;
+        }
+        case TelemetryEvent.CHART_CLEAR: {
+            ipcs.scope.startControlledDraw(source);
+            break;
+        }
+        case TelemetryEvent.CHART_LINE: {
+            ipcs.scope.drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex, source);
+            break;
+        }
+        case TelemetryEvent.CHART_TEXT_CENTER:
+        case TelemetryEvent.CHART_TEXT: {
+            const center = frame.type === TelemetryEvent.CHART_TEXT_CENTER;
+            ipcs.scope.drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center, source);
+            break;
+        }
+        case TelemetryEvent.STATE_SYNC: {
+            updateStateFromTelemetry(frame.packedState);
+            if (frame.maxPw !== undefined) {
+                ipcs.sliders.setSliderRanges(frame.maxPw, frame.maxPrf).catch(
+                    (err) => console.log("While updating slider ranges", err),
+                );
+            }
+            break;
+        }
+        case TelemetryEvent.CONFIG_GET: {
+            const str = frame.data;
+            if (str === "NULL;NULL") {
+                for (const request of configRequestQueue) {
+                    request(udconfig);
+                }
+                udconfig = [];
+                configRequestQueue = [];
+            } else {
+                const substrings = str.split(";");
+                const type = getOptionType(substrings[2]);
+                if (type !== undefined) {
+                    udconfig.push({
+                        name: substrings[0],
+                        current: substrings[1],
+                        type,
+                        min: parseOptionMinMax(substrings[4]),
+                        max: parseOptionMinMax(substrings[5]),
+                        help: substrings[6],
+                    });
+                } else {
+                    console.error("Unknown type in option ", str);
+                }
+            }
+            break;
+        }
+        case TelemetryEvent.EVENT: {
+            const [levelStr, timestampStr, message, valueStr] = frame.data.split(';');
+            const level = Number.parseInt(levelStr) as UD3AlarmLevel;
+            const timestamp = Number.parseInt(timestampStr);
+            const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr);
+            addAlarm({message, value, level, timestamp}, initializing);
+            break;
+        }
+    }
+}
 function parseOptionMinMax(value: string) {
     if (value == 'NULL') {
         return undefined;
@@ -202,16 +307,14 @@ function getOptionType(idStr: string): UD3ConfigType | undefined {
     return undefined;
 }
 
-function drawString(dat: number[], center: boolean, source?: object) {
-    const x = bytes_to_signed(dat[1], dat[2]);
-    const y = bytes_to_signed(dat[3], dat[4]);
-    const color = dat[5].valueOf();
-    let size = dat[6].valueOf();
-    if (size < 6) {
-        size = 6;
-    }
-    dat.splice(0, 7);
-    const str = convertBufferToString(dat);
-    ipcs.scope.drawText(x, y, color, size, str, center, source);
+function parseStringDraw(dat: number[], type: TelemetryEvent.CHART_TEXT | TelemetryEvent.CHART_TEXT_CENTER): ChartText {
+    return {
+        colorIndex: dat[5],
+        size: Math.max(dat[6], 6),
+        text: convertBufferToString(dat.slice(7)),
+        type,
+        x: bytes_to_signed(dat[1], dat[2]),
+        y: bytes_to_signed(dat[3], dat[4]),
+    };
 }
 

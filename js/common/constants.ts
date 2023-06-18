@@ -1,19 +1,21 @@
-export const TT_GAUGE = 1;
-export const TT_GAUGE_CONF = 2;
-export const TT_CHART = 3;
-export const TT_CHART_DRAW = 4;
-export const TT_CHART_CONF = 5;
-export const TT_CHART_CLEAR = 6;
-export const TT_CHART_LINE = 7;
-export const TT_CHART_TEXT = 8;
-export const TT_CHART_TEXT_CENTER = 9;
-export const TT_STATE_SYNC = 10;
-export const TT_CONFIG_GET = 11;
-export const TT_EVENT = 12;
-export const TT_GAUGE32 = 13;
-export const TT_GAUGE32_CONF = 14;
-export const TT_CHART32 = 16;
-export const TT_CHART32_CONF = 17;
+export enum TelemetryEvent {
+    GAUGE = 1,
+    GAUGE_CONF = 2,
+    CHART = 3,
+    CHART_DRAW = 4,
+    CHART_CONF = 5,
+    CHART_CLEAR = 6,
+    CHART_LINE = 7,
+    CHART_TEXT = 8,
+    CHART_TEXT_CENTER = 9,
+    STATE_SYNC = 10,
+    CONFIG_GET = 11,
+    EVENT = 12,
+    GAUGE32 = 13,
+    GAUGE32_CONF = 14,
+    CHART32 = 16,
+    CHART32_CONF = 17,
+}
 
 export const UNITS: string[] = ['', 'V', 'A', 'W', 'Hz', '°C', 'kW', 'RPM'];
 

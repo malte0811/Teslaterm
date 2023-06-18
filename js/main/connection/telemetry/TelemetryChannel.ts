@@ -1,5 +1,5 @@
 import {getUD3Connection} from "../connection";
-import {TelemetryFrame} from "./TelemetryFrame";
+import {sendTelemetryFrame, TelemetryFrameParser} from "./TelemetryFrame";
 
 enum TelemetryFrameState {
     idle,
@@ -8,7 +8,7 @@ enum TelemetryFrameState {
 }
 
 export class TelemetryChannel {
-    private currentFrame: TelemetryFrame | undefined;
+    private frameParser: TelemetryFrameParser | undefined;
     private state: TelemetryFrameState = TelemetryFrameState.idle;
     private readonly source: object;
 
@@ -27,16 +27,16 @@ export class TelemetryChannel {
                 }
                 break;
             case TelemetryFrameState.frame:
-                this.currentFrame = new TelemetryFrame(byte);
+                this.frameParser = new TelemetryFrameParser(byte);
                 this.state = TelemetryFrameState.collect;
                 break;
             case TelemetryFrameState.collect:
-                this.currentFrame.addByte(byte);
-                if (this.currentFrame.isFull()) {
+                const frame = this.frameParser.addByte(byte);
+                if (frame) {
                     if (!this.source || getUD3Connection().isMultiTerminal()) {
-                        this.currentFrame.process(this.source, initializing);
+                        sendTelemetryFrame(frame, this.source, initializing);
                     }
-                    this.currentFrame = undefined;
+                    this.frameParser = undefined;
                     this.state = TelemetryFrameState.idle;
                 }
                 break;
