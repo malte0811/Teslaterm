@@ -53,10 +53,6 @@ export class MINReceiver {
         this.header_bytes_seen = 0;
     }
 
-    public isAtSOF() {
-        return this.frameState === RXState.SOF;
-    }
-
     public receiveByte(byte: number): ReceivedMINFrame | undefined {
         // Regardless of state, three header bytes means "start of frame" and
         // should reset the frame buffer and be ready to receive frame data

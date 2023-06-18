@@ -69,7 +69,7 @@ interface StateSync {
     maxPrf?: number;
 }
 
-type TelemetryFrame = MeasuredValue |
+export type TelemetryFrame = MeasuredValue |
     GaugeConf |
     TraceConf |
     {type: TelemetryEvent.CHART_DRAW} |

@@ -10,22 +10,7 @@ import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConne
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {TerminalHandle} from "./UD3Connection";
-
-const MIN_ID_WD = 10;
-const MIN_ID_MEDIA = 20;
-const MIN_ID_SID = 21;
-const MIN_ID_SOCKET = 13;
-const MIN_ID_SYNTH = 14;
-const MIN_ID_FEATURE = 15;
-const MIN_ID_EVENT = 40;
-const MIN_ID_VMS = 43;
-
-const EVENT_GET_INFO = 1;
-
-const SYNTH_CMD_FLUSH = 0x01;
-const SYNTH_CMD_SID = 0x02;
-const SYNTH_CMD_MIDI = 0x03;
-const SYNTH_CMD_OFF = 0x04;
+import {EVENT_GET_INFO, SYNTH_CMD_FLUSH, UD3MinIDs} from "./UD3MINConstants";
 
 export abstract class MinConnection extends BootloadableConnection {
     private min_wrapper: MINTransceiver | undefined;
@@ -56,7 +41,7 @@ export abstract class MinConnection extends BootloadableConnection {
             }
         });
         await this.init_min_wrapper();
-        await this.repeatedlySendFrame(MIN_ID_EVENT, [EVENT_GET_INFO]);
+        await this.repeatedlySendFrame(UD3MinIDs.EVENT, [EVENT_GET_INFO]);
     }
 
     public async sendDisconnectData() {
@@ -150,7 +135,7 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public resetWatchdog(): void {
         if (this.min_wrapper) {
-            this.min_wrapper.enqueueFrame(MIN_ID_WD, []);
+            this.min_wrapper.enqueueFrame(UD3MinIDs.WATCHDOG, []);
         }
     }
 
@@ -189,11 +174,11 @@ export abstract class MinConnection extends BootloadableConnection {
         if (this.min_wrapper) {
             const maxPerFrame = 200;
 
-            this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, MIN_ID_MEDIA);
-            this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, MIN_ID_SID);
+            this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, UD3MinIDs.MEDIA);
+            this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, UD3MinIDs.SID);
             if (this.counter > 20) {
                 this.counter = 0;
-                this.sendBufferedFrame(this.VMSFramesForBatching, MIN_ID_VMS);
+                this.sendBufferedFrame(this.VMSFramesForBatching, UD3MinIDs.VMS);
             } else {
                 this.counter++;
             }
@@ -210,7 +195,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 "TT socket" +
                 String.fromCharCode(0),
                 'utf-8');
-            await this.repeatedlySendFrame(MIN_ID_SOCKET, infoBuffer);
+            await this.repeatedlySendFrame(UD3MinIDs.SOCKET, infoBuffer);
         }
     }
 
@@ -227,7 +212,7 @@ export abstract class MinConnection extends BootloadableConnection {
             });
         };
         const handler = async (id, data) => {
-            if (id === MIN_ID_MEDIA) {
+            if (id === UD3MinIDs.MEDIA) {
                 if (data[0] === 0x78) {
                     this.sidConnection.setBusy(true);
                 } else if (data[0] === 0x6f) {
@@ -235,7 +220,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 } else {
                     console.error("Unexpected MEDIA MIN message");
                 }
-            } else if (id === MIN_ID_FEATURE) {
+            } else if (id === UD3MinIDs.FEATURE) {
                 const asString = convertBufferToString(data);
                 const splitPoint = asString.indexOf("=");
                 if (splitPoint >= 0) {
@@ -251,7 +236,7 @@ export abstract class MinConnection extends BootloadableConnection {
                         this.connectionsToSetTTerm = [];
                     }
                 }
-            } else if (id === MIN_ID_EVENT && data[0] === EVENT_GET_INFO) {
+            } else if (id === UD3MinIDs.EVENT && data[0] === EVENT_GET_INFO) {
                 // https://github.com/Netzpfuscher/UD3/blob/892b8c25da2784e880c0c2617d417b14c3421ecd/common/ud3core/tasks/tsk_min.c#L216-L221
                 // 1: ID, 1: struct_version, 2: Padding (FFS...), 2*4: unique_id
                 ipcs.misc.sendUDName(convertBufferToString(data.slice(1 + 1 + 2 + 2 * 4)));
@@ -266,13 +251,13 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public async flushSynth(): Promise<void> {
         if (this.min_wrapper) {
-            await this.min_wrapper.enqueueFrame(MIN_ID_SYNTH, [SYNTH_CMD_FLUSH]);
+            await this.min_wrapper.enqueueFrame(UD3MinIDs.SYNTH, [SYNTH_CMD_FLUSH]);
         }
     }
 
     public async setSynthImpl(type: SynthType): Promise<void> {
         if (this.min_wrapper) {
-            await this.min_wrapper.enqueueFrame(MIN_ID_SYNTH, [type]);
+            await this.min_wrapper.enqueueFrame(UD3MinIDs.SYNTH, [type]);
         }
     }
 

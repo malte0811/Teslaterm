@@ -1,6 +1,8 @@
 import {ipcs} from "../ipc/IPCProvider";
+import {getUD3Connection} from "./connection";
 import {resetResponseTimeout} from "./state/Connected";
 import {TelemetryChannel} from "./telemetry/TelemetryChannel";
+import {sendTelemetryFrame} from "./telemetry/TelemetryFrame";
 
 const channels: Map<object, TelemetryChannel> = new Map();
 let consoleLine: string = "";
@@ -9,7 +11,7 @@ export function receive_main(data: Buffer, initializing: boolean, source?: objec
     const buf = new Uint8Array(data);
     resetResponseTimeout();
     if (!channels.has(source)) {
-        channels.set(source, new TelemetryChannel(source));
+        channels.set(source, new TelemetryChannel());
     }
     let print: (s: string) => void;
 
@@ -22,14 +24,15 @@ export function receive_main(data: Buffer, initializing: boolean, source?: objec
                     console.log(consoleLine);
                     consoleLine = "";
                 }
-            } else {
-                if (s !== '\u0000') {
-                    consoleLine += s;
-                }
+            } else if (s !== '\u0000') {
+                consoleLine += s;
             }
         };
     }
-    for (const byte of buf) {
-        channels.get(source).processByte(byte, print, initializing);
-    }
+    const handleFrame = (frame) => {
+        if (!source || getUD3Connection().isMultiTerminal()) {
+            sendTelemetryFrame(frame, source, initializing);
+        }
+    };
+    channels.get(source).processBytes(buf, print, handleFrame);
 }

@@ -2,17 +2,25 @@ import fs from "fs";
 import JSZip from "jszip";
 import {isMainThread, parentPort, Worker} from "worker_threads";
 import {MeterConfig, ScopeTraceConfig, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {FlightRecorderEvent} from "./FlightRecorder";
+import {FlightEventType, FlightRecorderEvent} from "./FlightRecorder";
 
 export interface PassedToast {
     text: string;
     level?: ToastSeverity;
 }
 
+export interface FRScopeConfigs {
+    [i: number]: ScopeTraceConfig;
+}
+
+export interface FRMeterConfigs {
+    [i: number]: MeterConfig;
+}
+
 export interface PassedEventData {
     event: FlightRecorderEvent;
-    scopeConfig: {[i: number]: ScopeTraceConfig};
-    meterConfig: {[i: number]: MeterConfig};
+    scopeConfig: FRScopeConfigs;
+    meterConfig: FRMeterConfigs;
 }
 
 export function makeFlightRecorderWorker(showToast: (toast: PassedToast) => any) {
@@ -30,8 +38,8 @@ const max_stored_bytes = 2.5e6;
 
 interface EventBuffer {
     events: FlightRecorderEvent[];
-    initialScopeConfig: {[i: number]: ScopeTraceConfig};
-    initialMeterConfig: {[i: number]: MeterConfig};
+    initialScopeConfig: FRScopeConfigs;
+    initialMeterConfig: FRMeterConfigs;
 }
 
 /**
@@ -43,6 +51,18 @@ interface EventBuffer {
 let oldEvents: EventBuffer;
 let activeEvents: EventBuffer;
 let currentPayloadBytes: number = 0;
+
+export interface StoredFlightEvent {
+    type: FlightEventType;
+    data: string;
+    time_us: number;
+}
+
+export interface FlightRecorderJSON {
+    initialScopeConfig: FRScopeConfigs;
+    initialMeterConfig: FRMeterConfigs;
+    events: StoredFlightEvent[];
+}
 
 async function doExport(filename: string) {
     if (!activeEvents) {
@@ -58,7 +78,7 @@ async function doExport(filename: string) {
     }
     eventJSONArray.push(...activeEvents.events.map(eventToJSON));
     const firstData = oldEvents || activeEvents;
-    const jsonData = {
+    const jsonData: FlightRecorderJSON = {
         events: eventJSONArray,
         initialMeterConfig: firstData.initialMeterConfig,
         initialScopeConfig: firstData.initialScopeConfig,

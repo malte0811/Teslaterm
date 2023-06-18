@@ -1,7 +1,5 @@
 import {BoolOptionCommand, NumberOptionCommand} from "../command/CommandMessages";
-import {DUMMY_SERVER, ICommandServer} from "../command/CommandServer";
 import {connectionState, getAutoTerminal, getUD3Connection, hasUD3Connection} from "./connection";
-import {Connected} from "./state/Connected";
 
 export class CommandInterface {
     public async stop() {
