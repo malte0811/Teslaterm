@@ -91,6 +91,6 @@ export class UD3FormattedConnection implements ISidConnection {
         // Refuse to send new frames if we're ahead by 1 seconds or more: In this case the UD3 probably sent an "XOFF"
         // already, but it has not arrived yet (e.g. due to noise on the line requiring MIN retransmits). Additionally,
         // the UD3's buffer is only about 1 second (64 entries), so anything much above 1 second will be lost anyway.
-        return this.busy || this.lastFrameTime - microtime.now() > 1e6;
+        return this.busy || this.lastFrameTime - microtime.now() > 0.5e6;
     }
 }
