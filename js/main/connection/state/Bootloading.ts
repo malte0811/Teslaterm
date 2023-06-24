@@ -62,12 +62,13 @@ export class Bootloading implements IConnectionState {
     }
 
     public tickFast(): IConnectionState {
-        if (this.done) {
+        if (!this.inBootloadMode) {
+            this.connection.tick();
+        } else if (this.done) {
             this.connection.releaseResources();
             return new Reconnecting(this.connection, this.advOptions);
-        } else {
-            return this;
         }
+        return this;
     }
 
     public tickSlow() {
