@@ -4,71 +4,110 @@ on:
   pull_request:
   create:
     tags:
-      - 'v*'
+      - v*
 permissions:
   contents: write
 jobs:
-  create-artifacts:
-    name: Create artifacts
+  build-linux:
+    name: Build on Linux
     runs-on: ubuntu-20.04
-    env:
-      release: ${{ github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')}}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Downgrade packages conflicting with wine???
-        run: |
-          sudo apt-add-repository -y ppa:ondrej/php
-          sudo apt-get install ppa-purge
-          sudo ppa-purge -y ppa:ondrej/php
-      - name: Install wine
-        run: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get -f install wine32
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 19
       - name: Cache node modules
         uses: actions/cache@v3
-        env:
-          cache-name: cache-node-modules
         with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
           path: ~/.npm
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json')
+            }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-cache-node-modules-
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       - name: NPM install
         run: npm install --dev
-      - name: Prepare
-        run: npm run build
       - name: Build Electron
-        run: npm run package-electron
+        run: npm run package-electron-linux
       - name: Build Node
-        run: npm run package-node
+        run: npm run build-node-linux
       - name: Upload electron-linux
         uses: actions/upload-artifact@v3
         with:
           path: dist/electron/teslaterm-linux.zip
           name: teslaterm-linux.zip
-      - name: Upload electron-win
-        uses: actions/upload-artifact@v3
-        with:
-          path: dist/electron/teslaterm-win.zip
-          name: teslaterm-windows.zip
       - name: Upload node-linux
         uses: actions/upload-artifact@v3
         with:
           path: dist/node/ud3-node
           name: ud3-node-linux
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 19
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~\AppData\npm-cache
+          key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json')
+            }}
+          restore-keys: |
+            ${{ runner.os }}-build-cache-node-modules-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: NPM install
+        run: npm install --dev
+      - name: Build Electron
+        run: npm run package-electron-win
+      - name: Build Node
+        run: npm run build-node-windows
+      - name: Upload electron-win
+        uses: actions/upload-artifact@v3
+        with:
+          path: dist/electron/teslaterm-win.zip
+          name: teslaterm-win.zip
       - name: Upload node-win
         uses: actions/upload-artifact@v3
         with:
           path: dist/node/ud3-node.exe
           name: ud3-node-windows.exe
+  # TODO actually make this happen, grabbing binaries from uploaded artifacts of other builds
+  create-release:
+    name: Create release if required
+    runs-on: ubuntu-20.04
+    needs: [build-linux, build-windows]
+    env:
+      release: ${{ github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')}}
+    steps:
+      - name: Download node-linux
+        uses: actions/download-artifact@v3
+        with:
+          name: ud3-node-linux
+      - name: Download node-windows
+        uses: actions/download-artifact@v3
+        with:
+          name: ud3-node-windows.exe
+      - name: Download teslaterm-windows
+        uses: actions/download-artifact@v3
+        with:
+          name: teslaterm-win.zip
+      - name: Download teslaterm-linux
+        uses: actions/download-artifact@v3
+        with:
+          name: teslaterm-linux.zip
       - name: Create and upload release builds
         uses: softprops/action-gh-release@v1
         if: env.release == 'true'
         with:
           files: |
-            dist/electron/teslaterm-linux.zip
-            dist/electron/teslaterm-win.zip
-            dist/node/ud3-node
-            dist/node/ud3-node.exe
+            teslaterm-linux.zip
+            teslaterm-win.zip
+            ud3-node
+            ud3-node.exe
