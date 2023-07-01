@@ -6,6 +6,7 @@ export interface TTConfig {
     readonly defaultMidiConfig: MidiConfig;
     readonly defaultNetSIDConfig: NetSidConfig;
     readonly defaultCommandOptions: CommandConnectionConfig;
+    readonly useMIDIPorts: boolean;
 
     readonly udConfigPages: Map<string, number>;
     readonly defaultUDFeatures: Map<string, string>;

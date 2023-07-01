@@ -1,9 +1,10 @@
+import React from "react";
 import {Button} from "react-bootstrap";
 import DropdownMenu from "react-bootstrap/DropdownMenu";
 import {TTComponent} from "./TTComponent";
 
 export interface DropdownProps {
-    children: JSX.Element[];
+    children: React.JSX.Element[];
     title: string;
     darkMode: boolean;
 }

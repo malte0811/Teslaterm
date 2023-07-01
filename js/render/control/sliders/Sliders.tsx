@@ -10,6 +10,8 @@ import {SimpleSlider} from './SimpleSlider';
 export interface SlidersProps {
     ud3State: IUD3State;
     disabled: boolean;
+    enableMIDI: boolean;
+    darkMode: boolean;
 }
 
 interface SliderUIState extends ISliderState {
@@ -118,7 +120,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 visuallyEnabled={trOn}
                 disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
             />
-            <MidiSourceSelect/>
+            {this.props.enableMIDI && <MidiSourceSelect darkMode={this.props.darkMode}/>}
         </div>;
     }
 }

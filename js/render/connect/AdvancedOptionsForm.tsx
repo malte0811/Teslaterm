@@ -1,3 +1,4 @@
+import React, {ReactElement} from "react";
 import {Button, Col, Form, Row} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {AdvancedOptions, CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../../common/Options";
@@ -91,7 +92,7 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
     }
 
     private makeSelect<T extends string>(label: string, values: T[], current: T, set: (val: T) => any) {
-        const options = [];
+        const options: ReactElement[] = [];
         for (const value of values) {
             options.push(<Dropdown.Item
                 key={value}

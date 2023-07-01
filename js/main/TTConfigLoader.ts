@@ -220,6 +220,17 @@ function readCommandConfig(cfg: Config, changed: ChangedFlag): CommandConnection
     };
 }
 
+function readMIDIPortEnable(cfg: Config, changed: ChangedFlag) {
+    const generalSection = cfg.getOrCreateSection('general');
+    return generalSection.getOrWrite<boolean>(
+        'useMIDIPorts',
+        true,
+        changed,
+        'Allow MIDI ports to be passed to the UD3 by TT. Disable this to work around a Chromium issue where' +
+        ' it opens (and blocks) all ports as soon as MIDI support is enabled',
+    );
+}
+
 export function loadConfig(filename: string): TTConfig {
     let contents: string = "";
     if (fs.existsSync(filename)) {
@@ -247,6 +258,7 @@ export function loadConfig(filename: string): TTConfig {
         ...ttConfigBase,
         defaultUDFeatures: readSectionFromMap<string>(defaultUDFeatures, udFeaturesInConfig, changed),
         udConfigPages: readSectionFromMap<number>(defaultUDConfigPages, udconfig, changed),
+        useMIDIPorts: readMIDIPortEnable(config, changed),
     };
     if (changed.changed) {
         fs.writeFile(filename, configToString(config), (err) => {

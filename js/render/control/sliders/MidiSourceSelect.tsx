@@ -1,11 +1,13 @@
-import React from "react";
+import React, {ReactElement} from "react";
 import {Button, Dropdown} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {TTDropdown} from "../../TTDropdown";
 import MIDIInput = WebMidi.MIDIInput;
 
 export interface MidiSelectProps {
+    darkMode: boolean;
 }
 
 interface MidiSelectState {
@@ -28,7 +30,17 @@ export class MidiSourceSelect extends TTComponent<MidiSelectProps, MidiSelectSta
         if (!this.state.access) {
             return <></>;
         }
-        const items: JSX.Element[] = [];
+        const items: ReactElement[] = [
+            <Dropdown.Item
+                as={Button}
+                onClick={() => this.setState((state) => {
+                    return {currentInput: this.selectInput(state, undefined)};
+                })}
+                key={'none'}
+            >
+                None
+            </Dropdown.Item>,
+        ];
         for (const input of this.state.access.inputs.values()) {
             items.push(<Dropdown.Item
                 as={Button}
@@ -42,21 +54,9 @@ export class MidiSourceSelect extends TTComponent<MidiSelectProps, MidiSelectSta
         }
         const title = (this.state.currentInput && this.state.currentInput.name) || 'Choose MIDI input';
         return (
-            <Dropdown>
-                <Dropdown.Toggle variant={'secondary'}>{title}</Dropdown.Toggle>
-                <Dropdown.Menu>
-                    <Dropdown.Item
-                        as={Button}
-                        onClick={() => this.setState((state) => {
-                            return {currentInput: this.selectInput(state, undefined)};
-                        })}
-                        key={'none'}
-                    >
-                        None
-                    </Dropdown.Item>
-                    {items}
-                </Dropdown.Menu>
-            </Dropdown>
+            <TTDropdown title={title} darkMode={this.props.darkMode}>
+                {items}
+            </TTDropdown>
         );
     }
 

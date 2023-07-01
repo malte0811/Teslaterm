@@ -113,6 +113,8 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
                         <Sliders
                             ud3State={this.state.ud3state}
                             disabled={!allowInteraction}
+                            enableMIDI={this.props.ttConfig.useMIDIPorts}
+                            darkMode={this.props.darkMode}
                         />
                     </div>
                     <Terminal
