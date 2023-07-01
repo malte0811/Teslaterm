@@ -6,7 +6,7 @@ export abstract class CanvasComponent<Props, State> extends TTComponent<Props, S
     private readonly divRef: React.RefObject<HTMLDivElement>;
     private readonly resizeListener: () => any;
 
-    protected constructor(props: any) {
+    public constructor(props: any) {
         super(props);
         this.canvasRef = React.createRef();
         this.divRef = React.createRef();

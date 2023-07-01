@@ -60,11 +60,12 @@ export class Alarms extends TTComponent<AlarmProps, {}> {
                 color = 'white';
                 break;
         }
-        return <tr style={({background, color})} key={id}>
-            <td>{alarm.timestamp}</td>
-            <td>{levelName}</td>
-            <td>{alarm.message}</td>
-            <td>{alarm.value || ''}</td>
+        const style = {background, color};
+        return <tr style={style} key={id}>
+            <td style={style}>{alarm.timestamp}</td>
+            <td style={style}>{levelName}</td>
+            <td style={style}>{alarm.message}</td>
+            <td style={style}>{alarm.value || ''}</td>
         </tr>;
     }
 }

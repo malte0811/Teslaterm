@@ -45,9 +45,11 @@
     color: var(--dark-foreground);
     --bs-warning-rgb: 192, 139, 20;
     --bs-warning: rgb(var(--bs-warning-rgb));
-    --bs-modal-bg: var(--dark-background);
     --bs-modal-color: var(--dark-foreground);
+    --bs-modal-bg: var(--dark-background);
     --bs-body-color: var(--dark-foreground);
+    --bs-body-bg: var(--dark-background);
+    --bs-emphasis-color: var(--dark-foreground);
     --bs-tertiary-bg: #a2a2a2;
 }
 
