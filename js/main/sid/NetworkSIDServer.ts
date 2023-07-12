@@ -1,5 +1,5 @@
 import * as net from "net";
-import {SynthType} from "../../common/CommonTypes";
+import {SynthType} from "../../common/MediaTypes";
 import {ICommandServer} from "../command/CommandServer";
 import {getOptionalUD3Connection} from "../connection/connection";
 import {getActiveSIDConnection} from "./ISidConnection";

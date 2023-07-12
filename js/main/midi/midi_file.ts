@@ -1,4 +1,4 @@
-import {MediaFileType} from "../../common/CommonTypes";
+import {MediaFileType} from "../../common/MediaTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";

@@ -1,15 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import {ParsedEvent} from "../common/FlightRecorderTypes";
 import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
 import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
 import {TTConfig} from "../common/TTConfig";
 import {ConnectScreen} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
+import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
 
 interface TopLevelState {
-    connectionStatus: ConnectionStatus;
+    connectionStatus: ConnectionStatus | 'fr-viewer';
+    flightEvents?: ParsedEvent[];
     ttConfig: TTConfig;
     udName?: string;
     // If connection is lost, it may be because the UD3 died. In that case we want to stay on the "main" screen so the
@@ -61,9 +64,11 @@ export class App extends TTComponent<{}, TopLevelState> {
         </>;
     }
 
-    private getMainElement(): JSX.Element {
+    private getMainElement(): React.JSX.Element {
         if (!this.state.ttConfig) {
             return <>Initializing...</>;
+        } else if (this.state.connectionStatus === 'fr-viewer') {
+            return <FlightRecordingScreen darkMode={this.state.darkMode} events={this.state.flightEvents}/>;
         } else if (this.state.wasConnected) {
             return <MainScreen
                 ttConfig={this.state.ttConfig}
@@ -80,6 +85,10 @@ export class App extends TTComponent<{}, TopLevelState> {
                 connecting={this.state.connectionStatus === ConnectionStatus.CONNECTING}
                 darkMode={this.state.darkMode}
                 setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setDarkMode, newVal)}
+                openFlightRecording={(evs) => this.setState({
+                    connectionStatus: 'fr-viewer',
+                    flightEvents: evs,
+                })}
             />;
         } else {
             return <>Unsupported status {this.state.connectionStatus} :(</>;

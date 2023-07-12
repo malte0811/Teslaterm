@@ -1,6 +1,6 @@
 import React from "react";
 import {CloseButton, Nav, Tab} from "react-bootstrap";
-import {MediaFileType, PlayerActivity} from "../../../common/CommonTypes";
+import {MediaFileType, PlayerActivity} from "../../../common/MediaTypes";
 import {
     IPC_CONSTANTS_TO_RENDERER,
     MediaState,

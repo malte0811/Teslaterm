@@ -1,5 +1,4 @@
-import {getUD3Connection} from "../connection";
-import {sendTelemetryFrame, TelemetryFrame, TelemetryFrameParser} from "./TelemetryFrame";
+import {TelemetryFrame, TelemetryFrameParser} from "./TelemetryFrame";
 
 enum TelemetryFrameState {
     idle,

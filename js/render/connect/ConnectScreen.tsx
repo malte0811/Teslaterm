@@ -2,10 +2,13 @@ import React from "react";
 import {Button, Toast, ToastContainer} from "react-bootstrap";
 import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
 import {UD3ConnectionType} from "../../common/constants";
+import {ParsedEvent} from "../../common/FlightRecorderTypes";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {AvailableSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
 import {getDefaultAdvancedOptions, TTConfig} from "../../common/TTConfig";
-import {TTComponent} from "../TTComponent";
+import {processIPC} from "../ipc/IPCProvider";
+import {ScreenWithDrop} from "../ScreenWithDrop";
 import {ConnectedSerialDevices} from "./ConnectedSerialDevices";
 import {ConnectForm} from "./ConnectForm";
 import {ConnectionPresets} from "./ConnectionPresets";
@@ -73,9 +76,10 @@ export interface ConnectScreenProps {
     connecting: boolean;
     darkMode: boolean;
     setDarkMode: (newVal: boolean) => void;
+    openFlightRecording: (evs: ParsedEvent[]) => any;
 }
 
-export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreenState> {
+export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScreenState> {
     constructor(props: ConnectScreenProps) {
         super(props);
         const connectOptions = this.props.ttConfig.defaultConnectOptions;
@@ -94,6 +98,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
     }
 
     public componentDidMount() {
+        super.componentDidMount();
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.connect.connectionError, (error) => this.setState({error, showingError: true}),
         );
@@ -103,7 +108,7 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
         const setOptions = (opts: Partial<MergedConnectionOptions>) => this.setState(
             (oldState) => ({currentOptions: {...oldState.currentOptions, ...opts}}),
         );
-        return <div className={'tt-connect-screen'}>
+        return <div className={'tt-connect-screen'} ref={this.mainDivRef}>
             <ConnectForm
                 currentOptions={this.state.currentOptions}
                 setOptions={setOptions}
@@ -127,6 +132,18 @@ export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreen
                 setOption={opts => this.setState({currentOptions: {...this.state.currentOptions, ...opts}})}
             />
         </div>;
+    }
+
+    protected async onDrop(e: DragEvent) {
+        const files = e.dataTransfer.files;
+        if (files.length !== 1 || !files[0].name.endsWith('.zip')) {
+            return;
+        }
+        const data = await files[0].arrayBuffer();
+        processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (events) => {
+            this.props.openFlightRecording(events);
+        });
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.flightRecorder.loadFlightRecording, [...new Uint8Array(data)]);
     }
 
     private makeToast() {

@@ -1,5 +1,5 @@
 import * as path from "path";
-import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
+import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {connectionState} from "../connection/connection";
 import * as connection from "../connection/connection";

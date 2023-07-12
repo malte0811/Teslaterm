@@ -1,4 +1,4 @@
-import {MediaFileType, SynthType, synthTypeFor} from "../../../common/CommonTypes";
+import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
 import {FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
 import {Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {config} from "../../init";

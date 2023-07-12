@@ -1,6 +1,6 @@
 import * as os from "os";
 import {SerialPort} from "serialport";
-import {SynthType} from "../../../common/CommonTypes";
+import {SynthType} from "../../../common/MediaTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {toCommandID, UD3Connection} from "./UD3Connection";

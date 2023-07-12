@@ -8,12 +8,12 @@ import {
     ConfirmationRequest,
     ConnectionStatus,
     IPC_CONSTANTS_TO_RENDERER,
-    IUD3State
+    IUD3State,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
-import {TTComponent} from "../TTComponent";
+import {ScreenWithDrop} from "../ScreenWithDrop";
 import {Gauges} from "./gauges/Gauges";
 import {MenuBar} from "./menu/Menu";
 import {Oscilloscope} from "./scope/Oscilloscope";
@@ -40,11 +40,8 @@ export interface TerminalRef {
     fitter: FitAddon;
 }
 
-export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
+export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState> {
     private readonly terminal: TerminalRef;
-    private readonly mainDivRef: React.RefObject<HTMLDivElement>;
-    private readonly dropListener: (e: DragEvent) => any;
-    private readonly dragoverListener: (e: DragEvent) => any;
 
     constructor(props: any) {
         super(props);
@@ -62,36 +59,16 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
             fitter: new FitAddon(),
             terminal: undefined,
         };
-        this.mainDivRef = React.createRef();
-        this.dropListener = (e) => {
-            this.onDrop(e).catch((err) => console.error('While processing dropped files:', err));
-        };
-        this.dragoverListener = (e: DragEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-        };
     }
 
     public componentDidMount() {
+        super.componentDidMount();
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state) => this.setState({ud3state: state}));
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
             (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),
-        )
+        );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
-        if (this.mainDivRef.current) {
-            this.mainDivRef.current.addEventListener('dragover', this.dragoverListener);
-            this.mainDivRef.current.addEventListener('drop', this.dropListener);
-        }
-    }
-
-    public componentWillUnmount() {
-        super.componentWillUnmount();
-        if (this.mainDivRef.current) {
-            this.mainDivRef.current.removeEventListener('dragover', this.dragoverListener);
-            this.mainDivRef.current.removeEventListener('drop', this.dropListener);
-        }
     }
 
     public render(): React.ReactNode {
@@ -129,13 +106,11 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
         </div>;
     }
 
-    private async onDrop(e: DragEvent) {
-        e.stopPropagation();
-        e.preventDefault();
+    protected async onDrop(e: DragEvent) {
         const files = e.dataTransfer.files;
         if (e.dataTransfer.items.length === 1 && !files[0].name.endsWith(".js")) {
             // only one file, not a script
-            FileUploadIPC.uploadFile(files[0]);
+            await FileUploadIPC.uploadFile(files[0]);
         } else {
             // Multiple files or a JS file => compress and treat as script
             let scriptName = MainScreen.findScriptName(files);

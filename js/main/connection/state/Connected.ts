@@ -1,4 +1,4 @@
-import {PlayerActivity, SynthType} from "../../../common/CommonTypes";
+import {PlayerActivity, SynthType} from "../../../common/MediaTypes";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {AdvancedOptions, CommandRole} from "../../../common/Options";
 import {ipcs} from "../../ipc/IPCProvider";

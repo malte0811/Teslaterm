@@ -19,6 +19,10 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setParms: makeKey<Map<string, string>>('set-parms'),
         setTRState: makeKey<boolean>('set-tr-state'),
     },
+    flightRecorder: {
+        dumpFlightRecorder: makeKey<undefined>('dump-flight-recorder'),
+        loadFlightRecording: makeKey<number[]>('load-flight-recording'),
+    },
     loadFile: makeKey<DroppedFile>('load-file'),
     manualCommand: makeKey<string>('manual-command'),
     connect: {
@@ -29,7 +33,6 @@ export const IPC_CONSTANTS_TO_MAIN = {
     },
     menu: {
         connectButton: makeKey<undefined>('press-connect-button'),
-        dumpFlightRecorder: makeKey<undefined>('dump-flight-recorder'),
         requestAlarmList: makeKey<undefined>('request-alarms'),
         downloadUD3ConfigElectron: makeKey<undefined>('download-ud-config-electron'),
         requestUDConfig: makeKey<undefined>('request-ud-config'),

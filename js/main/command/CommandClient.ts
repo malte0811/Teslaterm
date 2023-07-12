@@ -1,5 +1,5 @@
 import {Socket} from "net";
-import {SynthType} from "../../common/CommonTypes";
+import {SynthType} from "../../common/MediaTypes";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {getOptionalUD3Connection} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";

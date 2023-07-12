@@ -63,7 +63,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
         this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined, true);
         this.makeIPCItem(
-            items, 'Export Flight Recording', IPC_CONSTANTS_TO_MAIN.menu.dumpFlightRecorder, undefined, true,
+            items, 'Export Flight Recording', IPC_CONSTANTS_TO_MAIN.flightRecorder.dumpFlightRecorder, undefined, true,
         );
         return <>
             <TTDropdown title={'Commands'} darkMode={this.props.darkMode}>{items}</TTDropdown>

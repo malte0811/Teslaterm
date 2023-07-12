@@ -19,10 +19,6 @@ export class MenuIPC {
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, async (source) => {
             requestConfig((cfg) => ipcs.misc.openUDConfig(cfg, source));
         });
-        processIPC.on(
-            IPC_CONSTANTS_TO_MAIN.menu.dumpFlightRecorder,
-            async () => getFlightRecorder().exportAsFile(),
-        );
         this.processIPC = processIPC;
     }
 

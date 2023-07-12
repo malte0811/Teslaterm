@@ -1,4 +1,4 @@
-import {SynthType} from "../../../common/CommonTypes";
+import {SynthType} from "../../../common/MediaTypes";
 import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";

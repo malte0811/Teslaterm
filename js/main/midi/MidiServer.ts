@@ -1,5 +1,5 @@
 import {manager, Session} from "rtpmidi";
-import {PlayerActivity} from "../../common/CommonTypes";
+import {PlayerActivity} from "../../common/MediaTypes";
 import {MidiConfig} from "../../common/Options";
 import {media_state} from "../media/media_player";
 import {playMidiData} from "./midi";

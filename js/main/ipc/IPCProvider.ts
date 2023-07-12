@@ -3,6 +3,7 @@ import {IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
 import {CommandIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
+import {FlightRecorderIPC} from "./FlightRecorderIPC";
 import {MenuIPC} from "./Menu";
 import {MetersIPC} from "./Meters";
 import {MiscIPC} from "./Misc";
@@ -132,6 +133,7 @@ export class IPCCollection {
     public readonly commands: CommandIPC;
     public readonly connectionUI: ConnectionUIIPC;
     public readonly fileUpload: FileUploadIPC;
+    public readonly flightRecorder: FlightRecorderIPC;
     public readonly menu: MenuIPC;
     public readonly meters: MetersIPC;
     public readonly misc: MiscIPC;
@@ -144,6 +146,7 @@ export class IPCCollection {
         this.commands = new CommandIPC(process);
         this.connectionUI = new ConnectionUIIPC(process);
         this.fileUpload = new FileUploadIPC(process);
+        this.flightRecorder = new FlightRecorderIPC(process);
         this.menu = new MenuIPC(process);
         this.meters = new MetersIPC(process);
         this.misc = new MiscIPC(process);

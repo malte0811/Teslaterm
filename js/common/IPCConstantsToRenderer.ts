@@ -1,5 +1,5 @@
-import {SliderState} from "../main/ipc/sliders";
-import {MediaFileType, PlayerActivity} from './CommonTypes';
+import {ParsedEvent} from "./FlightRecorderTypes";
+import {MediaFileType, PlayerActivity} from './MediaTypes';
 import {ConnectionOptions} from "./ConnectionOptions";
 import {UD3AlarmLevel} from "./constants";
 import {TTConfig} from "./TTConfig";
@@ -21,6 +21,9 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
         setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
         syncPresets: makeKey<ConnectionPreset[]>('sync-connect-sesets'),
+    },
+    flightRecorder: {
+        fullList: makeKey<ParsedEvent[]>('fr-event-list'),
     },
     menu: {
         setMediaTitle: makeKey<string>('menu-media-title'),

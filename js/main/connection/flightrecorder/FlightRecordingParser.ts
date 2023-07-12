@@ -1,7 +1,7 @@
-import {app} from "electron";
 import fs from "fs";
 import JSZip from "jszip";
-import {SynthType, synthTypeToString} from "../../../common/CommonTypes";
+import {FREventType, ParsedEvent} from "../../../common/FlightRecorderTypes";
+import {synthTypeToString} from "../../../common/MediaTypes";
 import {ACK_BYTE, RESET} from "../../min/MINConstants";
 import {MINReceiver, ReceivedMINFrame} from "../../min/MINReceiver";
 import {TelemetryChannel} from "../telemetry/TelemetryChannel";
@@ -84,6 +84,7 @@ function toSafeString(data: Iterable<number>): string {
     return makeStringSafe(uint8sToString(data));
 }
 
+// TODO move all of this to UI
 function cleanFormatting(formatted: string): string {
     return formatted.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '')
         // TODO any issues on Windows?
@@ -114,7 +115,7 @@ function describeTelemetry(frame: TelemetryFrame, appID: number): string {
     return 'Telemetry on ' + appID + ': ' + JSON.stringify(frame);
 }
 
-export function parseEventsForDisplay(minEvents: MINFlightEvent[]): ParsedEvent[] {
+export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry: boolean): ParsedEvent[] {
     const humanEvents: ParsedEvent[] = [];
     const telemetryParsers = [new TelemetryChannel(), new TelemetryChannel(), new TelemetryChannel()];
     for (const minEvent of minEvents) {
@@ -128,7 +129,7 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[]): ParsedEvent[
         if (appID === UD3MinIDs.WATCHDOG) {
             continue;
         }
-        const addEvent = (desc: string) => humanEvents.push({desc, time: minEvent.time, toUD3: minEvent.toUD3});
+        const baseEvent = {time: minEvent.time, toUD3: minEvent.toUD3};
         // TODO should this just be the fallback path?
         if (appID < 4) {
             let printed = '';
@@ -138,35 +139,47 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[]): ParsedEvent[
                 telemetryParsers[appID].processBytes(
                     frame.payload,
                     (s) => printed += s,
-                    (tFrame) => addEvent(describeTelemetry(tFrame, appID)),
+                    (tFrame) => {
+                        if (!skipTelemetry) {
+                            humanEvents.push({
+                                ...baseEvent, desc: describeTelemetry(tFrame, appID), type: FREventType.telemetry,
+                            });
+                        }
+                    },
                 );
             }
             if (printed !== '') {
                 printed = cleanFormatting(printed);
                 printed = makeStringSafe(printed);
                 humanEvents.push({
-                    desc: 'Data on terminal ' + appID + ':\n' + printed,
-                    time: minEvent.time,
-                    toUD3: minEvent.toUD3,
+                    ...baseEvent, desc: 'Data on terminal ' + appID + ':\n', printed, type: FREventType.terminal_data,
                 });
             }
         } else if (appID === UD3MinIDs.FEATURE && !minEvent.toUD3) {
-            addEvent('Feature support: ' + toSafeString(frame.payload));
+            humanEvents.push({
+                ...baseEvent, desc: 'Feature support: ' + toSafeString(frame.payload), type: FREventType.feature_sync,
+            });
         } else if (appID === UD3MinIDs.SOCKET && minEvent.toUD3) {
             const id = frame.payload[0];
             const type = frame.payload[1] ? 'Starting' : 'Stopping';
-            addEvent(`${type} terminal ${id}: ${toSafeString(frame.payload.slice(2, frame.payload.length - 1))}`);
+            humanEvents.push({
+                ...baseEvent,
+                desc: `${type} terminal ${id}: ${toSafeString(frame.payload.slice(2, frame.payload.length - 1))}`,
+                type: FREventType.terminal_start_stop,
+            });
         } else if (appID === UD3MinIDs.SYNTH && minEvent.toUD3 && frame.payload.length === 1) {
+            let desc;
             if (frame.payload[0] === SYNTH_CMD_FLUSH) {
-                addEvent('Synth flush');
+                desc = 'Synth flush';
             } else {
-                addEvent('Setting synth to ' + synthTypeToString(frame.payload[0]));
+                desc = 'Setting synth to ' + synthTypeToString(frame.payload[0]);
             }
+            humanEvents.push({...baseEvent, desc, type: FREventType.set_synth});
         } else {
             humanEvents.push({
+                ...baseEvent,
                 desc: `Unexpected ID ${frame.id_control} (${appID}), payload ${frame.payload}`,
-                time: minEvent.time,
-                toUD3: minEvent.toUD3,
+                type: FREventType.unknown,
             });
         }
     }
@@ -178,7 +191,7 @@ async function main() {
     const zipData = await fs.promises.readFile('tt-flight-recording-1689790979688.zip');
     const [flightEvents, initialState] = await parseEventsFromFile(zipData);
     const minEvents = parseMINEvents(flightEvents);
-    const displayEvents = parseEventsForDisplay(minEvents);
+    const displayEvents = parseEventsForDisplay(minEvents, false);
     if (displayEvents.length === 0) { return; }
     console.log('Initial meter state:');
     for (const id of Object.keys(initialState.meterConfigs)) {
@@ -202,4 +215,4 @@ async function main() {
     }
 }
 
-main().catch(err => console.log(err));
+//main().catch(err => console.log(err));

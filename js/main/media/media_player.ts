@@ -1,5 +1,5 @@
 import * as path from "path";
-import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
+import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {commands, connectionState, getUD3Connection, hasUD3Connection} from "../connection/connection";

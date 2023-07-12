@@ -1,5 +1,5 @@
 import * as MidiPlayer from "midi-player-js";
-import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
+import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {connectionState, hasUD3Connection} from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
 import {simulated} from "../init";

@@ -1,0 +1,15 @@
+.tt-fr-toplevel {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 200px auto;
+}
+
+.tt-fr-list {
+    overflow-y: auto;
+}
+
+.tt-min-width-cell {
+    width: 1%;
+    white-space: nowrap;
+}
