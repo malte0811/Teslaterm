@@ -1,12 +1,18 @@
 import fs from "fs";
 import JSZip from "jszip";
 import {isMainThread, parentPort, Worker} from "worker_threads";
-import {ToastSeverity} from "../../../common/IPCConstantsToRenderer";
+import {MeterConfig, ScopeTraceConfig, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {FlightRecorderEvent} from "./FlightRecorder";
 
 export interface PassedToast {
     text: string;
     level?: ToastSeverity;
+}
+
+export interface PassedEventData {
+    event: FlightRecorderEvent;
+    scopeConfig: {[i: number]: ScopeTraceConfig};
+    meterConfig: {[i: number]: MeterConfig};
 }
 
 export function makeFlightRecorderWorker(showToast: (toast: PassedToast) => any) {
@@ -22,23 +28,42 @@ export function makeFlightRecorderWorker(showToast: (toast: PassedToast) => any)
 
 const max_stored_bytes = 2.5e6;
 
+interface EventBuffer {
+    events: FlightRecorderEvent[];
+    initialScopeConfig: {[i: number]: ScopeTraceConfig};
+    initialMeterConfig: {[i: number]: MeterConfig};
+}
+
 /**
  * oldEvents and activeEvents are used to implement a very rough queue-like structure: JS by itself does not have
  * any reasonably fast queue data structures (abusing arrays as queues has linear runtime for each op). As an
  * alternative, we grow the "active" event array until it reaches the size limit. When it does, it replaces the
  * "old events" array and is itself replaced by an empty array.
  */
-let oldEvents: FlightRecorderEvent[] = [];
-let activeEvents: FlightRecorderEvent[] = [];
+let oldEvents: EventBuffer;
+let activeEvents: EventBuffer;
 let currentPayloadBytes: number = 0;
 
 async function doExport(filename: string) {
+    if (!activeEvents) {
+        return;
+    }
     const eventToJSON = (ev: FlightRecorderEvent) => ({
         ...ev,
         data: Buffer.from(ev.data).toString('base64'),
     });
-    const jsonArray = [...oldEvents.map(eventToJSON), ...activeEvents.map(eventToJSON)];
-    const jsonString = JSON.stringify(jsonArray, null, 2);
+    const eventJSONArray = [];
+    if (oldEvents) {
+        eventJSONArray.push(...oldEvents.events.map(eventToJSON));
+    }
+    eventJSONArray.push(...activeEvents.events.map(eventToJSON));
+    const firstData = oldEvents || activeEvents;
+    const jsonData = {
+        events: eventJSONArray,
+        initialMeterConfig: firstData.initialMeterConfig,
+        initialScopeConfig: firstData.initialScopeConfig,
+    };
+    const jsonString = JSON.stringify(jsonData, null, 2);
     const zip = JSZip();
     zip.file('data.json', jsonString);
     const data = await zip.generateAsync({
@@ -48,13 +73,24 @@ async function doExport(filename: string) {
     await fs.promises.writeFile(filename, data);
 }
 
-function addEvent(ev: FlightRecorderEvent) {
-    activeEvents.push(ev);
-    currentPayloadBytes += ev.data.length;
+function newEventBuffer(ev: PassedEventData): EventBuffer {
+    return {
+        events: [],
+        initialMeterConfig: ev.meterConfig,
+        initialScopeConfig: ev.scopeConfig,
+    };
+}
+
+function addEvent(ev: PassedEventData) {
+    if (!activeEvents) {
+        activeEvents = newEventBuffer(ev);
+    }
+    activeEvents.events.push(ev.event);
+    currentPayloadBytes += ev.event.data.length;
     if (currentPayloadBytes > max_stored_bytes) {
         currentPayloadBytes = 0;
         oldEvents = activeEvents;
-        activeEvents = [];
+        activeEvents = newEventBuffer(ev);
     }
 }
 
@@ -63,7 +99,7 @@ function sendToastToMain(toast: PassedToast) {
 }
 
 if (!isMainThread) {
-    parentPort.on('message', (ev?: FlightRecorderEvent) => {
+    parentPort.on('message', (ev?: PassedEventData) => {
         if (ev) {
             addEvent(ev);
         } else {

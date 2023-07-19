@@ -1,10 +1,10 @@
-import {IPC_CONSTANTS_TO_RENDERER, MeterConfig, SetMeters} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, MeterConfig} from "../../common/IPCConstantsToRenderer";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class MetersIPC {
     private state: { [id: number]: number } = {};
     private lastState: { [id: number]: number } = {};
-    private readonly configs: Map<number, MeterConfig> = new Map();
+    private readonly configs: {[i: number]: MeterConfig} = {};
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
@@ -19,14 +19,18 @@ export class MetersIPC {
     public configure(meterId: number, min: number, max: number, scale: number, name: string) {
         const config: MeterConfig = {meterId, min, max, scale, name};
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.configure, config);
-        this.configs.set(meterId, config);
+        this.configs[meterId] =  config;
     }
 
     public sendConfig(source: object) {
-        for (const cfg of this.configs.values()) {
+        for (const cfg of Object.values(this.configs)) {
             this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.configure, source, cfg);
         }
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.setValue, source, {values: this.lastState});
+    }
+
+    public getCurrentConfigs() {
+        return this.configs;
     }
 
     private tick() {

@@ -1,18 +1,11 @@
-import {
-    IPC_CONSTANTS_TO_RENDERER,
-    ScopeLine,
-    ScopeText,
-    ScopeTraceConfig,
-    ScopeValues,
-} from "../../common/IPCConstantsToRenderer";
-import {MediaState} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, ScopeTraceConfig} from "../../common/IPCConstantsToRenderer";
 import {media_state} from "../media/media_player";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class ScopeIPC {
     private tickSummary: Array<{ [id: number]: number }> = [];
     private sinceLastDraw: { [id: number]: number } = {};
-    private configs: Map<number, ScopeTraceConfig> = new Map();
+    private configs: {[id: number]: ScopeTraceConfig} = {};
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
@@ -40,7 +33,7 @@ export class ScopeIPC {
     }
 
     public drawText(
-        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean, source?: object
+        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean, source?: object,
     ) {
         this.processIPC.sendToWindow(
             IPC_CONSTANTS_TO_RENDERER.scope.drawString, source, {x, y, traceColorIndex, size, str, center},
@@ -52,7 +45,7 @@ export class ScopeIPC {
     ) {
         const config: ScopeTraceConfig = {id, min, max, offset, div, unit, name};
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.configure, config);
-        this.configs.set(id, config);
+        this.configs[id] = config;
     }
 
     public updateMediaInfo() {
@@ -66,9 +59,13 @@ export class ScopeIPC {
     }
 
     public sendConfig(source: object) {
-        for (const cfg of this.configs.values()) {
+        for (const cfg of Object.values(this.configs)) {
             this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.configure, source, cfg);
         }
+    }
+
+    public getCurrentConfigs() {
+        return this.configs;
     }
 
     private tick() {
