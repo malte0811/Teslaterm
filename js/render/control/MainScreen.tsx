@@ -49,18 +49,18 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
     constructor(props: any) {
         super(props);
         this.state = {
+            scriptPopup: {confirmationID: 0, message: "", title: undefined},
+            scriptPopupShown: false,
             ud3state: {
                 busActive: false,
                 killBitSet: false,
                 busControllable: false,
                 transientActive: false,
             },
-            scriptPopup: new ConfirmationRequest(0, ""),
-            scriptPopupShown: false,
         };
         this.terminal = {
-            terminal: undefined,
             fitter: new FitAddon(),
+            terminal: undefined,
         };
         this.mainDivRef = React.createRef();
         this.dropListener = (e) => {
@@ -73,7 +73,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
         };
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state) => this.setState({ud3state: state}));
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
@@ -86,7 +86,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
         }
     }
 
-    componentWillUnmount() {
+    public componentWillUnmount() {
         super.componentWillUnmount();
         if (this.mainDivRef.current) {
             this.mainDivRef.current.removeEventListener('dragover', this.dragoverListener);
@@ -94,7 +94,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
         }
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const allowInteraction = this.props.connectionStatus == ConnectionStatus.CONNECTED;
         return <div className={'tt-main-screen'} ref={this.mainDivRef}>
             <div className={'tt-menu-bar'}>
@@ -129,7 +129,7 @@ export class MainScreen extends TTComponent<MainScreenProps, MainScreenState> {
         </div>;
     }
 
-    async onDrop(e: DragEvent) {
+    private async onDrop(e: DragEvent) {
         e.stopPropagation();
         e.preventDefault();
         const files = e.dataTransfer.files;

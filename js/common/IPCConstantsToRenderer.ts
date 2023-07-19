@@ -53,28 +53,16 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
 };
 
-export class SetMeters {
-    public readonly values: { [id: number]: number };
-
-    constructor(values: { [id: number]: number }) {
-        this.values = values;
-    }
+export interface SetMeters {
+    readonly values: { [id: number]: number };
 }
 
-export class MeterConfig {
-    public readonly meterId: number;
-    public readonly min: number;
-    public readonly max: number;
-    public readonly scale: number;
-    public readonly name: string;
-
-    constructor(meterId: number, min: number, max: number, scale: number, name: string) {
-        this.meterId = meterId;
-        this.min = min;
-        this.max = max;
-        this.scale = scale;
-        this.name = name;
-    }
+export interface MeterConfig {
+    readonly meterId: number;
+    readonly min: number;
+    readonly max: number;
+    readonly scale: number;
+    readonly name: string;
 }
 
 export interface IUD3State {
@@ -107,93 +95,48 @@ export class UD3State implements IUD3State {
     }
 }
 
-export class ScopeTraceConfig {
-    public readonly id: number;
-    public readonly min: number;
-    public readonly max: number;
-    public readonly offset: number;
-    public readonly div: number;
-    public readonly unit: string;
-    public readonly name: string;
-
-    constructor(id: number, min: number, max: number, offset: number, div: number, unit: string, name: string) {
-        this.id = id;
-        this.min = min;
-        this.max = max;
-        this.offset = offset;
-        this.div = div;
-        this.unit = unit;
-        this.name = name;
-    }
+export interface ScopeTraceConfig {
+    readonly id: number;
+    readonly min: number;
+    readonly max: number;
+    readonly offset: number;
+    readonly div: number;
+    readonly unit: string;
+    readonly name: string;
 }
 
-export class ScopeValues {
-    public readonly values: Array<{ [key: number]: number }>;
-
-    constructor(values: Array<{ [key: number]: number }>) {
-        this.values = values;
-    }
+export interface ScopeValues {
+    readonly values: Array<{ [key: number]: number }>;
 }
 
-export class ScopeLine {
-    public readonly x1: number;
-    public readonly y1: number;
-    public readonly x2: number;
-    public readonly y2: number;
-    public readonly traceColorIndex: number;
-
-    constructor(x1: number, y1: number, x2: number, y2: number, color: number) {
-        this.x1 = x1;
-        this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
-        this.traceColorIndex = color;
-    }
+export interface ScopeLine {
+    readonly x1: number;
+    readonly y1: number;
+    readonly x2: number;
+    readonly y2: number;
+    readonly traceColorIndex: number;
 }
 
-export class ScopeText {
-    public readonly x: number;
-    public readonly y: number;
-    public readonly traceColorIndex: number;
-    public readonly size: number;
-    public readonly str: string;
-    public readonly center: boolean;
-
-
-    constructor(x: number, y: number, color: number, size: number, str: string, center: boolean) {
-        this.x = x;
-        this.y = y;
-        this.traceColorIndex = color;
-        this.size = size;
-        this.str = str;
-        this.center = center;
-    }
+export interface ScopeText {
+    readonly x: number;
+    readonly y: number;
+    readonly traceColorIndex: number;
+    readonly size: number;
+    readonly str: string;
+    readonly center: boolean;
 }
 
-export class MediaState {
-    public readonly progress: number;
-    public readonly state: PlayerActivity;
-    public readonly title: string;
-    public readonly type: MediaFileType;
-
-    constructor(progress: number, state: PlayerActivity, title: string, type: MediaFileType) {
-        this.progress = progress;
-        this.state = state;
-        this.title = title;
-        this.type = type;
-    }
+export interface MediaState {
+    readonly progress: number;
+    readonly state: PlayerActivity;
+    readonly title: string;
+    readonly type: MediaFileType;
 }
 
-export class ConfirmationRequest {
-    public readonly confirmationID: number;
-    public readonly message: string;
-    public readonly title: string | undefined;
-
-    constructor(id: number, message: string, title?: string) {
-        this.confirmationID = id;
-        this.message = message;
-        this.title = title;
-    }
+export interface ConfirmationRequest {
+    readonly confirmationID: number;
+    readonly message: string;
+    readonly title: string | undefined;
 }
 
 export interface ISliderState {

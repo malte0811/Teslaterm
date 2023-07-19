@@ -16,17 +16,17 @@ export class MetersIPC {
         this.state[id] = value;
     }
 
-    public configure(id: number, min: number, max: number, div: number, name: string) {
-        const config = new MeterConfig(id, min, max, div, name);
+    public configure(meterId: number, min: number, max: number, scale: number, name: string) {
+        const config: MeterConfig = {meterId, min, max, scale, name};
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.configure, config);
-        this.configs.set(id, config);
+        this.configs.set(meterId, config);
     }
 
     public sendConfig(source: object) {
         for (const cfg of this.configs.values()) {
             this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.configure, source, cfg);
         }
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.setValue, source, new SetMeters(this.lastState));
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.setValue, source, {values: this.lastState});
     }
 
     private tick() {
@@ -38,7 +38,7 @@ export class MetersIPC {
             }
         }
         if (Object.keys(update).length > 0) {
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.setValue, new SetMeters(update));
+            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.setValue, {values: update});
         }
     }
 }

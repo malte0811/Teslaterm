@@ -33,29 +33,36 @@ export class ScopeIPC {
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, source, undefined);
     }
 
-    public drawLine(x1: number, y1: number, x2: number, y2: number, color: number, source?: object) {
+    public drawLine(x1: number, y1: number, x2: number, y2: number, traceColorIndex: number, source?: object) {
         this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.scope.drawLine, source, new ScopeLine(x1, y1, x2, y2, color),
+            IPC_CONSTANTS_TO_RENDERER.scope.drawLine, source, {x1, y1, x2, y2, traceColorIndex},
         );
     }
 
-    public drawText(x: number, y: number, color: number, size: number, str: string, center: boolean, source?: object) {
+    public drawText(
+        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean, source?: object
+    ) {
         this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.scope.drawString, source, new ScopeText(x, y, color, size, str, center),
+            IPC_CONSTANTS_TO_RENDERER.scope.drawString, source, {x, y, traceColorIndex, size, str, center},
         );
     }
 
     public configure(
-        traceId: number, min: number, max: number, offset: number, div: number, unit: string, name: string,
+        id: number, min: number, max: number, offset: number, div: number, unit: string, name: string,
     ) {
-        const config = new ScopeTraceConfig(traceId, min, max, offset, div, unit, name);
+        const config: ScopeTraceConfig = {id, min, max, offset, div, unit, name};
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.configure, config);
-        this.configs.set(traceId, config);
+        this.configs.set(id, config);
     }
 
     public updateMediaInfo() {
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
-            new MediaState(media_state.progress, media_state.state, media_state.title, media_state.type));
+            {
+                progress: media_state.progress,
+                state: media_state.state,
+                title: media_state.title,
+                type: media_state.type,
+            });
     }
 
     public sendConfig(source: object) {
@@ -66,7 +73,7 @@ export class ScopeIPC {
 
     private tick() {
         if (Object.keys(this.tickSummary).length > 0) {
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.addValues, new ScopeValues(this.tickSummary));
+            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.addValues, {values: this.tickSummary});
             this.tickSummary = [];
         }
     }

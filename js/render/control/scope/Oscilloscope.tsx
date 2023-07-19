@@ -7,7 +7,7 @@ import {
     ScopeLine,
     ScopeText,
     ScopeTraceConfig,
-    ScopeValues
+    ScopeValues,
 } from "../../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../../TTComponent";
 import {ControlledDraw, ControlledDrawProps, DrawCommand} from "./ControlledDraw";
@@ -31,7 +31,7 @@ export const TRACE_COLORS: string[] = [
 ];
 
 interface OscilloscopeState {
-    traces: (OscilloscopeTrace | undefined)[];
+    traces: Array<OscilloscopeTrace | undefined>;
     media: MediaState;
     controlledDraws: ControlledDrawProps[];
     selectedTab: number;
@@ -40,19 +40,19 @@ interface OscilloscopeState {
 export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
     constructor(props: any) {
         super(props);
-        const traces: (OscilloscopeTrace | undefined)[] = [];
+        const traces: Array<OscilloscopeTrace | undefined> = [];
         for (let i = 0; i < NUM_TRACES; ++i) {
             traces.push(undefined);
         }
         this.state = {
-            traces,
-            media: new MediaState(0, PlayerActivity.idle, "", MediaFileType.none),
             controlledDraws: [],
+            media: {progress: 0, state: PlayerActivity.idle, title: "", type: MediaFileType.none},
             selectedTab: 0,
+            traces,
         };
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.configure, (cfg: ScopeTraceConfig) => {
             this.setState((state) => Oscilloscope.configure(state.traces, cfg));
         });
@@ -64,7 +64,7 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
                 return {
                     controlledDraws: [...state.controlledDraws, {commandList: []}],
                     selectedTab: state.controlledDraws.length + 1,
-                }
+                };
             });
         });
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.drawString, (data: ScopeText) => {
@@ -78,8 +78,8 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         });
     }
 
-    render(): React.ReactNode {
-        if (this.state.controlledDraws.length == 0) {
+    public render(): React.ReactNode {
+        if (this.state.controlledDraws.length === 0) {
             return this.makeMainScope();
         } else {
             return (

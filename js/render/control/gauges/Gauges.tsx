@@ -19,22 +19,28 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
         const gauges: GaugeProps[] = [];
         for (let i = 0; i < NUM_GAUGES; ++i) {
             gauges.push({
-                value: 0,
-                config: new MeterConfig(i, 0, 10, 1, "Meter "+i),
+                config: {
+                    max: 10,
+                    meterId: i,
+                    min: 0,
+                    name: "Meter " + i,
+                    scale: 1,
+                },
                 darkMode: this.props.darkMode,
+                value: 0,
             });
         }
         this.state = {gauges};
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.meters.configure, (config: MeterConfig) => {
             this.setState((oldState) => {
                 const newGauges: GaugeProps[] = [...oldState.gauges];
                 newGauges[config.meterId] = {
                     value: newGauges[config.meterId].value,
                     config,
-                    darkMode: this.props.darkMode
+                    darkMode: this.props.darkMode,
                 };
                 return {gauges: newGauges};
             });

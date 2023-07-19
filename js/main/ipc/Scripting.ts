@@ -50,7 +50,7 @@ export class ScriptingIPC {
         }
     }
 
-    public requestConfirmation(key: object, msg: string, title?: string): Promise<boolean> {
+    public requestConfirmation(key: object, message: string, title?: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             if (this.confirmationReject) {
                 this.confirmationReject();
@@ -62,7 +62,7 @@ export class ScriptingIPC {
                 this.processIPC.sendToWindow(
                     IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
                     key,
-                    new ConfirmationRequest(this.activeConfirmationID, msg, title),
+                    {confirmationID: this.activeConfirmationID, message, title},
                 );
             } else {
                 reject();
