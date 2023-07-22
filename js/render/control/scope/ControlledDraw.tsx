@@ -7,6 +7,7 @@ export type DrawCommand = {type: 'line', data: ScopeLine} | {type: 'text', data:
 
 export interface ControlledDrawProps {
     commandList: DrawCommand[];
+    title: string;
 }
 
 const UD3_ASSUMED_WIDTH = 450;

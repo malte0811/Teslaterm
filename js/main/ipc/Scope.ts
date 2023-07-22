@@ -22,8 +22,8 @@ export class ScopeIPC {
         this.sinceLastDraw[traceId] = value;
     }
 
-    public startControlledDraw(source?: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, source, undefined);
+    public startControlledDraw(title: string, source?: object) {
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, source, title);
     }
 
     public drawLine(x1: number, y1: number, x2: number, y2: number, traceColorIndex: number, source?: object) {

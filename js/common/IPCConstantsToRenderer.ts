@@ -38,7 +38,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         drawLine: makeKey<ScopeLine>('scope-draw-line'),
         drawString: makeKey<ScopeText>('scope-draw-string'),
         redrawMedia: makeKey<MediaState>('scope-draw-media'),
-        startControlled: makeKey<undefined>('scope-start-controlled'),
+        startControlled: makeKey<string>('scope-start-controlled'),
     },
     script: {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),

@@ -72,7 +72,8 @@ interface StateSync {
 type TelemetryFrame = MeasuredValue |
     GaugeConf |
     TraceConf |
-    {type: TelemetryEvent.CHART_DRAW | TelemetryEvent.CHART_CLEAR} |
+    {type: TelemetryEvent.CHART_DRAW} |
+    {type: TelemetryEvent.CHART_CLEAR, title: string} |
     ChartLine |
     ChartText |
     StateSync |
@@ -165,8 +166,9 @@ export class TelemetryFrameParser {
                     value: from_32_bit_bytes(this.data.slice(2), Endianness.LITTLE_ENDIAN),
                 };
             case TelemetryEvent.CHART_DRAW:
-            case TelemetryEvent.CHART_CLEAR:
                 return {type};
+            case TelemetryEvent.CHART_CLEAR:
+                return {type, title: convertBufferToString(this.data.slice(1), false) || 'Plot'};
             case TelemetryEvent.CHART_LINE:
                 return {
                     colorIndex: this.data[9],
@@ -226,7 +228,7 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
             break;
         }
         case TelemetryEvent.CHART_CLEAR: {
-            ipcs.scope.startControlledDraw(source);
+            ipcs.scope.startControlledDraw(frame.title, source);
             break;
         }
         case TelemetryEvent.CHART_LINE: {

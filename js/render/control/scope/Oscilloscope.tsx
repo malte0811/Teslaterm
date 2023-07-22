@@ -59,10 +59,10 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.addValues, (values: ScopeValues) => {
             this.setState((state) => Oscilloscope.addScopeValues(state.traces, values));
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, () => {
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, (title) => {
             this.setState((state) => {
                 return {
-                    controlledDraws: [...state.controlledDraws, {commandList: []}],
+                    controlledDraws: [...state.controlledDraws, {commandList: [], title}],
                     selectedTab: state.controlledDraws.length + 1,
                 };
             });
@@ -139,15 +139,14 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         const removeTab = (ev) => {
             ev.stopPropagation();
             this.setState((state) => {
-                const newPlots = state.controlledDraws.filter((v, i) => i != index);
+                const newPlots = state.controlledDraws.filter((v, i) => i !== index);
                 const newTab = tabKey <= state.selectedTab ? state.selectedTab - 1 : state.selectedTab;
                 return {controlledDraws: newPlots, selectedTab: newTab};
             });
         };
-        // TODO dynamic name?
         return <Nav.Item key={tabKey}>
             <Nav.Link eventKey={tabKey} href="#">
-                Tuning plot
+                {this.state.controlledDraws[index].title}
                 <CloseButton onClick={removeTab}/>
             </Nav.Link>
         </Nav.Item>;
@@ -195,14 +194,12 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
 
     private static addDrawCommand(oldDraws: ControlledDrawProps[], newCommand: DrawCommand) {
         const newControlled = [...oldDraws];
+        const oldProps = newControlled[newControlled.length - 1];
         if (newControlled.length === 0) {
-            newControlled.push({commandList: []});
+            newControlled.push({commandList: [], title: 'Unknown'});
         }
-        const withNewCommand = [
-            ...newControlled[newControlled.length - 1].commandList,
-            newCommand,
-        ];
-        newControlled[newControlled.length - 1] = {commandList: withNewCommand};
+        const withNewCommand = [...oldProps.commandList, newCommand];
+        newControlled[newControlled.length - 1] = {commandList: withNewCommand, title: oldProps.title};
         return {controlledDraws: newControlled};
     }
 
