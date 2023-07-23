@@ -51,26 +51,21 @@ export function from_32_bit_bytes(bytes: number[], end: Endianness): number {
     return bytes[3] << 24 | bytes[2] << 16 | bytes[1] << 8 | bytes[0];
 }
 
-export function convertBufferToString(buf: number[] | Buffer | Uint8Array, uri: boolean = true): string {
-    return convertBufferToStringImpl(buf, uri, buf.length);
+export function convertBufferToString(buf: number[] | Buffer | Uint8Array): string {
+    return convertBufferToStringImpl(buf, buf.length);
 }
 
-export function convertArrayBufferToString(buf: ArrayBuffer, uri: boolean = true): string {
-    return convertBufferToStringImpl(buf, uri, buf.byteLength);
+export function convertArrayBufferToString(buf: ArrayBuffer): string {
+    return convertBufferToStringImpl(buf, buf.byteLength);
 }
 
-function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array | ArrayBuffer, uri: boolean = true, length: number): string {
+function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array | ArrayBuffer, length: number): string {
     let firstNull = 0;
     while (firstNull < length && buf[firstNull] !== 0) {
         ++firstNull;
     }
     const bufView = new Uint8Array(buf).slice(0, firstNull);
-    const encodedString = String.fromCharCode.apply(null, bufView);
-    if (uri) {
-        return decodeURIComponent(encodedString);
-    } else {
-        return encodedString;
-    }
+    return String.fromCharCode.apply(null, bufView);
 }
 
 export async function withTimeout<T>(base: Promise<T>, timeout: number, name?: string): Promise<T> {

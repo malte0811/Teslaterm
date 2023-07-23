@@ -169,7 +169,7 @@ export class TelemetryFrameParser {
             case TelemetryEvent.CHART_DRAW:
                 return {type};
             case TelemetryEvent.CHART_CLEAR:
-                return {type, title: convertBufferToString(this.data.slice(1), false) || 'Plot'};
+                return {type, title: convertBufferToString(this.data.slice(1)) || 'Plot'};
             case TelemetryEvent.CHART_LINE:
                 return {
                     colorIndex: this.data[9],
@@ -195,7 +195,7 @@ export class TelemetryFrameParser {
                 }
             case TelemetryEvent.CONFIG_GET:
             case TelemetryEvent.EVENT:
-                return {data: convertBufferToString(this.data.slice(1), false), type};
+                return {data: convertBufferToString(this.data.slice(1)), type};
             default:
                 console.warn(`Unknown telemetry event: ${this.data}`);
                 return {type: TelemetryEvent.UNKNOWN, data: this.data};

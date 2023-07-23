@@ -236,7 +236,7 @@ export abstract class MinConnection extends BootloadableConnection {
                     console.error("Unexpected MEDIA MIN message");
                 }
             } else if (id === MIN_ID_FEATURE) {
-                const asString = convertBufferToString(data, false);
+                const asString = convertBufferToString(data);
                 const splitPoint = asString.indexOf("=");
                 if (splitPoint >= 0) {
                     const value = asString.substring(splitPoint + 1);
