@@ -144,11 +144,8 @@ export abstract class MinConnection extends BootloadableConnection {
     public enterBootloaderMode(dataCallback: (data: Buffer) => void): void {
         super.enterBootloaderMode(dataCallback);
         this.min_wrapper = undefined;
-    }
-
-    public leaveBootloaderMode(): void {
-        super.leaveBootloaderMode();
-        this.init_min_wrapper();
+        this.terminalCallbacks.clear();
+        ipcs.terminal.onConnectionClosed();
     }
 
     public resetWatchdog(): void {
