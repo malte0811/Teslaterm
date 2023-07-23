@@ -2,6 +2,7 @@ import {SynthType} from "../../../common/CommonTypes";
 import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";
+import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
 import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
@@ -16,8 +17,10 @@ const MIN_ID_SID = 21;
 const MIN_ID_SOCKET = 13;
 const MIN_ID_SYNTH = 14;
 const MIN_ID_FEATURE = 15;
-const MIN_ID_DEBUG = 42;
+const MIN_ID_EVENT = 40;
 const MIN_ID_VMS = 43;
+
+const EVENT_GET_INFO = 1;
 
 const SYNTH_CMD_FLUSH = 0x01;
 const SYNTH_CMD_SID = 0x02;
@@ -53,6 +56,7 @@ export abstract class MinConnection extends BootloadableConnection {
             }
         });
         await this.init_min_wrapper();
+        await this.repeatedlySendFrame(MIN_ID_EVENT, [EVENT_GET_INFO]);
     }
 
     public async sendDisconnectData() {
@@ -209,17 +213,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 "TT socket" +
                 String.fromCharCode(0),
                 'utf-8');
-            let done = false;
-            let tries = 0;
-            while (!done && this.min_wrapper && tries < 16) {
-                try {
-                    await this.min_wrapper.enqueueFrame(MIN_ID_SOCKET, infoBuffer);
-                    done = true;
-                } catch (e) {
-                    console.error(e);
-                }
-                ++tries;
-            }
+            await this.repeatedlySendFrame(MIN_ID_SOCKET, infoBuffer);
         }
     }
 
@@ -260,6 +254,10 @@ export abstract class MinConnection extends BootloadableConnection {
                         this.connectionsToSetTTerm = [];
                     }
                 }
+            } else if (id === MIN_ID_EVENT && data[0] === EVENT_GET_INFO) {
+                // https://github.com/Netzpfuscher/UD3/blob/892b8c25da2784e880c0c2617d417b14c3421ecd/common/ud3core/tasks/tsk_min.c#L216-L221
+                // 1: ID, 1: struct_version, 2: Padding (FFS...), 2*4: unique_id
+                ipcs.misc.sendUDName(convertBufferToString(data.slice(1 + 1 + 2 + 2 * 4)));
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {
@@ -296,4 +294,18 @@ export abstract class MinConnection extends BootloadableConnection {
     abstract send(data: Buffer | number[], onError: (err) => void): void;
 
     abstract registerListener(listener: (data: Buffer) => void): void;
+
+    private async repeatedlySendFrame(id: number, payload: number[] | Buffer) {
+        let tries = 0;
+        while (this.min_wrapper && tries < 16) {
+            try {
+                await this.min_wrapper.enqueueFrame(id, payload);
+                return;
+            } catch (e) {
+                console.error('During MIN connection setup', e);
+            }
+            ++tries;
+        }
+        throw new Error('Failed to send frame in 16 tries');
+    }
 }

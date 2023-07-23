@@ -61,6 +61,10 @@ export class MiscIPC {
         this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.openToast, target, msg);
     }
 
+    public sendUDName(name: string) {
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.udName, name);
+    }
+
     public init() {
     }
 }

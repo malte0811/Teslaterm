@@ -11,6 +11,7 @@ import {TTComponent} from "./TTComponent";
 interface TopLevelState {
     connectionStatus: ConnectionStatus;
     ttConfig: TTConfig;
+    udName?: string;
     // If connection is lost, it may be because the UD3 died. In that case we want to stay on the "main" screen so the
     // last telemetry is still visible.
     wasConnected: boolean;
@@ -41,13 +42,23 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.syncDarkMode, (darkMode) => this.setState({darkMode}),
         );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.udName, (udName) => this.setState({udName}),
+        );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     public render(): React.ReactNode {
-        return <div className={this.state.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
-            {this.getMainElement()}
-        </div>;
+        if (this.state.udName) {
+            document.title = `Teslaterm - ${this.state.udName}`;
+        } else {
+            document.title = 'Teslaterm';
+        }
+        return <>
+            <div className={this.state.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
+                {this.getMainElement()}
+            </div>
+        </>;
     }
 
     private getMainElement(): JSX.Element {
@@ -57,7 +68,7 @@ export class App extends TTComponent<{}, TopLevelState> {
             return <MainScreen
                 ttConfig={this.state.ttConfig}
                 connectionStatus={this.state.connectionStatus}
-                clearWasConnected={() => this.setState({wasConnected: false})}
+                clearWasConnected={() => this.setState({wasConnected: false, udName: undefined})}
                 darkMode={this.state.darkMode}
             />;
         } else if (

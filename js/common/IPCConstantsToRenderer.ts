@@ -50,6 +50,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     terminal: makeKey<string>('terminal'),
     ttConfig: makeKey<TTConfig>('tt-config'),
     udConfig: makeKey<UD3ConfigOption[]>('ud-config'),
+    udName: makeKey<string>('ud-name'),
     updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
 };
 
