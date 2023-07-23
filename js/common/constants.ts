@@ -15,6 +15,8 @@ export enum TelemetryEvent {
     GAUGE32_CONF = 14,
     CHART32 = 16,
     CHART32_CONF = 17,
+    // "Synthetic" type for any unknown events
+    UNKNOWN,
 }
 
 export const UNITS: string[] = ['', 'V', 'A', 'W', 'Hz', '°C', 'kW', 'RPM'];

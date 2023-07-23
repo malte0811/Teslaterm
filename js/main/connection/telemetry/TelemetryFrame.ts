@@ -77,7 +77,8 @@ type TelemetryFrame = MeasuredValue |
     ChartLine |
     ChartText |
     StateSync |
-    { type: TelemetryEvent.CONFIG_GET | TelemetryEvent.EVENT, data: string };
+    { type: TelemetryEvent.CONFIG_GET | TelemetryEvent.EVENT, data: string } |
+    {type: TelemetryEvent.UNKNOWN, data: number[]};
 
 export class TelemetryFrameParser {
     private readonly length: number;
@@ -195,6 +196,9 @@ export class TelemetryFrameParser {
             case TelemetryEvent.CONFIG_GET:
             case TelemetryEvent.EVENT:
                 return {data: convertBufferToString(this.data.slice(1), false), type};
+            default:
+                console.warn(`Unknown telemetry event: ${this.data}`);
+                return {type: TelemetryEvent.UNKNOWN, data: this.data};
         }
     }
 }
@@ -214,7 +218,7 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
         case TelemetryEvent.CHART_CONF:
         case TelemetryEvent.CHART32_CONF: {
             ipcs.scope.configure(
-                frame.traceId, frame.min, frame.max, frame.offset, frame.divider, frame.unit, frame.name
+                frame.traceId, frame.min, frame.max, frame.offset, frame.divider, frame.unit, frame.name,
             );
             break;
         }
@@ -263,12 +267,12 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
                 const type = getOptionType(substrings[2]);
                 if (type !== undefined) {
                     udconfig.push({
-                        name: substrings[0],
                         current: substrings[1],
-                        type,
-                        min: parseOptionMinMax(substrings[4]),
-                        max: parseOptionMinMax(substrings[5]),
                         help: substrings[6],
+                        max: parseOptionMinMax(substrings[5]),
+                        min: parseOptionMinMax(substrings[4]),
+                        name: substrings[0],
+                        type,
                     });
                 } else {
                     console.error("Unknown type in option ", str);
@@ -278,16 +282,16 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
         }
         case TelemetryEvent.EVENT: {
             const [levelStr, timestampStr, message, valueStr] = frame.data.split(';');
-            const level = Number.parseInt(levelStr) as UD3AlarmLevel;
-            const timestamp = Number.parseInt(timestampStr);
-            const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr);
+            const level = Number.parseInt(levelStr, 10) as UD3AlarmLevel;
+            const timestamp = Number.parseInt(timestampStr, 10);
+            const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr, 10);
             addAlarm({message, value, level, timestamp}, initializing);
             break;
         }
     }
 }
 function parseOptionMinMax(value: string) {
-    if (value == 'NULL') {
+    if (value === 'NULL') {
         return undefined;
     } else {
         return parseFloat(value);
@@ -295,7 +299,7 @@ function parseOptionMinMax(value: string) {
 }
 
 function getOptionType(idStr: string): UD3ConfigType | undefined {
-    const id = parseInt(idStr);
+    const id = parseInt(idStr, 10);
     switch (id) {
         case 0:
             return UD3ConfigType.TYPE_UNSIGNED;
