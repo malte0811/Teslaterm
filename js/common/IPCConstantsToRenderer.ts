@@ -1,4 +1,4 @@
-import {ParsedEvent} from "./FlightRecorderTypes";
+import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
 import {ConnectionOptions} from "./ConnectionOptions";
 import {UD3AlarmLevel} from "./constants";
@@ -23,7 +23,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         syncPresets: makeKey<ConnectionPreset[]>('sync-connect-sesets'),
     },
     flightRecorder: {
-        fullList: makeKey<ParsedEvent[]>('fr-event-list'),
+        fullList: makeKey<{events: ParsedEvent[], initial: InitialFRState}>('fr-event-list'),
     },
     menu: {
         setMediaTitle: makeKey<string>('menu-media-title'),

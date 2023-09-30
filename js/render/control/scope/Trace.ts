@@ -1,3 +1,6 @@
+import {ScopeTraceConfig} from "../../../common/IPCConstantsToRenderer";
+import {TRACE_COLORS} from "./Oscilloscope";
+
 export const MAX_HORIZONTAL_NUM_SAMPLES = 10000;
 export const NUM_VERTICAL_DIVS = 10;
 
@@ -9,13 +12,15 @@ export class TraceConfig {
     public readonly visualOffset: number;
     public readonly divider: number;
 
-    constructor(wavecolor: string, name: string, unit: string, perDiv: number, offset: number, divider: number) {
-        this.wavecolor = wavecolor;
-        this.name = name;
-        this.unit = unit;
+    // TODO just use STC?
+    public constructor(cfg: ScopeTraceConfig) {
+        const perDiv = (cfg.max - cfg.min) / NUM_VERTICAL_DIVS;
+        this.wavecolor = TRACE_COLORS[cfg.id];
+        this.name = cfg.name;
+        this.unit = cfg.unit;
         this.perDiv = perDiv;
-        this.visualOffset = offset;
-        this.divider = divider;
+        this.visualOffset = cfg.offset;
+        this.divider = cfg.div;
     }
 }
 

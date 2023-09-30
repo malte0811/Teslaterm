@@ -1,15 +1,48 @@
 .tt-fr-toplevel {
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
+}
+
+.tt-fr-list-tab {
     display: grid;
     grid-template-columns: 200px auto;
+    height: inherit;
+    width: 100vw;
 }
 
 .tt-fr-list {
-    overflow-y: auto;
+    overflow: auto;
+    height: 100%;
 }
 
 .tt-min-width-cell {
     width: 1%;
     white-space: nowrap;
+}
+
+.tt-fr-telemetry {
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: 100px auto;
+    /*TODO definitely a hack, how does height work*/
+    height: calc(100vh - 40px);
+    width: 100vw;
+}
+
+.tt-fr-telemetry-control {
+    flex: 0 0 100px;
+}
+
+.tt-fr-telemetry-display {
+    display: grid;
+    grid-template-columns: auto min-content;
+    grid-template-rows: 100%;
+    overflow-y: hidden;
+}
+
+.tt-fr-telemetry-scope {
+    background: green;
+    border-style: solid;
+    border-color: red;
 }

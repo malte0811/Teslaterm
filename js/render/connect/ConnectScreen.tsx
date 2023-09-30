@@ -2,7 +2,7 @@ import React from "react";
 import {Button, Toast, ToastContainer} from "react-bootstrap";
 import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
 import {UD3ConnectionType} from "../../common/constants";
-import {ParsedEvent} from "../../common/FlightRecorderTypes";
+import {InitialFRState, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {AvailableSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
@@ -71,12 +71,17 @@ interface ConnectScreenState {
     currentOptions: MergedConnectionOptions;
 }
 
+export interface FRDisplayData {
+    events: ParsedEvent[];
+    initial: InitialFRState;
+}
+
 export interface ConnectScreenProps {
     ttConfig: TTConfig;
     connecting: boolean;
     darkMode: boolean;
     setDarkMode: (newVal: boolean) => void;
-    openFlightRecording: (evs: ParsedEvent[]) => any;
+    openFlightRecording: (data: FRDisplayData) => any;
 }
 
 export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScreenState> {
@@ -140,8 +145,8 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
             return;
         }
         const data = await files[0].arrayBuffer();
-        processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (events) => {
-            this.props.openFlightRecording(events);
+        processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (frData) => {
+            this.props.openFlightRecording(frData);
         });
         processIPC.send(IPC_CONSTANTS_TO_MAIN.flightRecorder.loadFlightRecording, [...new Uint8Array(data)]);
     }

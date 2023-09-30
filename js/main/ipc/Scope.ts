@@ -3,9 +3,9 @@ import {media_state} from "../media/media_player";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class ScopeIPC {
-    private tickSummary: Array<{ [id: number]: number }> = [];
-    private sinceLastDraw: { [id: number]: number } = {};
-    private configs: {[id: number]: ScopeTraceConfig} = {};
+    private tickSummary: number[][] = [];
+    private sinceLastDraw: number[] = [];
+    private configs: ScopeTraceConfig[] = [];
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {
@@ -15,7 +15,7 @@ export class ScopeIPC {
 
     public drawChart() {
         this.tickSummary.push(this.sinceLastDraw);
-        this.sinceLastDraw = {};
+        this.sinceLastDraw = [];
     }
 
     public addValue(traceId: number, value: number) {

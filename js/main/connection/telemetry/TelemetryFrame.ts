@@ -1,5 +1,5 @@
 import {DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
-import {UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
+import {ScopeTraceConfig, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {commands} from "../connection";
@@ -26,22 +26,16 @@ interface MeasuredValue {
 
 interface GaugeConf {
     type: TelemetryEvent.GAUGE32_CONF | TelemetryEvent.GAUGE_CONF;
-    index: number;
+    meterId: number;
     min: number;
     max: number;
-    divider: number;
+    scale: number;
     name: string;
 }
 
 interface TraceConf {
     type: TelemetryEvent.CHART32_CONF | TelemetryEvent.CHART_CONF;
-    traceId: number;
-    min: number;
-    max: number;
-    offset: number;
-    unit: string;
-    divider: number;
-    name: string;
+    config: ScopeTraceConfig;
 }
 
 interface ChartLine {
@@ -116,43 +110,47 @@ export class TelemetryFrameParser {
                 };
             case TelemetryEvent.GAUGE_CONF:
                 return {
-                    divider: 1,
-                    index: num,
                     max: bytes_to_signed(this.data[4], this.data[5]),
+                    meterId: num,
                     min: bytes_to_signed(this.data[2], this.data[3]),
                     name: convertBufferToString(this.data.slice(6)),
+                    scale: 1,
                     type,
                 };
             case TelemetryEvent.GAUGE32_CONF:
                 return {
-                    divider: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
-                    index: num,
                     max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
+                    meterId: num,
                     min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
                     name: convertBufferToString(this.data.slice(14)),
+                    scale: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
                     type,
                 };
             case TelemetryEvent.CHART32_CONF:
                 return {
-                    divider: from_32_bit_bytes(this.data.slice(14, 18), Endianness.LITTLE_ENDIAN),
-                    max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
-                    min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
-                    name: convertBufferToString(this.data.slice(19)),
-                    offset: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
-                    traceId: num,
+                    config: {
+                        div: from_32_bit_bytes(this.data.slice(14, 18), Endianness.LITTLE_ENDIAN),
+                        id: num,
+                        max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
+                        min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
+                        name: convertBufferToString(this.data.slice(19)),
+                        offset: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
+                        unit: UNITS[this.data[18]],
+                    },
                     type,
-                    unit: UNITS[this.data[18]],
                 };
             case TelemetryEvent.CHART_CONF:
                 return {
-                    divider: 1,
-                    max: bytes_to_signed(this.data[4], this.data[5]),
-                    min: bytes_to_signed(this.data[2], this.data[3]),
-                    name: convertBufferToString(this.data.slice(9)),
-                    offset: bytes_to_signed(this.data[6], this.data[7]),
-                    traceId: num,
+                    config: {
+                        div: 1,
+                        id: num,
+                        max: bytes_to_signed(this.data[4], this.data[5]),
+                        min: bytes_to_signed(this.data[2], this.data[3]),
+                        name: convertBufferToString(this.data.slice(9)),
+                        offset: bytes_to_signed(this.data[6], this.data[7]),
+                        unit: UNITS[this.data[8]],
+                    },
                     type,
-                    unit: UNITS[this.data[8]],
                 };
             case TelemetryEvent.CHART:
                 return {
@@ -212,13 +210,14 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
         }
         case TelemetryEvent.GAUGE32_CONF:
         case TelemetryEvent.GAUGE_CONF: {
-            ipcs.meters.configure(frame.index, frame.min, frame.max, frame.divider, frame.name);
+            ipcs.meters.configure(frame.meterId, frame.min, frame.max, frame.scale, frame.name);
             break;
         }
         case TelemetryEvent.CHART_CONF:
         case TelemetryEvent.CHART32_CONF: {
+            const config = frame.config;
             ipcs.scope.configure(
-                frame.traceId, frame.min, frame.max, frame.offset, frame.divider, frame.unit, frame.name,
+                config.id, config.min, config.max, config.offset, config.div, config.unit, config.name,
             );
             break;
         }

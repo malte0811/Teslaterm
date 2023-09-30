@@ -26,7 +26,9 @@ export class FlightRecorderIPC {
     private async loadRecording(source: object, data: number[]) {
         const [flightEvents, initialState] = await parseEventsFromFile(Buffer.from(data));
         const minEvents = parseMINEvents(flightEvents);
-        const displayEvents = parseEventsForDisplay(minEvents, true);
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, source, displayEvents);
+        const displayEvents = parseEventsForDisplay(minEvents, false);
+        this.processIPC.sendToWindow(
+            IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, source, {events: displayEvents, initial: initialState},
+        );
     }
 }

@@ -1,3 +1,6 @@
+import {TelemetryFrame} from "../main/connection/telemetry/TelemetryFrame";
+import {MeterConfig, ScopeTraceConfig} from "./IPCConstantsToRenderer";
+
 export enum FREventType {
     terminal_data,
     terminal_start_stop,
@@ -31,8 +34,7 @@ interface ParsedEventBase {
 }
 
 type ParsedEventExtra = {type: FREventType.terminal_data, printed: string} |
-    // TODO include telemetry in usable format rather than plain JSON
-    {type: FREventType.telemetry} |
+    {type: FREventType.telemetry, frame: TelemetryFrame} |
     {type: FREventType.feature_sync | FREventType.terminal_start_stop | FREventType.set_synth | FREventType.unknown};
 
 export type ParsedEvent = ParsedEventBase & ParsedEventExtra;
@@ -61,4 +63,12 @@ export const allFREvents = (() => {
     }
     return values;
 })();
+
+export type FRMeterConfigs = MeterConfig[];
+export type FRScopeConfigs = ScopeTraceConfig[];
+
+export interface InitialFRState {
+    meterConfigs: FRMeterConfigs;
+    traceConfigs: FRScopeConfigs;
+}
 

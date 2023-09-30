@@ -31,8 +31,8 @@ export class FREventList extends TTComponent<EventListProps, {}> {
                 <thead>
                     <tr>
                         <th>Time</th>
-                        <th>Direction</th>
                         <th>Type</th>
+                        <th>Direction</th>
                         <th>Message</th>
                     </tr>
                 </thead>

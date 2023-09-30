@@ -1,49 +1,55 @@
 import React from "react";
-import {FREventSet, FREventType, makeEmptyEventSet, ParsedEvent} from "../../common/FlightRecorderTypes";
+import {Col, Nav, Row, Tab} from "react-bootstrap";
+import {FREventType, ParsedEvent} from "../../common/FlightRecorderTypes";
+import {FRDisplayData} from "../connect/ConnectScreen";
 import {TTComponent} from "../TTComponent";
-import {EventFilter, FRFilter} from "./EventFilter";
-import {FREventList} from "./EventList";
+import {EventListTab} from "./EventListTab";
+import {TelemetryTab} from "./TelemetryTab";
 
-interface DRScreenState {
-    presentTypes: FREventSet;
-    filter: FRFilter;
-}
-
-export interface DRScreenProps {
+export interface FRScreenProps {
     darkMode: boolean;
-    events: ParsedEvent[];
+    events: FRDisplayData;
 }
 
-export class FlightRecordingScreen extends TTComponent<DRScreenProps, DRScreenState> {
-    constructor(props: DRScreenProps) {
+interface FRScreenState {
+    eventsForList: ParsedEvent[];
+}
+
+export class FlightRecordingScreen extends TTComponent<FRScreenProps, FRScreenState> {
+    constructor(props) {
         super(props);
-        const presentTypes: FREventSet = makeEmptyEventSet();
-        const selectedTypes: FREventSet = makeEmptyEventSet();
-        for (const event of this.props.events) {
-            presentTypes[event.type] = true;
-            selectedTypes[event.type] = true;
-        }
-        const filter: FRFilter = {
-            selectedTypes,
-            showToTT: true,
-            showToUD3: true,
+        this.state = {
+            eventsForList: this.props.events.events.filter((event) => event.type !== FREventType.telemetry),
         };
-        this.state = {presentTypes, filter};
     }
 
     public render() {
         return (
             <div className={'tt-fr-toplevel'}>
-                <EventFilter
-                    availableTypes={this.state.presentTypes}
-                    filter={this.state.filter}
-                    setFilter={f => this.setState((s) => {
-                            return {filter: {...s.filter, ...f}};
-                        },
-                    )}
-                />
-                <FREventList filter={this.state.filter} events={this.props.events}/>
-            </div>
-        );
+                <Tab.Container defaultActiveKey="list">
+                    <Col style={{height: 'inherit', width: 'inherit'}}>
+                        <Row sm={3} style={{width: '100%'}}>
+                            <Nav variant="tabs" className="flex-row">
+                                <Nav.Item>
+                                    <Nav.Link eventKey="list">Event list</Nav.Link>
+                                </Nav.Item>
+                                <Nav.Item>
+                                    <Nav.Link eventKey="telemetry">Telemetry</Nav.Link>
+                                </Nav.Item>
+                            </Nav>
+                        </Row>
+                        <Row sm={9} style={{height: 'calc(100% - 40px)', width: '100%'}}>
+                            <Tab.Content style={{height: '100%', width: '100%'}}>
+                                <Tab.Pane eventKey="list" style={{height: '100%', width: '100%'}}>
+                                    <EventListTab darkMode={this.props.darkMode} events={this.state.eventsForList}/>
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="telemetry">
+                                    <TelemetryTab darkMode={this.props.darkMode} events={this.props.events}/>
+                                </Tab.Pane>
+                            </Tab.Content>
+                        </Row>
+                    </Col>
+                </Tab.Container>
+            </div>);
     }
 }

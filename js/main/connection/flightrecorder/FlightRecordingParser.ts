@@ -1,6 +1,6 @@
 import fs from "fs";
 import JSZip from "jszip";
-import {FREventType, ParsedEvent} from "../../../common/FlightRecorderTypes";
+import {InitialFRState, FREventType, ParsedEvent} from "../../../common/FlightRecorderTypes";
 import {synthTypeToString} from "../../../common/MediaTypes";
 import {ACK_BYTE, RESET} from "../../min/MINConstants";
 import {MINReceiver, ReceivedMINFrame} from "../../min/MINReceiver";
@@ -8,7 +8,7 @@ import {TelemetryChannel} from "../telemetry/TelemetryChannel";
 import {TelemetryFrame} from "../telemetry/TelemetryFrame";
 import {SYNTH_CMD_FLUSH, UD3MinIDs} from "../types/UD3MINConstants";
 import {FlightEventType, FlightRecorderEvent} from "./FlightRecorder";
-import {FlightRecorderJSON, FRMeterConfigs, FRScopeConfigs} from "./FlightRecordingWorker";
+import {FlightRecorderJSON} from "./FlightRecordingWorker";
 
 export interface MINFlightEvent {
     frame: ReceivedMINFrame;
@@ -16,12 +16,15 @@ export interface MINFlightEvent {
     toUD3: boolean;
 }
 
-export interface FlightRecordingStartData {
-    meterConfigs: FRMeterConfigs;
-    traceConfigs: FRScopeConfigs;
+function arrayOrEmpty(objectOrArray) {
+    if (!objectOrArray.map) {
+        return [];
+    } else {
+        return objectOrArray;
+    }
 }
 
-export async function parseEventsFromFile(zipData: Buffer): Promise<[FlightRecorderEvent[], FlightRecordingStartData]> {
+export async function parseEventsFromFile(zipData: Buffer): Promise<[FlightRecorderEvent[], InitialFRState]> {
     const zip = await JSZip.loadAsync(zipData);
     const dataFile = zip.file('data.json');
     const jsonString = await dataFile.async('string');
@@ -33,8 +36,8 @@ export async function parseEventsFromFile(zipData: Buffer): Promise<[FlightRecor
             type: stored.type,
         })),
         {
-            meterConfigs: jsonData.initialMeterConfig,
-            traceConfigs: jsonData.initialScopeConfig,
+            meterConfigs: arrayOrEmpty(jsonData.initialMeterConfig),
+            traceConfigs: arrayOrEmpty(jsonData.initialScopeConfig),
         },
     ];
 }
@@ -93,7 +96,7 @@ function cleanFormatting(formatted: string): string {
 
 function makeStringSafe(unsafe: string): string {
     let result = '';
-    for (const char of new Buffer(unsafe)) {
+    for (const char of Buffer.from(unsafe)) {
         const charStr = String.fromCharCode(char);
         let special: string;
         if (charStr === '\r') {
@@ -142,7 +145,10 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
                     (tFrame) => {
                         if (!skipTelemetry) {
                             humanEvents.push({
-                                ...baseEvent, desc: describeTelemetry(tFrame, appID), type: FREventType.telemetry,
+                                ...baseEvent,
+                                desc: describeTelemetry(tFrame, appID),
+                                frame: tFrame,
+                                type: FREventType.telemetry,
                             });
                         }
                     },
@@ -175,6 +181,8 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
                 desc = 'Setting synth to ' + synthTypeToString(frame.payload[0]);
             }
             humanEvents.push({...baseEvent, desc, type: FREventType.set_synth});
+        } else if (appID === UD3MinIDs.SID || appID === UD3MinIDs.MEDIA) {
+            // TODO put MIDI; SID data and flow control somewhere!
         } else {
             humanEvents.push({
                 ...baseEvent,

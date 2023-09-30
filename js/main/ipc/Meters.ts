@@ -2,9 +2,9 @@ import {IPC_CONSTANTS_TO_RENDERER, MeterConfig} from "../../common/IPCConstantsT
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class MetersIPC {
-    private state: { [id: number]: number } = {};
-    private lastState: { [id: number]: number } = {};
-    private readonly configs: {[i: number]: MeterConfig} = {};
+    private state: number[] = [];
+    private lastState: number[] = [];
+    private readonly configs: MeterConfig[] = [];
     private readonly processIPC: MultiWindowIPC;
 
     constructor(processIPC: MultiWindowIPC) {

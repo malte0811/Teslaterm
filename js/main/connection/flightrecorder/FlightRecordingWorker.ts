@@ -1,20 +1,13 @@
 import fs from "fs";
 import JSZip from "jszip";
 import {isMainThread, parentPort, Worker} from "worker_threads";
-import {MeterConfig, ScopeTraceConfig, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
+import {FRMeterConfigs, FRScopeConfigs} from "../../../common/FlightRecorderTypes";
+import {ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {FlightEventType, FlightRecorderEvent} from "./FlightRecorder";
 
 export interface PassedToast {
     text: string;
     level?: ToastSeverity;
-}
-
-export interface FRScopeConfigs {
-    [i: number]: ScopeTraceConfig;
-}
-
-export interface FRMeterConfigs {
-    [i: number]: MeterConfig;
 }
 
 export interface PassedEventData {

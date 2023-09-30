@@ -28,7 +28,7 @@ export class UD3FormattedConnection implements ISidConnection {
 
     public onStart(): void {
         this.busy = false;
-        this.lastFrameTime = microtime.now() + 50e3;
+        this.lastFrameTime = microtime.now() + 500e3;
     }
 
     public switch_format(version: FormatVersion) {

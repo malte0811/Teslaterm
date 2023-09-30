@@ -29,6 +29,7 @@ export class TerminalIPC {
                 console.log("Error while sending: ", x);
             }
         });
+        //TODO one of the main tickers?
         setInterval(() => this.tick(), 20);
     }
 

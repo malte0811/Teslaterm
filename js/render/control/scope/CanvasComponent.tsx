@@ -4,32 +4,32 @@ import {TTComponent} from "../../TTComponent";
 export abstract class CanvasComponent<Props, State> extends TTComponent<Props, State> {
     private readonly canvasRef: React.RefObject<HTMLCanvasElement>;
     private readonly divRef: React.RefObject<HTMLDivElement>;
-    private readonly resizeListener: () => any;
+    private readonly resizeObserver: ResizeObserver;
 
     public constructor(props: any) {
         super(props);
         this.canvasRef = React.createRef();
         this.divRef = React.createRef();
-        this.resizeListener = () => this.refresh();
+        this.resizeObserver = new ResizeObserver(() => this.refresh());
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         return <div ref={this.divRef}>
             <canvas ref={this.canvasRef} className={'tt-canvas'}/>
         </div>;
     }
 
-    componentDidMount() {
-        window.addEventListener('resize', this.resizeListener);
+    public componentDidMount() {
+        this.resizeObserver.observe(this.canvasRef.current);
         this.refresh();
     }
 
-    componentWillUnmount() {
+    public componentWillUnmount() {
         super.componentWillUnmount();
-        window.removeEventListener('resize', this.resizeListener);
+        this.resizeObserver.unobserve(this.canvasRef.current);
     }
 
-    componentDidUpdate(prevProps: Props) {
+    public componentDidUpdate(prevProps: Props) {
         this.refresh();
     }
 
