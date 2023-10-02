@@ -18,31 +18,41 @@ const DARK_GAUGE_PROPS = {
 export class Gauge extends TTComponent<GaugeProps, {}> {
     private static nextId: number = 0;
     private readonly id: string;
-    private gauge?: any;
+    private gauge?: JustGage;
     private readonly ref: React.RefObject<HTMLDivElement>;
 
-    constructor(props: any) {
+    public constructor(props: any) {
         super(props);
         this.id = "tt-gauge-" + Gauge.nextId;
         ++Gauge.nextId;
         this.ref = React.createRef();
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.reInit();
         if (this.ref.current) {
             new ResizeObserver( () => this.reInit()).observe(this.ref.current);
         }
     }
 
-    componentDidUpdate() {
-        super.componentWillUnmount();
+    public componentDidUpdate() {
         if (this.gauge) {
-            this.gauge.refresh(this.props.value, this.props.config.max, this.props.config.min, this.props.config.name);
+            const newConfig = this.props.config;
+            const oldConfig = this.gauge.config;
+            const configChanged = newConfig.min !== oldConfig.min ||
+                newConfig.max !== oldConfig.max ||
+                newConfig.name !== oldConfig.label;
+            if (configChanged) {
+                this.gauge.refresh(
+                    this.props.value, this.props.config.max, this.props.config.min, this.props.config.name,
+                );
+            } else if (this.props.value !== this.gauge.config.value) {
+                this.gauge.refresh(this.props.value);
+            }
         }
     }
 
-    componentWillUnmount() {
+    public componentWillUnmount() {
         super.componentWillUnmount();
         if (this.gauge) {
             (this.gauge as any).destroy();
@@ -50,7 +60,7 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
         }
     }
 
-    render() {
+    public render() {
         return <div id={this.id} className={'tt-gauge'} ref={this.ref}/>;
     }
 
