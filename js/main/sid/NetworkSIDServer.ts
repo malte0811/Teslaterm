@@ -15,7 +15,7 @@ export class NetworkSIDServer {
     private localBuffer: SidFrame[] = [];
     private timeStandard: TimingStandard = PAL;
     private firstAfterReset: boolean = false;
-    private sendTimer: NodeJS.Timer;
+    private sendTimer: NodeJS.Timeout;
     private commandServer: ICommandServer;
 
     public constructor(port: number, commandServer: ICommandServer) {
