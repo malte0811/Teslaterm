@@ -1,3 +1,4 @@
+import * as electron from "electron";
 import {SynthType} from "../../../common/MediaTypes";
 import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
@@ -10,7 +11,7 @@ import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConne
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {TerminalHandle} from "./UD3Connection";
-import {EVENT_GET_INFO, SYNTH_CMD_FLUSH, UD3MinIDs} from "./UD3MINConstants";
+import {EVENT_GET_INFO, parseEventInfo, SYNTH_CMD_FLUSH, UD3MinIDs} from "./UD3MINConstants";
 
 export abstract class MinConnection extends BootloadableConnection {
     private min_wrapper: MINTransceiver | undefined;
@@ -211,7 +212,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 }
             });
         };
-        const handler = async (id, data) => {
+        const handler = async (id: number, data: number[]) => {
             if (id === UD3MinIDs.MEDIA) {
                 if (data[0] === 0x78) {
                     this.sidConnection.setBusy(true);
@@ -237,9 +238,7 @@ export abstract class MinConnection extends BootloadableConnection {
                     }
                 }
             } else if (id === UD3MinIDs.EVENT && data[0] === EVENT_GET_INFO) {
-                // https://github.com/Netzpfuscher/UD3/blob/892b8c25da2784e880c0c2617d417b14c3421ecd/common/ud3core/tasks/tsk_min.c#L216-L221
-                // 1: ID, 1: struct_version, 2: Padding (FFS...), 2*4: unique_id
-                ipcs.misc.sendUDName(convertBufferToString(data.slice(1 + 1 + 2 + 2 * 4)));
+                ipcs.misc.sendUDName(parseEventInfo(data).udName);
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {

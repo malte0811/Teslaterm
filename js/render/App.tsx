@@ -67,7 +67,11 @@ export class App extends TTComponent<{}, TopLevelState> {
         if (!this.state.ttConfig) {
             return <>Initializing...</>;
         } else if (this.state.connectionStatus === 'fr-viewer') {
-            return <FlightRecordingScreen darkMode={this.state.darkMode} events={this.state.flightEvents}/>;
+            return <FlightRecordingScreen
+                darkMode={this.state.darkMode}
+                events={this.state.flightEvents}
+                close={() => this.setState({connectionStatus: ConnectionStatus.IDLE})}
+            />;
         } else if (this.state.wasConnected) {
             return <MainScreen
                 ttConfig={this.state.ttConfig}

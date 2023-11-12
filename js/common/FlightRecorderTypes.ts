@@ -7,6 +7,7 @@ export enum FREventType {
     telemetry,
     feature_sync,
     set_synth,
+    event_info,
     unknown,
 }
 
@@ -22,6 +23,8 @@ export function getEventTypeDesc(ev: FREventType) {
             return 'Feature sync';
         case FREventType.set_synth:
             return 'Synth change';
+        case FREventType.event_info:
+            return 'Event/info';
         case FREventType.unknown:
             return 'Unknown';
     }
@@ -35,7 +38,13 @@ interface ParsedEventBase {
 
 type ParsedEventExtra = {type: FREventType.terminal_data, printed: string} |
     {type: FREventType.telemetry, frame: TelemetryFrame} |
-    {type: FREventType.feature_sync | FREventType.terminal_start_stop | FREventType.set_synth | FREventType.unknown};
+    {type: FREventType.event_info, infoObject?: any} |
+    {
+        type: FREventType.feature_sync |
+            FREventType.terminal_start_stop |
+            FREventType.set_synth |
+            FREventType.unknown,
+    };
 
 export type ParsedEvent = ParsedEventBase & ParsedEventExtra;
 
@@ -50,6 +59,7 @@ export function makeEmptyEventSet(): FREventSet {
         [FREventType.telemetry]: false,
         [FREventType.feature_sync]: false,
         [FREventType.set_synth]: false,
+        [FREventType.event_info]: false,
         [FREventType.unknown]: false,
     };
 }

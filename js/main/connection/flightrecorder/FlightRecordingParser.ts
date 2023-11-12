@@ -6,7 +6,7 @@ import {ACK_BYTE, RESET} from "../../min/MINConstants";
 import {MINReceiver, ReceivedMINFrame} from "../../min/MINReceiver";
 import {TelemetryChannel} from "../telemetry/TelemetryChannel";
 import {TelemetryFrame} from "../telemetry/TelemetryFrame";
-import {SYNTH_CMD_FLUSH, UD3MinIDs} from "../types/UD3MINConstants";
+import {EVENT_GET_INFO, parseEventInfo, SYNTH_CMD_FLUSH, UD3MinIDs} from "../types/UD3MINConstants";
 import {FlightEventType, FlightRecorderEvent} from "./FlightRecorder";
 import {FlightRecorderJSON} from "./FlightRecordingWorker";
 
@@ -183,6 +183,21 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
             humanEvents.push({...baseEvent, desc, type: FREventType.set_synth});
         } else if (appID === UD3MinIDs.SID || appID === UD3MinIDs.MEDIA) {
             // TODO put MIDI; SID data and flow control somewhere!
+        } else if (appID === UD3MinIDs.EVENT && minEvent.toUD3) {
+            if (frame.payload.length === 1 && frame.payload[0] === EVENT_GET_INFO) {
+                humanEvents.push({...baseEvent, desc: `Request for UD3 info`, type: FREventType.event_info});
+            } else {
+                humanEvents.push({
+                    ...baseEvent, desc: `Unknown event request: ${frame.payload}`, type: FREventType.event_info,
+                });
+            }
+        } else if (appID === UD3MinIDs.EVENT && !minEvent.toUD3) {
+            humanEvents.push({
+                ...baseEvent,
+                desc: `UD3 info received`,
+                infoObject: parseEventInfo(frame.payload),
+                type: FREventType.event_info,
+            });
         } else {
             humanEvents.push({
                 ...baseEvent,

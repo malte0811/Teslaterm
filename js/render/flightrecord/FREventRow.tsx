@@ -17,7 +17,15 @@ export class FREventRow extends TTComponent<EventSelectorProps, {}> {
         const direction = this.props.event.toUD3 ? 'TT \u2192 UD3' : 'UD3 \u2192 TT';
         let descElement: React.JSX.Element;
         if (this.props.event.type === FREventType.terminal_data) {
-            descElement = <>{this.props.event.desc}<br/><pre>{this.props.event.printed}</pre></>;
+            descElement = <>
+                {this.props.event.desc}<br/>
+                <pre>{this.props.event.printed}</pre>
+            </>;
+        } else if (this.props.event.type === FREventType.event_info && this.props.event.infoObject) {
+            descElement = <>
+                {this.props.event.desc}<br/>
+                <pre>{JSON.stringify(this.props.event.infoObject, undefined, '    ')}</pre>
+            </>;
         } else {
             descElement = <>{this.props.event.desc}</>;
         }

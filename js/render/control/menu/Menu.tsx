@@ -18,7 +18,7 @@ export interface MenuProps {
 }
 
 export class MenuBar extends TTComponent<MenuProps, {}> {
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const connectionBtnText = (() => {
             switch (this.props.connectionStatus) {
                 case ConnectionStatus.IDLE:
@@ -64,7 +64,7 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
         </ButtonToolbar>;
     }
 
-    onConnectionButton() {
+    private onConnectionButton() {
         if (this.props.connectionStatus == ConnectionStatus.IDLE) {
             this.props.clearWasConnected();
         } else {
