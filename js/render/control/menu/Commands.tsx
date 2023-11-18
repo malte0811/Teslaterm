@@ -9,6 +9,7 @@ import {TTComponent} from "../../TTComponent";
 import {TTDropdown} from "../../TTDropdown";
 import {Alarms} from "../Alarms";
 import {UD3Config} from "../UD3Config";
+import {MenuControlLevel} from "./Menu";
 
 interface CommandsState {
     warningText?: string;
@@ -20,6 +21,7 @@ interface CommandsState {
 }
 
 export interface CommandsMenuProps {
+    level: MenuControlLevel;
     udState: IUD3State;
     ttConfig: TTConfig;
     disabled: boolean;
@@ -27,7 +29,7 @@ export interface CommandsMenuProps {
 }
 
 export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsState> {
-    constructor(props) {
+    constructor(props: CommandsMenuProps) {
         super(props);
         this.state = {};
     }
@@ -38,7 +40,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     public render(): React.ReactNode {
-        const items: JSX.Element[] = [];
+        const items: React.JSX.Element[] = [];
         if (this.props.udState.busControllable) {
             if (this.props.udState.busActive) {
                 this.makeIPCItem(items, 'Bus off', IPC_CONSTANTS_TO_MAIN.commands.setBusState, false);
@@ -53,18 +55,24 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         } else {
             this.makeIPCItem(items, 'TR start', IPC_CONSTANTS_TO_MAIN.commands.setTRState, true);
         }
-        this.makeWarningItem(
-            items,
-            'Save EEPROM',
-            'Are you sure to save the configuration to EEPROM?',
-            IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM,
-            undefined,
-        );
-        this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
-        this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined, true);
-        this.makeIPCItem(
-            items, 'Export Flight Recording', IPC_CONSTANTS_TO_MAIN.flightRecorder.dumpFlightRecorder, undefined, true,
-        );
+        if (this.props.level !== MenuControlLevel.central_control) {
+            this.makeWarningItem(
+                items,
+                'Save EEPROM',
+                'Are you sure to save the configuration to EEPROM?',
+                IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM,
+                undefined,
+            );
+            this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
+            this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined, true);
+            this.makeIPCItem(
+                items,
+                'Export Flight Recording',
+                IPC_CONSTANTS_TO_MAIN.flightRecorder.dumpFlightRecorder,
+                undefined,
+                true,
+            );
+        }
         return <>
             <TTDropdown title={'Commands'} darkMode={this.props.darkMode}>{items}</TTDropdown>
             {this.makeWarningModal()}
@@ -74,14 +82,14 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeWarningItem<T>(
-        items: JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T
+        items: JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T,
     ) {
         items.push(<Dropdown.Item
             as={Button}
             onClick={() => {
                 this.setState({
+                    onOk: () => processIPC.send(channel, arg),
                     warningText,
-                    onOk: () => processIPC.send(channel, arg)
                 });
             }}
             key={items.length}
@@ -92,7 +100,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeIPCItem<T>(
-        items: JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T, alwaysEnable: boolean = false,
+        items: React.JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T, alwaysEnable: boolean = false,
     ) {
         items.push(<Dropdown.Item
             as={Button}

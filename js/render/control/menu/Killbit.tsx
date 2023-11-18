@@ -14,26 +14,26 @@ function setKillbit(val: boolean) {
 }
 
 export class Killbit extends TTComponent<KillbitProps, {}> {
-    render(): React.ReactNode {
-        let stateIndicator: JSX.Element;
+    public render(): React.ReactNode {
+        let stateIndicator: React.JSX.Element;
         const toggleKillbit = () => setKillbit(!this.props.killbit);
         if (this.props.killbit) {
             stateIndicator = <Button
                 variant={'danger'}
                 onClick={toggleKillbit}
                 disabled={this.props.disabled}
-            >ERR</Button>
+            >ERR</Button>;
         } else {
             stateIndicator = <Button
                 variant={'success'}
                 onClick={toggleKillbit}
                 disabled={this.props.disabled}
-            >OK</Button>
+            >OK</Button>;
         }
         return <ButtonGroup>
-            <Button onClick={(ev) => setKillbit(true)} disabled={this.props.disabled}>KILL SET</Button>
+            <Button onClick={() => setKillbit(true)} disabled={this.props.disabled}>KILL SET</Button>
             {stateIndicator}
-            <Button onClick={(ev) => setKillbit(false)} disabled={this.props.disabled}>KILL RESET</Button>
+            <Button onClick={() => setKillbit(false)} disabled={this.props.disabled}>KILL RESET</Button>
         </ButtonGroup>;
     }
 }

@@ -1,3 +1,26 @@
+.tt-top-level {
+    overflow: hidden;
+    background: var(--dark-background);
+}
+
+.tt-coil-tabs {
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.tt-coil-tab-bar {
+    flex: 0 0 auto;
+}
+
+.tt-coil-tab-main {
+    flex: 1 1 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
 .tt-menu-bar {
     flex: 0 1 auto;
 }
@@ -13,12 +36,17 @@
 .tt-terminal-container {
     display: flex;
     flex-direction: column;
-    /*TODO probably a hack*/
-    width: calc(100% - 120px);
+    flex: 1 1 auto;
 }
 
 .tt-terminal {
     flex: 1 1 auto;
+}
+
+.tt-coil-tab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .tt-terminal-and-gauges {
@@ -30,13 +58,15 @@
 
 .tt-main-screen {
     width: 100vw;
-    height: 100vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .tt-light-root, .tt-dark-root {
     overflow: hidden;
+    height: 100vh;
 }
 
 .tt-dark-root, .tt-dark-modal-root {

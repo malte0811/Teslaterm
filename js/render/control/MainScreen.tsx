@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import React from "react";
-import {Button, Modal} from "react-bootstrap";
+import {Button, ButtonToolbar, Col, Modal, Nav, Row, Tab} from "react-bootstrap";
 import * as xterm from "xterm";
 import {FitAddon} from "xterm-addon-fit";
 import {ConfirmReply, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
@@ -14,12 +14,8 @@ import {TTConfig} from "../../common/TTConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
-import {Gauges} from "./gauges/Gauges";
-import {MenuBar} from "./menu/Menu";
-import {Oscilloscope} from "./scope/Oscilloscope";
-import {Sliders} from "./sliders/Sliders";
-import {Terminal} from "./Terminal";
-import {Toasts} from "./Toasts";
+import {CentralControlTab} from "./CentralControlTab";
+import {SingleCoilTab} from "./SingleCoilTab";
 
 interface MainScreenState {
     ud3state: IUD3State;
@@ -41,7 +37,7 @@ export interface TerminalRef {
 }
 
 export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState> {
-    private readonly terminal: TerminalRef;
+    private readonly terminal: TerminalRef[];
 
     constructor(props: any) {
         super(props);
@@ -50,15 +46,12 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             scriptPopupShown: false,
             ud3state: {
                 busActive: false,
-                killBitSet: false,
                 busControllable: false,
+                killBitSet: false,
                 transientActive: false,
             },
         };
-        this.terminal = {
-            fitter: new FitAddon(),
-            terminal: undefined,
-        };
+        this.terminal = [];
     }
 
     public componentDidMount() {
@@ -72,38 +65,61 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     public render(): React.ReactNode {
-        const allowInteraction = this.props.connectionStatus == ConnectionStatus.CONNECTED;
-        return <div className={'tt-main-screen'} ref={this.mainDivRef}>
-            <div className={'tt-menu-bar'}>
-                <MenuBar
-                    ud3state={this.state.ud3state}
-                    connectionStatus={this.props.connectionStatus}
-                    ttConfig={this.props.ttConfig}
-                    clearWasConnected={this.props.clearWasConnected}
-                    darkMode={this.props.darkMode}
-                />
+        return (
+            <div ref={this.mainDivRef} className={'tt-main-screen'}>
+                <Tab.Container mountOnEnter={true} transition={false} defaultActiveKey={'control'}>
+                    <Col className={'tt-coil-tabs'}>
+                        <Row className={'tt-coil-tab-bar'}>
+                            <ButtonToolbar className="justify-content-between">
+                                <Nav variant={'tabs'}>
+                                    <Nav.Item><Nav.Link eventKey="control">Control</Nav.Link></Nav.Item>
+                                    <Nav.Item><Nav.Link eventKey="coil1">Coil 1</Nav.Link></Nav.Item>
+                                    <Nav.Item><Nav.Link eventKey="coil2">Coil 2</Nav.Link></Nav.Item>
+                                    <Nav.Item><Nav.Link eventKey="coil3">Coil 3</Nav.Link></Nav.Item>
+                                </Nav>
+                                <Button
+                                    variant={"warning"}
+                                    disabled={this.props.connectionStatus !== ConnectionStatus.IDLE}
+                                    onClick={this.props.clearWasConnected}
+                                >Close</Button>
+                            </ButtonToolbar>
+                        </Row>
+                        <Row className={'tt-coil-tab-main'}>
+                            <Tab.Content style={{
+                                overflow: 'hidden',
+                                flex: '1 1 auto',
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}>
+                                <Tab.Pane eventKey="control" style={{
+                                    height: '100%',
+                                    overflow: 'hidden',
+                                }}>
+                                    <CentralControlTab
+                                        ttConfig={this.props.ttConfig}
+                                        darkMode={this.props.darkMode}
+                                        ud3state={this.state.ud3state}
+                                        />
+                                </Tab.Pane>
+                                <Tab.Pane eventKey="coil1" style={{
+                                    height: '100%',
+                                    overflow: 'hidden',
+                                }}>{this.renderSingleTab(0)}</Tab.Pane>
+                                <Tab.Pane eventKey="coil2" style={{
+                                    height: '100%',
+                                    overflow: 'hidden',
+                                }}>{this.renderSingleTab(1)}</Tab.Pane>
+                                <Tab.Pane eventKey="coil3" style={{
+                                    height: '100%',
+                                    overflow: 'hidden',
+                                }}>{this.renderSingleTab(2)}</Tab.Pane>
+                            </Tab.Content>
+                        </Row>
+                    </Col>
+                    {this.makeScriptPopup()}
+                </Tab.Container>
             </div>
-            <div className={'tt-terminal-and-gauges'}>
-                <div className={'tt-terminal-container'}>
-                    <div className={'tt-scope-container'}>
-                        <Oscilloscope/>
-                        <Sliders
-                            ud3State={this.state.ud3state}
-                            disabled={!allowInteraction}
-                            enableMIDI={this.props.ttConfig.useMIDIPorts}
-                            darkMode={this.props.darkMode}
-                        />
-                    </div>
-                    <Terminal
-                        terminal={this.terminal}
-                        disabled={!allowInteraction}
-                    />
-                </div>
-                <Gauges darkMode={this.props.darkMode}/>
-            </div>
-            {this.makeScriptPopup()}
-            <Toasts darkMode={this.props.darkMode}/>
-        </div>;
+        );
     }
 
     protected async onDrop(e: DragEvent) {
@@ -128,6 +144,24 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             const zipContent = await zip.generateAsync({type: "uint8array"});
             FileUploadIPC.upload(scriptName, zipContent);
         }
+    }
+
+    private renderSingleTab(id: number): React.ReactNode {
+        const allowInteraction = this.props.connectionStatus === ConnectionStatus.CONNECTED;
+        if (!this.terminal[id]) {
+            this.terminal[id] = {
+                fitter: new FitAddon(),
+                terminal: undefined,
+            };
+        }
+        return <SingleCoilTab
+            terminal={this.terminal[id]}
+            allowInteraction={allowInteraction}
+            ttConfig={this.props.ttConfig}
+            connectionStatus={this.props.connectionStatus}
+            darkMode={this.props.darkMode}
+            ud3state={this.state.ud3state}
+        />;
     }
 
     private makeScriptPopup(): JSX.Element {
