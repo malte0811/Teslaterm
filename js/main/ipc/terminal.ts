@@ -1,4 +1,4 @@
-import {FEATURE_NOTELEMETRY} from "../../common/constants";
+import {CoilID, FEATURE_NOTELEMETRY} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {getUD3Connection, hasUD3Connection} from "../connection/connection";
@@ -17,16 +17,20 @@ export class TerminalIPC {
     public waitingConnections: object[] = [];
     private readonly buffers: Map<object, string> = new Map();
     private readonly processIPC: MultiWindowIPC;
+    private readonly coil: CoilID;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+        this.coil = coil;
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.manualCommand, async (source: object, msg: string) => {
-            try {
-                if (hasUD3Connection() && this.terminals.has(source)) {
-                    await getUD3Connection().sendTelnet(Buffer.from(msg), this.terminals.get(source));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.manualCommand, async (source: object, [msgCoil, msg]) => {
+            if (msgCoil == coil) {
+                try {
+                    if (hasUD3Connection(coil) && this.terminals.has(source)) {
+                        await getUD3Connection(coil).sendTelnet(Buffer.from(msg), this.terminals.get(source));
+                    }
+                } catch (x) {
+                    console.log("Error while sending: ", x);
                 }
-            } catch (x) {
-                console.log("Error while sending: ", x);
             }
         });
         //TODO one of the main tickers?
@@ -51,19 +55,19 @@ export class TerminalIPC {
         }
         this.processIPC.addDisconnectCallback(source, () => {
             if (this.terminals.has(source)) {
-                if (hasUD3Connection()) {
-                    getUD3Connection().closeTerminal(this.terminals.get(source));
+                if (hasUD3Connection(this.coil)) {
+                    getUD3Connection(this.coil).closeTerminal(this.terminals.get(source));
                 }
                 this.terminals.delete(source);
             }
             this.waitingConnections = this.waitingConnections.filter((conn) => conn === source);
         });
-        if (!hasUD3Connection()) {
+        if (!hasUD3Connection(this.coil)) {
             this.waitingConnections.push(source);
             return TermSetupResult.not_connected;
         }
-        const connection = getUD3Connection();
-        const termID = connection.setupNewTerminal((d) => receive_main(d, false, source));
+        const connection = getUD3Connection(this.coil);
+        const termID = connection.setupNewTerminal((d) => receive_main(this.coil, d, false, source));
         if (termID === undefined) {
             this.waitingConnections.push(source);
             return TermSetupResult.no_terminal_available;

@@ -3,7 +3,7 @@ import * as JSZip from "jszip/dist/jszip.min.js";
 import * as vm from 'vm';
 import {TransmittedFile} from "../common/IPCConstantsToMain";
 import {ToastSeverity} from "../common/IPCConstantsToRenderer";
-import {commands} from "./connection/connection";
+import {forEachCoil, getCoilCommands} from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
 import * as media_player from "./media/media_player";
 import {isMediaFile} from "./media/media_player";
@@ -42,11 +42,19 @@ export class Script {
                 ipcs.misc.openToast('Script output', s, ToastSeverity.info);
                 return Promise.resolve();
             }),
-            setBPS: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBPS(d)),
-            setBurstOfftime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBurstOfftime(d)),
-            setBurstOntime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBurstOntime(d)),
-            setOntime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setRelativeOntime(d)),
-            setTransientMode: this.wrapForSandboxNonPromise(enabled => commands.setTransientEnabled(enabled)),
+            setBPS: this.wrapForSandboxNonPromise(d => forEachCoil(coil => ipcs.sliders(coil).setBPS(d))),
+            setBurstOfftime: this.wrapForSandboxNonPromise(
+                d => forEachCoil(coil => ipcs.sliders(coil).setBurstOfftime(d)),
+            ),
+            setBurstOntime: this.wrapForSandboxNonPromise(
+                d => forEachCoil(coil => ipcs.sliders(coil).setBurstOntime(d)),
+            ),
+            setOntime: this.wrapForSandboxNonPromise(
+                d => forEachCoil(coil => ipcs.sliders(coil).setRelativeOntime(d)),
+            ),
+            setTransientMode: this.wrapForSandboxNonPromise(
+                enabled => forEachCoil(coil => getCoilCommands(coil).setTransientEnabled(enabled)),
+            ),
             stopMedia: this.wrapForSandboxNonPromise(() => media_player.media_state.stopPlaying()),
             waitForConfirmation: this.wrapForSandbox((msg, title) => this.waitForConfirmation(msg, title)),
         });
@@ -104,7 +112,7 @@ export class Script {
             return;
         }
         this.starterKey = starterKey;
-        ipcs.sliders.setOnlyMaxOntimeSettable(true);
+        forEachCoil(coil => ipcs.sliders(coil).setOnlyMaxOntimeSettable(true));
         this.running = true;
         try {
             for (const entry of this.queue) {
@@ -128,7 +136,7 @@ export class Script {
             console.error(x);
         }
         this.running = false;
-        ipcs.sliders.setOnlyMaxOntimeSettable(false);
+        forEachCoil(coil => ipcs.sliders(coil).setOnlyMaxOntimeSettable(false));
     }
 
     private wrapForSandboxNonPromise(func: (...args: any[]) => void): (...args: any[]) => void {

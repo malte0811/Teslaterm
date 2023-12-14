@@ -43,7 +43,7 @@ export class ScriptingIPC {
     public async loadScript(file: TransmittedFile) {
         try {
             this.currentScript = await Script.create(file.contents);
-            ipcs.menu.setScriptName(file.name);
+            ipcs.coilMenu.setScriptName(file.name);
         } catch (e) {
             ipcs.misc.openToast('Script', "Failed to load script: " + e, ToastSeverity.error, 'failed-script-load');
             console.log(e);

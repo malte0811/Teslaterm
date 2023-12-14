@@ -1,3 +1,4 @@
+import {CoilID} from "../../common/constants";
 import {ipcs} from "../ipc/IPCProvider";
 import {getUD3Connection} from "./connection";
 import {resetResponseTimeout} from "./state/Connected";
@@ -7,7 +8,7 @@ import {sendTelemetryFrame} from "./telemetry/TelemetryFrame";
 const channels: Map<object, TelemetryChannel> = new Map();
 let consoleLine: string = "";
 
-export function receive_main(data: Buffer, initializing: boolean, source?: object) {
+export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, source?: object) {
     const buf = new Uint8Array(data);
     resetResponseTimeout();
     if (!channels.has(source)) {
@@ -30,8 +31,8 @@ export function receive_main(data: Buffer, initializing: boolean, source?: objec
         };
     }
     const handleFrame = (frame) => {
-        if (!source || getUD3Connection().isMultiTerminal()) {
-            sendTelemetryFrame(frame, source, initializing);
+        if (!source || getUD3Connection(coil).isMultiTerminal()) {
+            sendTelemetryFrame(frame, coil, source, initializing);
         }
     };
     channels.get(source).processBytes(buf, print, handleFrame);

@@ -1,5 +1,3 @@
-import * as fs from "fs";
-
 export enum Endianness {
     LITTLE_ENDIAN,
     BIG_ENDIAN,

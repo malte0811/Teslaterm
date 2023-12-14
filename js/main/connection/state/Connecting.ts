@@ -88,7 +88,7 @@ export class Connecting implements IConnectionState {
 
     private async connect() {
         this.state = State.connecting;
-        ipcs.sliders.reinitState(this.advOptions.commandOptions.state);
+        ipcs.sliders(this.connection.getCoil()).reinitState(this.advOptions.commandOptions.state);
         await this.connection.connect();
         this.autoTerminal = this.connection.setupNewTerminal((data) =>
             telemetry.receive_main(
@@ -104,7 +104,7 @@ export class Connecting implements IConnectionState {
         }
         await this.connection.startTerminal(this.autoTerminal);
         this.state = State.initializing;
-        await startConf(this.advOptions.commandOptions.state);
+        await startConf(this.connection.getCoil(), this.advOptions.commandOptions.state);
         await ipcs.terminal.onSlotsAvailable(true);
         this.doneInitializingAt = Date.now();
         this.state = State.connected;

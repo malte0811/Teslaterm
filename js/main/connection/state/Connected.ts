@@ -1,11 +1,9 @@
-import {PlayerActivity, SynthType} from "../../../common/MediaTypes";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
+import {PlayerActivity, SynthType} from "../../../common/MediaTypes";
 import {AdvancedOptions, CommandRole} from "../../../common/Options";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as media from "../../media/media_player";
-import {media_state} from "../../media/media_player";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
-import {commands} from "../connection";
 import {ExtraConnections} from "../ExtraConnections";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Bootloading} from "./Bootloading";
@@ -118,7 +116,7 @@ export class Connected implements IConnectionState {
     private async disconnectInternal() {
         try {
             this.closeAdditionalConnections();
-            await commands.stop();
+            await this.activeConnection.commands().stop();
         } catch (e) {
             console.error("Failed to send stop command:", e);
         }

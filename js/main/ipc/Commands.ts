@@ -1,10 +1,13 @@
+import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {BoolOptionCommand, setBoolOption} from "../command/CommandMessages";
-import {commands} from "../connection/connection";
+import {getCoilCommands} from "../connection/connection";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class CommandIPC {
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+        // TODO filter by coil
+        const commands = getCoilCommands(coil);
         processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM, () => commands.eepromSave());
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.commands.setBusState, ($, enable) => setBoolOption(BoolOptionCommand.bus, enable),

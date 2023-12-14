@@ -1,10 +1,10 @@
 import * as path from "path";
-import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
+import {CoilID} from "../../common/constants";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {commands, connectionState, getUD3Connection, hasUD3Connection} from "../connection/connection";
-import {transientActive} from "../connection/telemetry/UD3State";
-import {config} from "../init";
+import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
+import {forEachCoilAsync, getCoilCommands, getUD3Connection, hasUD3Connection} from "../connection/connection";
+import {getUD3State} from "../connection/telemetry/UD3State";
 import {ipcs} from "../ipc/IPCProvider";
 import {loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
@@ -59,9 +59,11 @@ export class PlayerState {
         this.startCallback = startCallback;
         this.stopCallback = stopCallback;
         this.progress = 0;
-        if (hasUD3Connection()) {
-            await getUD3Connection().setSynthByFiletype(type, false);
-        }
+        await forEachCoilAsync(async (coil) => {
+            if (hasUD3Connection(coil)) {
+                await getUD3Connection(coil).setSynthByFiletype(type, false);
+            }
+        });
     }
 
     public async startPlaying(source?: object): Promise<void> {
@@ -104,16 +106,18 @@ export class PlayerState {
 
 export let media_state = new PlayerState();
 
-let lastTimeoutReset: number = 0;
+const lastTimeoutReset: Map<CoilID, number> = new Map<CoilID, number>();
 
 export async function checkTransientDisabled() {
-    if (transientActive) {
-        const currTime = new Date().getTime();
-        if (currTime - lastTimeoutReset > 500) {
-            await commands.setTransientEnabled(false);
-            lastTimeoutReset = currTime;
+    await forEachCoilAsync(async (coil) => {
+        if (getUD3State(coil).transientActive) {
+            const currTime = new Date().getTime();
+            if (!lastTimeoutReset.has(coil) || currTime - lastTimeoutReset.get(coil) > 500) {
+                await getCoilCommands(coil).setTransientEnabled(false);
+                lastTimeoutReset.set(coil, currTime);
+            }
         }
-    }
+    });
 }
 
 export function isMediaFile(filename: string): boolean {
@@ -122,12 +126,13 @@ export function isMediaFile(filename: string): boolean {
 }
 
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
+    /*TODO
     if (connectionState.getCommandRole() === "client") {
         ipcs.misc.openToast(
             'Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client'
         );
         return;
-    }
+    }*/
     if (media_state.state === PlayerActivity.playing) {
         media_state.stopPlaying();
     }

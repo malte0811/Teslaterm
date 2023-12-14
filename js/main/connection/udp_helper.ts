@@ -1,7 +1,5 @@
 import * as dgram from "dgram";
-import * as net from "net";
 import {promisify} from "util";
-import {ipcs} from "../ipc/IPCProvider";
 
 function createSocket(onError: (err) => any): dgram.Socket {
     let socket = dgram.createSocket("udp4");

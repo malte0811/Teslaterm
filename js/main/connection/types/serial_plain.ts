@@ -1,5 +1,6 @@
 import * as os from "os";
 import {SerialPort} from "serialport";
+import {CoilID} from "../../../common/constants";
 import {SynthType} from "../../../common/MediaTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
@@ -10,8 +11,8 @@ export class PlainSerialConnection extends UD3Connection {
     private readonly baudrate: number;
     private readonly port: string;
 
-    constructor(port: string, baudrate: number) {
-        super();
+    constructor(coil: CoilID, port: string, baudrate: number) {
+        super(coil);
         this.baudrate = baudrate;
         this.port = port;
     }
@@ -114,8 +115,8 @@ export class PlainSerialConnection extends UD3Connection {
     }
 }
 
-export function createPlainSerialConnection(port: string, baudrate: number): UD3Connection {
-    return new PlainSerialConnection(port, baudrate);
+export function createPlainSerialConnection(coil: CoilID, port: string, baudrate: number): UD3Connection {
+    return new PlainSerialConnection(coil, port, baudrate);
 }
 
 export function getDefaultSerialPortForConfig() {

@@ -9,7 +9,7 @@ import {
     FEATURE_TIMEBASE,
     FEATURE_TIMECOUNT,
 } from "../common/constants";
-import {AdvancedOptions, CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
+import {CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
 import {TTConfig} from "../common/TTConfig";
 import {
     DEFAULT_SERIAL_PRODUCT,

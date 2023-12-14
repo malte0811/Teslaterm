@@ -47,6 +47,10 @@ CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_min, "Serial (MIN)");
 CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_plain, "Serial (Plain)");
 // connection_types.set(dummy, "Dummy connection (debug only!)");
 
+export interface CoilID {
+    id: number;
+}
+
 export enum UD3AlarmLevel {
     info = 0,
     warn = 1,

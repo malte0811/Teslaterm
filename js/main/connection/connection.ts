@@ -1,9 +1,6 @@
 import {ConnectionOptions} from "../../common/ConnectionOptions";
-import {UD3ConnectionType} from "../../common/constants";
-import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
-import {AdvancedOptions, CommandRole} from "../../common/Options";
-import {getDefaultAdvancedOptions} from "../../common/TTConfig";
-import {config} from "../init";
+import {CoilID} from "../../common/constants";
+import {CommandRole} from "../../common/Options";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {CommandInterface} from "./commands";
@@ -14,98 +11,118 @@ import {IConnectionState} from "./state/IConnectionState";
 import {Idle} from "./state/Idle";
 import {TerminalHandle, UD3Connection} from "./types/UD3Connection";
 
-export let connectionState: IConnectionState = new Idle();
-export const commands = new CommandInterface();
+const connectionState: Map<CoilID, IConnectionState> = new Map<CoilID, IConnectionState>();
 
-export async function startConf(commandState: CommandRole) {
+export function getCoilCommands(coil: CoilID) {
+    return new CommandInterface(coil);
+}
+
+export function getConnectionState(coil: CoilID) {
+    if (!connectionState.has(coil)) {
+        connectionState.set(coil, new Idle());
+    }
+    return connectionState.get(coil);
+}
+
+export function getCoils() {
+    return connectionState.keys();
+}
+
+export function forEachCoilAsync<T>(apply: (coil: CoilID) => Promise<T>) {
+    return Promise.all([...getCoils()].map(apply));
+}
+
+export function forEachCoil<T>(apply: (coil: CoilID) => T) {
+    return [...getCoils()].map(apply);
+}
+
+export function setConnectionState(coil: CoilID, newState: IConnectionState) {
+    connectionState.set(coil, newState);
+}
+
+export async function startConf(coil: CoilID, commandState: CommandRole) {
+    const commands = getCoilCommands(coil);
+    const sliderIPC = ipcs.sliders(coil);
     await commands.sendCommand('\r');
     if (commandState === "disable") {
-        await ipcs.sliders.setAbsoluteOntime(0);
+        await sliderIPC.setAbsoluteOntime(0);
     } else {
-        await ipcs.sliders.setRelativeOntime(0);
+        await sliderIPC.setRelativeOntime(0);
     }
-    await commands.setBPS(ipcs.sliders.bps);
-    await commands.setBurstOntime(ipcs.sliders.burstOntime);
-    await commands.setBurstOfftime(ipcs.sliders.burstOfftime);
-    await getUD3Connection().setSynthByFiletype(media_state.type, false);
+    await commands.setBPS(sliderIPC.bps);
+    await commands.setBurstOntime(sliderIPC.burstOntime);
+    await commands.setBurstOfftime(sliderIPC.burstOfftime);
+    await getUD3Connection(coil).setSynthByFiletype(media_state.type, false);
     await commands.resetKill();
     await commands.startTelemetry();
 }
 
-export async function pressButton(window: object) {
-    connectionState = await connectionState.pressButton(window);
+export async function pressButton(coil: CoilID, window: object) {
+    setConnectionState(coil, await getConnectionState(coil).pressButton(window));
 }
 
-export async function autoConnect() {
-    console.assert(connectionState instanceof Idle);
-    const connectionType = config.defaultConnectOptions.defaultConnectionType;
-    if (connectionType === undefined) {
-        return;
-    }
-    const advanced: AdvancedOptions = getDefaultAdvancedOptions(config);
-    let options: ConnectionOptions;
-    if (connectionType === UD3ConnectionType.udp_min) {
-        options = {connectionType, options: config.defaultConnectOptions.udpOptions, advanced};
-    } else {
-        options = {connectionType, options: config.defaultConnectOptions.serialOptions, advanced};
-    }
-    const connection = await Idle.connectWithOptions(options);
-    if (connection) {
-        connectionState = new Connecting(connection, new Idle(), options.advanced);
-    }
-}
-
-export function startBootloading(cyacd: Uint8Array): boolean {
-    if (connectionState instanceof Connected) {
-        const newConnection = connectionState.startBootloading(cyacd);
+export function startBootloading(coil: CoilID, cyacd: Uint8Array): boolean {
+    const coilState = getConnectionState(coil);
+    if (coilState instanceof Connected) {
+        const newConnection = coilState.startBootloading(cyacd);
         if (newConnection) {
-            connectionState = newConnection;
+            setConnectionState(coil, newConnection);
             return true;
         }
     }
     return false;
 }
 
-let lastStatus: ConnectionStatus = ConnectionStatus.IDLE;
 
 export function updateFast() {
-    connectionState = connectionState.tickFast();
-    const newStatus = connectionState.getConnectionStatus();
-    if (newStatus !== lastStatus) {
-        ipcs.misc.setConnectionState(newStatus);
-        getFlightRecorder().addEvent(FlightEventType.connection_state_change, [newStatus]);
+    for (const [coil, coilState] of connectionState.entries()) {
+        const lastStatus = coilState.getConnectionStatus();
+        const newCoilState = coilState.tickFast();
+        setConnectionState(coil, newCoilState);
+        const newStatus = newCoilState.getConnectionStatus();
+        if (newStatus !== lastStatus) {
+            ipcs.misc.setConnectionState(newStatus);
+            getFlightRecorder().addEvent(FlightEventType.connection_state_change, [newStatus]);
+        }
     }
-    lastStatus = newStatus;
 }
 
 export function updateSlow(): void {
-    connectionState.tickSlow();
+    for (const coilState of connectionState.values()) {
+        coilState.tickSlow();
+    }
 }
 
-export function getUD3Connection(): UD3Connection {
-    const ret = connectionState.getActiveConnection();
+export function getUD3Connection(coil: CoilID): UD3Connection {
+    const ret = getConnectionState(coil).getActiveConnection();
     if (!ret) {
         throw new Error("No connection is currently active");
     }
     return ret;
 }
 
-export function getOptionalUD3Connection(): UD3Connection | undefined {
-    return connectionState.getActiveConnection();
+export function getOptionalUD3Connection(coil: CoilID): UD3Connection | undefined {
+    return getConnectionState(coil).getActiveConnection();
 }
 
-export function getAutoTerminal(): TerminalHandle | undefined {
-    return connectionState.getAutoTerminal();
+export function getAutoTerminal(coil: CoilID): TerminalHandle | undefined {
+    return getConnectionState(coil).getAutoTerminal();
 }
 
-export function hasUD3Connection(): boolean {
-    return connectionState.getActiveConnection() !== undefined;
+export function hasUD3Connection(coil: CoilID): boolean {
+    return getConnectionState(coil).getActiveConnection() !== undefined;
 }
 
 export async function connectWithOptions(args: ConnectionOptions) {
+    const id = makeNewCoilID();
     // TODO sort of a hack, I guess
     const connection = await Idle.connectWithOptions(args);
     if (connection) {
-        connectionState = new Connecting(connection, new Idle(), args.advanced);
+        setConnectionState(id, new Connecting(connection, new Idle(), args.advanced));
     }
+}
+
+function makeNewCoilID(): CoilID {
+    throw new Error("Need to implement coil ID creation");
+    // TODO call ipcs.initCoilIPC(newCoil)
 }

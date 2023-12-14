@@ -1,3 +1,4 @@
+import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_RENDERER, ScopeTraceConfig} from "../../common/IPCConstantsToRenderer";
 import {media_state} from "../media/media_player";
 import {MultiWindowIPC} from "./IPCProvider";
@@ -7,9 +8,11 @@ export class ScopeIPC {
     private sinceLastDraw: number[] = [];
     private configs: ScopeTraceConfig[] = [];
     private readonly processIPC: MultiWindowIPC;
+    private coil: CoilID;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.processIPC = processIPC;
+        this.coil = coil;
         setInterval(() => this.tick(), 50);
     }
 

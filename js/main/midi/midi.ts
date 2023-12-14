@@ -1,8 +1,7 @@
 import * as MidiPlayer from "midi-player-js";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
-import {connectionState, hasUD3Connection} from "../connection/connection";
+import {forEachCoil, forEachCoilAsync, getConnectionState, hasUD3Connection} from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
-import {simulated} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
@@ -33,7 +32,7 @@ export function stopMidiOutput() {
 async function processMidiFromPlayer(event: MidiPlayer.Event) {
     if (await playMidiEvent(event)) {
         media_state.progress = 100 - player.getSongPercentRemaining();
-    } else if (!simulated && !hasUD3Connection()) {
+    } else if (!forEachCoil(hasUD3Connection).includes(true)) {
         stopMidiFile();
     }
     ipcs.scope.updateMediaInfo();
@@ -81,14 +80,17 @@ export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
 }
 
 export async function playMidiData(data: number[] | Uint8Array): Promise<boolean> {
-    if (hasUD3Connection() && data[0] !== 0x00) {
+    if (data[0] !== 0x00) {
         await checkTransientDisabled();
-        if (connectionState instanceof Connected) {
-            await connectionState.sendMIDI(Buffer.from(data));
-        }
+        await forEachCoilAsync(async (coil) => {
+            const connectionState = getConnectionState(coil);
+            if (connectionState instanceof Connected) {
+                await connectionState.sendMIDI(Buffer.from(data));
+            }
+        });
         return true;
     } else {
-        return simulated && data[0] !== 0;
+        return false;
     }
 }
 

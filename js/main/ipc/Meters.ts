@@ -1,3 +1,4 @@
+import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_RENDERER, MeterConfig} from "../../common/IPCConstantsToRenderer";
 import {MultiWindowIPC} from "./IPCProvider";
 
@@ -6,9 +7,11 @@ export class MetersIPC {
     private lastState: number[] = [];
     private readonly configs: MeterConfig[] = [];
     private readonly processIPC: MultiWindowIPC;
+    private readonly coil: CoilID;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.processIPC = processIPC;
+        this.coil = coil;
         setInterval(() => this.tick(), 100);
     }
 

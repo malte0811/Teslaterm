@@ -1,7 +1,7 @@
+import {ConnectionOptions} from "./ConnectionOptions";
+import {CoilID, UD3AlarmLevel} from "./constants";
 import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
-import {ConnectionOptions} from "./ConnectionOptions";
-import {UD3AlarmLevel} from "./constants";
 import {TTConfig} from "./TTConfig";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
@@ -47,7 +47,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
     sliders: {
-        syncSettings: makeKey<ISliderState>('slider-sync'),
+        syncSettings: makeKey<[CoilID, ISliderState]>('slider-sync'),
     },
     syncDarkMode: makeKey<boolean>('syncDarkMode'),
     terminal: makeKey<string>('terminal'),

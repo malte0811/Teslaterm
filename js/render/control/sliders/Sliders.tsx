@@ -38,7 +38,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
     public componentDidMount() {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings,
-            (sync: ISliderState) => {
+            ([coil, sync]) => {
                 const newState: SliderUIState = {
                     ...sync,
                     controllingRelativeOntime: this.state.controllingRelativeOntime,

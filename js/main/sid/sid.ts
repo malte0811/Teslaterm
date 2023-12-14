@@ -1,7 +1,7 @@
 import * as path from "path";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {connectionState} from "../connection/connection";
+import {forEachCoilAsync} from "../connection/connection";
 import * as connection from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
 import {ipcs} from "../ipc/IPCProvider";
@@ -13,9 +13,11 @@ import {EmulationSidSource} from "./sid_emulated";
 let current_sid_source: ISidSource | null = null;
 
 async function startPlayingSID() {
-    const sidConnection = connection.getUD3Connection().getSidConnection();
-    await sidConnection.flush();
-    sidConnection.onStart();
+    await forEachCoilAsync(async (coil) => {
+        const sidConnection = connection.getUD3Connection(coil).getSidConnection();
+        await sidConnection.flush();
+        sidConnection.onStart();
+    });
 }
 
 async function stopPlayingSID() {

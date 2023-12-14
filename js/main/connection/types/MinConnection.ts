@@ -1,6 +1,6 @@
 import * as electron from "electron";
 import {SynthType} from "../../../common/MediaTypes";
-import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
+import {CoilID, FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
@@ -23,8 +23,8 @@ export abstract class MinConnection extends BootloadableConnection {
     private connectionsToSetTTerm: TerminalHandle[] = [];
     private counter: number = 0;
 
-    protected constructor() {
-        super();
+    protected constructor(coil: CoilID) {
+        super(coil);
         this.sidConnection = new UD3FormattedConnection(
             () => this.flushSynth(),
             (data) => this.sendMedia(data),
@@ -131,7 +131,7 @@ export abstract class MinConnection extends BootloadableConnection {
         super.enterBootloaderMode(dataCallback);
         this.min_wrapper = undefined;
         this.terminalCallbacks.clear();
-        ipcs.terminal.onConnectionClosed();
+        ipcs.terminal(this.getCoil()).onConnectionClosed();
     }
 
     public resetWatchdog(): void {

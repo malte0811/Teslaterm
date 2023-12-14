@@ -1,5 +1,5 @@
-import {MediaFileType} from "../../common/MediaTypes";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {MediaFileType} from "../../common/MediaTypes";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {player, startCurrentMidiFile, stopMidiFile} from "./midi";

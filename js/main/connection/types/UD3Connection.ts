@@ -1,9 +1,10 @@
 import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
-import {FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
+import {CoilID, FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
 import {Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {ISidConnection} from "../../sid/ISidConnection";
+import {getCoilCommands} from "../connection";
 
 export function toCommandID(type: SynthType): number {
     switch (type) {
@@ -31,6 +32,11 @@ export class TerminalData {
 export abstract class UD3Connection {
     protected terminalCallbacks: Map<TerminalHandle, TerminalData> = new Map<TerminalHandle, TerminalData>();
     protected lastSynthType: SynthType = SynthType.NONE;
+    private readonly coil: CoilID;
+
+    constructor(coil: CoilID) {
+        this.coil = coil;
+    }
 
     public abstract sendTelnet(data: Buffer, handle: TerminalHandle): Promise<void>;
 
@@ -66,6 +72,14 @@ export abstract class UD3Connection {
     public abstract getMaxTerminalID(): number;
 
     public abstract isMultiTerminal(): boolean;
+
+    public getCoil() {
+        return this.coil;
+    }
+
+    public commands() {
+        return getCoilCommands(this.getCoil());
+    }
 
     public setupNewTerminal(dataCallback: (data: Buffer) => void): TerminalHandle | undefined {
         for (let i = 0; !this.isMultiTerminal() || i < this.getMaxTerminalID(); ++i) {

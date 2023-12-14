@@ -1,18 +1,18 @@
-import {DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
+import {CoilID, DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
 import {ScopeTraceConfig, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
-import {commands} from "../connection";
+import {getCoilCommands} from "../connection";
 import {addAlarm} from "./Alarms";
 import {updateStateFromTelemetry} from "./UD3State";
 
 export type UD3ConfigConsumer = (cfg: UD3ConfigOption[]) => any;
 let configRequestQueue: UD3ConfigConsumer[] = [];
 
-export function requestConfig(out: UD3ConfigConsumer) {
+export function requestConfig(coil: CoilID, out: UD3ConfigConsumer) {
     configRequestQueue.push(out);
     if (configRequestQueue.length === 1) {
-        commands.sendCommand("config_get\r").catch((err) => console.error("While getting config:", err));
+        getCoilCommands(coil).sendCommand("config_get\r").catch((err) => console.error("While getting config:", err));
     }
 }
 
@@ -201,7 +201,7 @@ export class TelemetryFrameParser {
     }
 }
 
-export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initializing: boolean) {
+export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, source: object, initializing: boolean) {
     switch (frame.type) {
         case TelemetryEvent.GAUGE32:
         case TelemetryEvent.GAUGE: {
@@ -245,9 +245,9 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
             break;
         }
         case TelemetryEvent.STATE_SYNC: {
-            updateStateFromTelemetry(frame.packedState);
+            updateStateFromTelemetry(coil, frame.packedState);
             if (frame.maxPw !== undefined) {
-                ipcs.sliders.setSliderRanges(frame.maxPw, frame.maxPrf).catch(
+                ipcs.sliders(coil).setSliderRanges(frame.maxPw, frame.maxPrf).catch(
                     (err) => console.log("While updating slider ranges", err),
                 );
             }

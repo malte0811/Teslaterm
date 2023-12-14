@@ -1,4 +1,5 @@
 import {ConnectionOptions} from './ConnectionOptions';
+import {CoilID} from "./constants";
 import {ConnectionPreset} from "./IPCConstantsToRenderer";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
@@ -24,7 +25,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         loadFlightRecording: makeKey<number[]>('load-flight-recording'),
     },
     loadFile: makeKey<DroppedFile>('load-file'),
-    manualCommand: makeKey<string>('manual-command'),
+    manualCommand: makeKey<[CoilID, string]>('manual-command'),
     connect: {
         connect: makeKey<ConnectionOptions>('connect-to-ud3'),
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),

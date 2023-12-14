@@ -1,3 +1,4 @@
+import {CoilID} from "../../../common/constants";
 import {createUDPSocket} from "../udp_helper";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
@@ -8,8 +9,8 @@ class UDPMinConnection extends MinConnection {
     public readonly remoteAddress: string;
     private socket: dgram.Socket;
 
-    constructor(remotePort: number, remoteAddress: string) {
-        super();
+    constructor(coil: CoilID, remotePort: number, remoteAddress: string) {
+        super(coil);
         if (!(remotePort >= 0 && remotePort < 65536)) {
             throw new Error("Invalid port " + remotePort);
         }
@@ -49,6 +50,6 @@ class UDPMinConnection extends MinConnection {
     }
 }
 
-export function createMinUDPConnection(port: number, address: string): UD3Connection {
-    return new UDPMinConnection(port, address);
+export function createMinUDPConnection(coil: CoilID, port: number, address: string): UD3Connection {
+    return new UDPMinConnection(coil, port, address);
 }

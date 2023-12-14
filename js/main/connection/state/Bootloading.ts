@@ -5,7 +5,6 @@ import {sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {Bootloader} from "../bootloader/bootloader";
-import {commands} from "../connection";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {IConnectionState} from "./IConnectionState";
 import {Idle} from "./Idle";
@@ -87,7 +86,7 @@ export class Bootloading implements IConnectionState {
             const ldr = new Bootloader();
             await ldr.loadCyacd(file);
             // Ignore result: The UD3 won't ACK this command since it immediately goes into bootloader mode
-            commands.sendCommand('\rbootloader\r').catch(() => {});
+            this.connection.commands().sendCommand('\rbootloader\r').catch(() => {});
             ipcs.terminal.println("Waiting for bootloader to start...");
             await sleep(3000);
             this.connection.enterBootloaderMode((data) => {

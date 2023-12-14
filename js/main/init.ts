@@ -7,7 +7,6 @@ import * as sid from "./sid/sid";
 import {loadConfig} from "./TTConfigLoader";
 
 export let config: TTConfig;
-export const simulated = false;
 
 export function init() {
     config = loadConfig("config.ini");
@@ -16,7 +15,6 @@ export function init() {
     setInterval(tick200, 200);
     setInterval(tick20, 20);
     setInterval(tick10, 10);
-    connection.autoConnect().catch(e => console.log('During autoconnect', e));
 }
 
 function tick200() {

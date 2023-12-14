@@ -1,12 +1,13 @@
+import {CoilID} from "../../common/constants";
 import {IPCToMainKey} from "../../common/IPCConstantsToMain";
 import {IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
 import {CommandIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
 import {FlightRecorderIPC} from "./FlightRecorderIPC";
-import {MenuIPC} from "./Menu";
+import {CommonMenuIPC, PerCoilMenuIPC} from "./Menu";
 import {MetersIPC} from "./Meters";
-import {MiscIPC} from "./Misc";
+import {ByCoilMiscIPC, CommonMiscIPC} from "./Misc";
 import {ScopeIPC} from "./Scope";
 import {ScriptingIPC} from "./Scripting";
 import {SlidersIPC} from "./sliders";
@@ -130,30 +131,66 @@ export class MultiWindowIPC {
 }
 
 export class IPCCollection {
-    public readonly commands: CommandIPC;
     public readonly connectionUI: ConnectionUIIPC;
     public readonly fileUpload: FileUploadIPC;
     public readonly flightRecorder: FlightRecorderIPC;
-    public readonly menu: MenuIPC;
-    public readonly meters: MetersIPC;
-    public readonly misc: MiscIPC;
-    public readonly scope: ScopeIPC;
+    public readonly misc: CommonMiscIPC;
     public readonly scripting: ScriptingIPC;
-    public readonly sliders: SlidersIPC;
-    public readonly terminal: TerminalIPC;
+    public readonly menu: CommonMenuIPC;
+    private readonly commandsByCoil: Map<CoilID, CommandIPC> = new Map<CoilID, CommandIPC>();
+    private readonly terminalByCoil: Map<CoilID, TerminalIPC> = new Map<CoilID, TerminalIPC>();
+    private readonly menuByCoil: Map<CoilID, PerCoilMenuIPC> = new Map<CoilID, PerCoilMenuIPC>();
+    private readonly slidersByCoil: Map<CoilID, SlidersIPC> = new Map<CoilID, SlidersIPC>();
+    private readonly metersByCoil: Map<CoilID, MetersIPC> = new Map<CoilID, MetersIPC>();
+    private readonly scopeByCoil: Map<CoilID, ScopeIPC> = new Map<CoilID, ScopeIPC>();
+    private readonly miscByCoil: Map<CoilID, ByCoilMiscIPC> = new Map<CoilID, ByCoilMiscIPC>();
+    private readonly processIPC: MultiWindowIPC;
 
     constructor(process: MultiWindowIPC) {
-        this.commands = new CommandIPC(process);
         this.connectionUI = new ConnectionUIIPC(process);
         this.fileUpload = new FileUploadIPC(process);
         this.flightRecorder = new FlightRecorderIPC(process);
-        this.menu = new MenuIPC(process);
-        this.meters = new MetersIPC(process);
-        this.misc = new MiscIPC(process);
-        this.scope = new ScopeIPC(process);
+        this.misc = new CommonMiscIPC(process);
         this.scripting = new ScriptingIPC(process);
-        this.sliders = new SlidersIPC(process);
-        this.terminal = new TerminalIPC(process);
+        this.menu = new CommonMenuIPC(process);
+    }
+
+    public sliders(coil: CoilID): SlidersIPC {
+        return this.slidersByCoil.get(coil);
+    }
+
+    public coilMenu(coil: CoilID): PerCoilMenuIPC {
+        return this.menuByCoil.get(coil);
+    }
+
+    public terminal(coil: CoilID): TerminalIPC {
+        return this.terminalByCoil.get(coil);
+    }
+
+    public commands(coil: CoilID): CommandIPC {
+        return this.commandsByCoil.get(coil);
+    }
+
+    public scope(coil: CoilID): ScopeIPC {
+        return this.scopeByCoil.get(coil);
+    }
+
+    public meters(coil: CoilID): MetersIPC {
+        return this.metersByCoil.get(coil);
+    }
+
+    public coilMisc(coil: CoilID): ByCoilMiscIPC {
+        return this.miscByCoil.get(coil);
+    }
+
+    public initCoilIPC(coil: CoilID) {
+        this.slidersByCoil.set(coil, new SlidersIPC(this.processIPC, coil));
+        this.menuByCoil.set(coil, new PerCoilMenuIPC(this.processIPC, coil));
+        this.terminalByCoil.set(coil, new TerminalIPC(this.processIPC, coil));
+        this.commandsByCoil.set(coil, new CommandIPC(this.processIPC, coil));
+        this.metersByCoil.set(coil, new MetersIPC(this.processIPC, coil));
+        this.scopeByCoil.set(coil, new ScopeIPC(this.processIPC, coil));
+        this.miscByCoil.set(coil, new ByCoilMiscIPC(this.processIPC, coil));
     }
 }
 
