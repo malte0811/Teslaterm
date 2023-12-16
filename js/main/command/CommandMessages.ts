@@ -1,5 +1,6 @@
 import {jspack} from "jspack";
-import {commands} from "../connection/connection";
+import {CoilID} from "../../common/constants";
+import {getCoilCommands} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 
 export const timeout_us = 5_000_000;
@@ -17,7 +18,8 @@ export enum BoolOptionCommand {bus, kill, transient}
 
 export enum NumberOptionCommand {relative_ontime, bps, burst_on, burst_off}
 
-export function setBoolOption(option: BoolOptionCommand, value: boolean) {
+export function setBoolOption(coil: CoilID, option: BoolOptionCommand, value: boolean) {
+    const commands = getCoilCommands(coil);
     switch (option) {
         case BoolOptionCommand.bus:
             return (value ? commands.busOn() : commands.busOff());
@@ -28,16 +30,17 @@ export function setBoolOption(option: BoolOptionCommand, value: boolean) {
     }
 }
 
-export function setNumberOption(option: NumberOptionCommand, value: number) {
+export function setNumberOption(coil: CoilID, option: NumberOptionCommand, value: number) {
+    const sliders = ipcs.sliders(coil);
     switch (option) {
         case NumberOptionCommand.relative_ontime:
-            return ipcs.sliders.setRelativeOntime(value);
+            return sliders.setRelativeOntime(value);
         case NumberOptionCommand.bps:
-            return ipcs.sliders.setBPS(value);
+            return sliders.setBPS(value);
         case NumberOptionCommand.burst_on:
-            return ipcs.sliders.setBurstOntime(value);
+            return sliders.setBurstOntime(value);
         case NumberOptionCommand.burst_off:
-            return ipcs.sliders.setBurstOfftime(value);
+            return sliders.setBurstOfftime(value);
     }
 }
 

@@ -1,5 +1,5 @@
 import {UD3ConnectionType} from "./constants";
-import {AdvancedOptions, CommandConnectionConfig, MidiConfig, NetSidConfig} from "./Options";
+import {AdvancedOptions} from "./Options";
 
 export interface SerialConnectionOptions {
     baudrate: number;

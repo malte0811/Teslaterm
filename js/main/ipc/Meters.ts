@@ -1,5 +1,5 @@
 import {CoilID} from "../../common/constants";
-import {IPC_CONSTANTS_TO_RENDERER, MeterConfig} from "../../common/IPCConstantsToRenderer";
+import {getToRenderIPCPerCoil, MeterConfig, PerCoilRenderIPCs} from "../../common/IPCConstantsToRenderer";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class MetersIPC {
@@ -8,10 +8,12 @@ export class MetersIPC {
     private readonly configs: MeterConfig[] = [];
     private readonly processIPC: MultiWindowIPC;
     private readonly coil: CoilID;
+    private readonly renderIPCs: PerCoilRenderIPCs;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.processIPC = processIPC;
         this.coil = coil;
+        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
         setInterval(() => this.tick(), 100);
     }
 
@@ -21,15 +23,15 @@ export class MetersIPC {
 
     public configure(meterId: number, min: number, max: number, scale: number, name: string) {
         const config: MeterConfig = {meterId, min, max, scale, name};
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.configure, config);
+        this.processIPC.sendToAll(this.renderIPCs.meters.configure, config);
         this.configs[meterId] =  config;
     }
 
     public sendConfig(source: object) {
         for (const cfg of Object.values(this.configs)) {
-            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.configure, source, cfg);
+            this.processIPC.sendToWindow(this.renderIPCs.meters.configure, source, cfg);
         }
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.setValue, source, {values: this.lastState});
+        this.processIPC.sendToWindow(this.renderIPCs.meters.setValue, source, {values: this.lastState});
     }
 
     public getCurrentConfigs() {
@@ -45,7 +47,7 @@ export class MetersIPC {
             }
         }
         if (Object.keys(update).length > 0) {
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.setValue, {values: update});
+            this.processIPC.sendToAll(this.renderIPCs.meters.setValue, {values: update});
         }
     }
 }

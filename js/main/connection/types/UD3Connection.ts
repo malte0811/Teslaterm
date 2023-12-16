@@ -1,5 +1,5 @@
-import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
 import {CoilID, FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
+import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
 import {Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
@@ -103,7 +103,7 @@ export abstract class UD3Connection {
 
     public async closeTerminal(handle: TerminalHandle): Promise<void> {
         this.terminalCallbacks.delete(handle);
-        await ipcs.terminal.onSlotsAvailable(false);
+        await ipcs.terminal(this.getCoil()).onSlotsAvailable(false);
     }
 
     public getFeatureValue(feature: string): string {

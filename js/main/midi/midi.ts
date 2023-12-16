@@ -15,12 +15,11 @@ export const player = new MidiPlayer.Player(
 
 export async function startCurrentMidiFile() {
     player.play();
-    ipcs.scope.updateMediaInfo();
+    ipcs.misc.updateMediaInfo();
 }
 
 export function stopMidiFile() {
     player.stop();
-    ipcs.scope.drawChart();
     stopMidiOutput();
     scripting.onMediaStopped();
 }
@@ -35,7 +34,7 @@ async function processMidiFromPlayer(event: MidiPlayer.Event) {
     } else if (!forEachCoil(hasUD3Connection).includes(true)) {
         stopMidiFile();
     }
-    ipcs.scope.updateMediaInfo();
+    ipcs.misc.updateMediaInfo();
 }
 
 const expectedByteCounts = {

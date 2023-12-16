@@ -51,6 +51,10 @@ export interface CoilID {
     id: number;
 }
 
+export function coilSuffix(coil: CoilID) {
+    return coil.id.toString();
+}
+
 export enum UD3AlarmLevel {
     info = 0,
     warn = 1,

@@ -39,7 +39,7 @@ export class Script {
             playMediaAsync: this.wrapForSandboxNonPromise(() => media_player.media_state.startPlaying()),
             playMediaBlocking: this.wrapForSandbox(() => this.playMediaBlocking()),
             println: this.wrapForSandbox((s) => {
-                ipcs.misc.openToast('Script output', s, ToastSeverity.info);
+                ipcs.misc.openGenericToast('Script output', s, ToastSeverity.info);
                 return Promise.resolve();
             }),
             setBPS: this.wrapForSandboxNonPromise(d => forEachCoil(coil => ipcs.sliders(coil).setBPS(d))),
@@ -102,7 +102,7 @@ export class Script {
 
     public async start(starterKey: object) {
         if (this.running) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 'Script',
                 'The script is already running.',
                 ToastSeverity.info,
@@ -117,7 +117,7 @@ export class Script {
         try {
             for (const entry of this.queue) {
                 if (!this.isRunning()) {
-                    ipcs.misc.openToast(
+                    ipcs.misc.openGenericToast(
                         'Script', 'Cancelled script', ToastSeverity.info, 'script-info', starterKey
                     );
                     break;
@@ -125,12 +125,12 @@ export class Script {
                 await entry.run();
             }
             if (this.isRunning()) {
-                ipcs.misc.openToast(
+                ipcs.misc.openGenericToast(
                     'Script', 'Script finished normally', ToastSeverity.info, 'script-info', starterKey
                 );
             }
         } catch (x) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 'Script', 'Script finished with error: ' + x, ToastSeverity.warning, 'script-info', starterKey
             );
             console.error(x);

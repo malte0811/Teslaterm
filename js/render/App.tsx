@@ -32,9 +32,10 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     public componentDidMount() {
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.updateConnectionState, status => this.onConnectionChange(status),
-        );
+        //TODO
+        // this.addIPCListener(
+        //     IPC_CONSTANTS_TO_RENDERER.updateConnectionState, status => this.onConnectionChange(status),
+        // );
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
         );
@@ -44,9 +45,10 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.syncDarkMode, (darkMode) => this.setState({darkMode}),
         );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.udName, (udName) => this.setState({udName}),
-        );
+        //TODO
+        // this.addIPCListener(
+        //     IPC_CONSTANTS_TO_RENDERER.udName, (udName) => this.setState({udName}),
+        // );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 

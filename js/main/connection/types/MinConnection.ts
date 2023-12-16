@@ -28,13 +28,14 @@ export abstract class MinConnection extends BootloadableConnection {
         this.sidConnection = new UD3FormattedConnection(
             () => this.flushSynth(),
             (data) => this.sendMedia(data),
+            coil,
         );
         this.actualUDFeatures = new Map(config.defaultUDFeatures.entries());
     }
 
     public async connect(): Promise<void> {
         this.registerListener(data => {
-            getFlightRecorder().addEvent(FlightEventType.data_from_ud3, data);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_from_ud3, data);
             if (this.isBootloading()) {
                 this.bootloaderCallback(data);
             } else {
@@ -116,7 +117,7 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public sendBootloaderData(data: Buffer): Promise<void> {
         return new Promise<void>((res, rej) => {
-            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, data);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
                 if (err) {
                     rej(err);
@@ -163,8 +164,6 @@ export abstract class MinConnection extends BootloadableConnection {
 
     private sendBufferedFrame(buf: Buffer[], minID: number) {
         while (this.min_wrapper.get_relative_fifo_size() < 0.75 && buf.length > 0) {
-            //console.log(buf[0]);
-            console.log("send_frame");
             this.min_wrapper.enqueueFrame(minID, buf.shift()).catch(err => {
                 console.log("Failed to send media packet: " + err);
             });
@@ -175,6 +174,7 @@ export abstract class MinConnection extends BootloadableConnection {
         if (this.min_wrapper) {
             const maxPerFrame = 200;
 
+            await this.sidConnection.tick();
             this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, UD3MinIDs.MEDIA);
             this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, UD3MinIDs.SID);
             if (this.counter > 20) {
@@ -205,7 +205,7 @@ export abstract class MinConnection extends BootloadableConnection {
             if (this.isBootloading()) {
                 return;
             }
-            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, data);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
                 if (err) {
                     console.error("Error while sending data: ", err);
@@ -238,7 +238,7 @@ export abstract class MinConnection extends BootloadableConnection {
                     }
                 }
             } else if (id === UD3MinIDs.EVENT && data[0] === EVENT_GET_INFO) {
-                ipcs.misc.sendUDName(parseEventInfo(data).udName);
+                ipcs.coilMisc(this.getCoil()).sendUDName(parseEventInfo(data).udName);
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {

@@ -17,7 +17,7 @@ export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, 
     let print: (s: string) => void;
 
     if (source) {
-        print = (s) => ipcs.terminal.print(s, source);
+        print = (s) => ipcs.terminal(coil).print(s, source);
     } else {
         print = (s) => {
             if (s === '\n' || s === '\r') {

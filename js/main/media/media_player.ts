@@ -68,13 +68,13 @@ export class PlayerState {
 
     public async startPlaying(source?: object): Promise<void> {
         if (this.currentFile === null) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 "Media", "Please select a media file using drag&drop", ToastSeverity.info, "media", source
             );
             return;
         }
         if (this.state !== PlayerActivity.idle) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 "Media",
                 "A media file is currently playing, stop it before starting it again",
                 ToastSeverity.info,
@@ -91,14 +91,14 @@ export class PlayerState {
 
     public stopPlaying(source?: Object): void {
         if (this.currentFile === null || this.state !== PlayerActivity.playing) {
-            ipcs.misc.openToast("Media", "No media file is currently playing", ToastSeverity.info, "media", source);
+            ipcs.misc.openGenericToast("Media", "No media file is currently playing", ToastSeverity.info, "media", source);
             return;
         }
         if (this.stopCallback) {
             this.stopCallback();
         }
         this.stateInt = PlayerActivity.idle;
-        ipcs.scope.updateMediaInfo();
+        ipcs.misc.updateMediaInfo();
         scripting.onMediaStopped();
     }
 }
@@ -128,7 +128,7 @@ export function isMediaFile(filename: string): boolean {
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     /*TODO
     if (connectionState.getCommandRole() === "client") {
-        ipcs.misc.openToast(
+        ipcs.misc.openGenericToast(
             'Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client'
         );
         return;
@@ -142,6 +142,6 @@ export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     } else if (extension === "dmp" || extension === "sid") {
         await loadSidFile(file);
     } else {
-        ipcs.misc.openToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');
+        ipcs.misc.openGenericToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');
     }
 }

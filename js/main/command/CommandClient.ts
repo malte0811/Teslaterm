@@ -1,13 +1,10 @@
 import {Socket} from "net";
-import {SynthType} from "../../common/MediaTypes";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {getOptionalUD3Connection} from "../connection/connection";
+import {forEachCoilAsync} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
 import {playMidiData} from "../midi/midi";
-import {UD3FormattedConnection} from "../sid/UD3FormattedConnection";
 import {Message, MessageType, Parser, setBoolOption, setNumberOption, timeout_us, toBytes} from "./CommandMessages";
-import {DUMMY_SERVER} from "./CommandServer";
 
 const averagingOldFactor = 31 / 32;
 const averagingNewFactor = 1 - averagingOldFactor;
@@ -27,7 +24,7 @@ export class CommandClient {
     public constructor(remoteName: string, port: number) {
         this.socket = new Socket();
         this.socket.addListener("data", (data) => this.parser.onData(data));
-        this.socket.addListener("error", (err) => ipcs.misc.openToast(
+        this.socket.addListener("error", (err) => ipcs.misc.openGenericToast(
             'Command client', "Failed to connect to command server: " + err, ToastSeverity.error, 'connect-command',
         ));
         this.socket.connect(port, remoteName);
@@ -50,6 +47,7 @@ export class CommandClient {
         if (this.sidFrameQueue.length === 0) {
             return;
         }
+        /*TODO
         const ud3Connection = getOptionalUD3Connection();
         if (!ud3Connection) {
             return;
@@ -66,6 +64,7 @@ export class CommandClient {
                 .catch((err) => console.log("While processing SID from command server: ", err));
             ++numSent;
         }
+         */
     }
 
     private async onData(packet: Message) {
@@ -89,10 +88,10 @@ export class CommandClient {
                 playMidiData(packet.message);
                 break;
             case MessageType.bool_command:
-                await setBoolOption(packet.option, packet.value);
+                await forEachCoilAsync((coil) => setBoolOption(coil, packet.option, packet.value));
                 break;
             case MessageType.number_command:
-                await setNumberOption(packet.option, packet.value);
+                await forEachCoilAsync((coil) => setNumberOption(coil, packet.option, packet.value));
                 break;
         }
     }

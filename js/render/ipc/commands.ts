@@ -1,14 +1,23 @@
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {CoilID} from "../../common/constants";
+import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
 import {processIPC} from "./IPCProvider";
 
 class CommandsIPC {
+    private coil: CoilID;
+
+    constructor(coil: CoilID) {
+        this.coil = coil;
+    }
+
     public saveEEPROM() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM, undefined);
+        processIPC.send(getToMainIPCPerCoil(this.coil).commands.saveEEPROM, undefined);
     }
 
     public sendManualCommand(cmd: string) {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.manualCommand, cmd);
+        processIPC.send(getToMainIPCPerCoil(this.coil).manualCommand, cmd);
     }
 }
 
-export const commands = new CommandsIPC();
+export function commands(coil: CoilID) {
+    return new CommandsIPC(coil);
+}

@@ -1,13 +1,15 @@
 import React from "react";
-import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import * as xterm from "xterm";
+import {CoilID} from "../../common/constants";
+import {getToRenderIPCPerCoil} from "../../common/IPCConstantsToRenderer";
 import {commands} from "../ipc/commands";
 import {TTComponent} from "../TTComponent";
 import {TerminalRef} from "./MainScreen";
-import * as xterm from "xterm";
 
 export interface TerminalProps {
     terminal: TerminalRef;
     disabled: boolean;
+    coil: CoilID;
 }
 
 export class Terminal extends TTComponent<TerminalProps, {}> {
@@ -26,14 +28,14 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
             terminal.resize(0, 0);
             terminal.onKey((ev) => {
                 if (!this.props.disabled) {
-                    commands.sendManualCommand(ev.key);
+                    commands(this.props.coil).sendManualCommand(ev.key);
                 }
             });
             terminal.open(this.terminalDivRef.current);
             this.props.terminal.terminal = terminal;
-            this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.terminal, s => this.onDataFromMain(s));
+            this.addIPCListener(getToRenderIPCPerCoil(this.props.coil).terminal, s => this.onDataFromMain(s));
             this.fitManually();
-            commands.sendManualCommand('\rcls\r');
+            commands(this.props.coil).sendManualCommand('\rcls\r');
             new ResizeObserver(() => this.fitManually()).observe(this.terminalDivRef.current);
         }
     }

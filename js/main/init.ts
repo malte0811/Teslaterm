@@ -11,7 +11,6 @@ export let config: TTConfig;
 export function init() {
     config = loadConfig("config.ini");
     IPC.init();
-    initAlarms();
     setInterval(tick200, 200);
     setInterval(tick20, 20);
     setInterval(tick10, 10);

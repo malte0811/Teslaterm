@@ -1,8 +1,14 @@
 import React from 'react';
-import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, ISliderState, IUD3State} from "../../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
+import {
+    getToRenderIPCPerCoil,
+    IPC_CONSTANTS_TO_RENDERER,
+    ISliderState,
+    IUD3State
+} from "../../../common/IPCConstantsToRenderer";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {TabControlLevel} from "../SingleCoilTab";
 import {MidiSourceSelect} from "./MidiSourceSelect";
 import {OntimeSlider} from './OntimeSlider';
 import {SimpleSlider} from './SimpleSlider';
@@ -12,6 +18,7 @@ export interface SlidersProps {
     disabled: boolean;
     enableMIDI: boolean;
     darkMode: boolean;
+    level: TabControlLevel;
 }
 
 interface SliderUIState extends ISliderState {
@@ -36,29 +43,36 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
     }
 
     public componentDidMount() {
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings,
-            ([coil, sync]) => {
-                const newState: SliderUIState = {
-                    ...sync,
-                    controllingRelativeOntime: this.state.controllingRelativeOntime,
-                };
-                if (sync.startAtRelativeOntime !== this.state.startAtRelativeOntime) {
-                    newState.controllingRelativeOntime = sync.startAtRelativeOntime;
-                }
-                if (sync.onlyMaxOntimeSettable) {
-                    newState.controllingRelativeOntime = false;
-                }
-                this.setState(newState);
-            },
-        );
+        if (this.props.level.level !== 'central-control') {
+            this.addIPCListener(
+                getToRenderIPCPerCoil(this.props.level.coil).sliders.syncSettings,
+                (sync) => {
+                    const newState: SliderUIState = {
+                        ...sync,
+                        controllingRelativeOntime: this.state.controllingRelativeOntime,
+                    };
+                    if (sync.startAtRelativeOntime !== this.state.startAtRelativeOntime) {
+                        newState.controllingRelativeOntime = sync.startAtRelativeOntime;
+                    }
+                    if (sync.onlyMaxOntimeSettable) {
+                        newState.controllingRelativeOntime = false;
+                    }
+                    this.setState(newState);
+                },
+            );
+        }
     }
 
     public render(): React.ReactNode {
+        // TODO make this work properly in the central tab
+        const coilIPC = this.props.level.level !== 'central-control' ?
+            getToMainIPCPerCoil(this.props.level.coil) :
+            undefined;
+        const combinedIPC = coilIPC ? coilIPC : IPC_CONSTANTS_TO_MAIN;
         const setOntime = (val: number, relative: boolean) => {
             const channel = relative ?
-                IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative :
-                IPC_CONSTANTS_TO_MAIN.sliders.setOntimeAbsolute;
+                combinedIPC.sliders.setOntimeRelative :
+                coilIPC.sliders.setOntimeAbsolute;
             processIPC.send(channel, val);
             if (relative) {
                 this.setState({ontimeRel: val});
@@ -80,6 +94,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 relativeIsDefault={this.state.startAtRelativeOntime}
                 controllingRelative={this.state.controllingRelativeOntime}
                 setControllingRelative={b => this.setState({controllingRelativeOntime: b})}
+                level={this.props.level}
             />
             <SimpleSlider
                 title={'BPS'}
@@ -89,7 +104,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 max={this.state.maxBPS}
                 setValue={(v) => {
                     this.setState({bps: v});
-                    processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, v);
+                    processIPC.send(combinedIPC.sliders.setBPS, v);
                 }}
                 visuallyEnabled={trOn}
                 disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
@@ -102,7 +117,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 max={1000}
                 setValue={(v) => {
                     this.setState({burstOntime: v});
-                    processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, v);
+                    processIPC.send(combinedIPC.sliders.setBurstOntime, v);
                 }}
                 visuallyEnabled={trOn}
                 disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
@@ -115,7 +130,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 max={1000}
                 setValue={(v) => {
                     this.setState({burstOfftime: v});
-                    processIPC.send(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, v);
+                    processIPC.send(combinedIPC.sliders.setBurstOfftime, v);
                 }}
                 visuallyEnabled={trOn}
                 disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}

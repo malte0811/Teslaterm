@@ -1,23 +1,19 @@
 import React from "react";
 import {Button, ButtonGroup, ButtonToolbar} from "react-bootstrap";
+import {CoilID} from "../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER, IUD3State} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {TabControlLevel} from "../SingleCoilTab";
 import {CentralKillbit} from "./CentralKillbit";
 import {CommandsMenuItem} from "./Commands";
 import {Killbit} from "./Killbit";
 import {StartStopMenuItem} from "./StartStopItem";
 
-export enum MenuControlLevel {
-    combined,
-    central_control,
-    single_coil,
-}
-
 export interface MenuProps {
-    level: MenuControlLevel;
+    level: TabControlLevel;
     connectionStatus: ConnectionStatus;
     ud3state: IUD3State;
     ttConfig: TTConfig;
@@ -41,8 +37,12 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
         })();
         const allowInteraction = this.props.connectionStatus === ConnectionStatus.CONNECTED;
         const killbitElement = (() => {
-            if (this.props.level !== MenuControlLevel.central_control) {
-                return <Killbit killbit={this.props.ud3state.killBitSet} disabled={!allowInteraction}/>;
+            if (this.props.level.level !== 'central-control') {
+                return <Killbit
+                    killbit={this.props.ud3state.killBitSet}
+                    disabled={!allowInteraction}
+                    coil={this.props.level.coil}
+                />;
             } else {
                 return <CentralKillbit numSetKillbits={this.props.ud3state.killBitSet ? 3 : 1} totalNumCoils={3}/>;
             }
@@ -51,7 +51,7 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
             <ButtonGroup>{this.makeMenuItems(allowInteraction)}</ButtonGroup>
             {killbitElement}
             {
-                this.props.level !== MenuControlLevel.central_control && <Button
+                this.props.level.level !== 'central-control' && <Button
                     onClick={() => this.onConnectionButton()}
                     variant={"warning"}
                     disabled={connectionBtnDisabled}
@@ -76,7 +76,7 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
                 level={this.props.level}
             />
         );
-        if (this.props.level === MenuControlLevel.single_coil) {
+        if (this.props.level.level === 'single-coil') {
             return commandsMenuItem;
         } else {
             return (

@@ -42,7 +42,7 @@ export class Connected implements IConnectionState {
     public async pressButton(window: object): Promise<IConnectionState> {
         try {
             await this.disconnectInternal();
-            ipcs.terminal.onConnectionClosed();
+            ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
         } catch (err) {
             console.error("While disconnecting:", err);
         }
@@ -54,7 +54,7 @@ export class Connected implements IConnectionState {
         this.extraState.tickFast();
 
         if (this.isConnectionLost()) {
-            ipcs.misc.openToast(
+            ipcs.coilMisc(this.activeConnection.getCoil()).openToast(
                 'Connection lost',
                 'Lost connection,' +
                 ' will attempt to reconnect',
@@ -63,7 +63,7 @@ export class Connected implements IConnectionState {
             );
             this.activeConnection.disconnect();
             this.closeAdditionalConnections();
-            ipcs.terminal.onConnectionClosed();
+            ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
             return new Reconnecting(this.activeConnection, this.advOptions);
         }
 

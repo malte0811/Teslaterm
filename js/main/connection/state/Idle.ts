@@ -1,10 +1,9 @@
 import {SerialPort} from "serialport";
 import {ConnectionOptions, SerialConnectionOptions} from "../../../common/ConnectionOptions";
-import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
-import {AvailableSerialPort, ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
+import {CoilID, CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
+import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {CommandRole} from "../../../common/Options";
 import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
-import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import {resetAlarms} from "../telemetry/Alarms";
 import {createPlainSerialConnection} from "../types/serial_plain";
@@ -15,17 +14,19 @@ import {IConnectionState} from "./IConnectionState";
 
 export class Idle implements IConnectionState {
 
-    public static async connectWithOptions(options: ConnectionOptions): Promise<UD3Connection | undefined> {
+    public static async connectWithOptions(
+        coil: CoilID, options: ConnectionOptions,
+    ): Promise<UD3Connection | undefined> {
         resetAlarms();
         const type = options.connectionType;
         switch (type) {
             case UD3ConnectionType.serial_plain:
-                return this.connectSerial(options.options, createPlainSerialConnection);
+                return this.connectSerial(coil, options.options, createPlainSerialConnection);
             case UD3ConnectionType.serial_min:
-                return this.connectSerial(options.options, createMinSerialConnection);
+                return this.connectSerial(coil, options.options, createMinSerialConnection);
             case UD3ConnectionType.udp_min:
                 return createMinUDPConnection(
-                    options.options.udpMinPort, Idle.addressFromString(options.options.remoteIP)
+                    coil, options.options.udpMinPort, Idle.addressFromString(options.options.remoteIP),
                 );
             default:
                 ipcs.connectionUI.sendConnectionError("Connection type \"" + CONNECTION_TYPE_DESCS.get(type) +
@@ -36,7 +37,7 @@ export class Idle implements IConnectionState {
 
     private static addressFromString(input: string): string {
         const suffixStart = input.lastIndexOf(" (");
-        if (suffixStart >= 0 && input[input.length - 1] == ")") {
+        if (suffixStart >= 0 && input[input.length - 1] === ")") {
             return input.substring(suffixStart + 2, input.length - 1);
         } else {
             return input;
@@ -44,18 +45,21 @@ export class Idle implements IConnectionState {
     }
 
     private static async connectSerial(
-        options: SerialConnectionOptions, create: (port: string, baudrate: number) => UD3Connection
+        coil: CoilID,
+        options: SerialConnectionOptions,
+        create: (coil: CoilID, port: string, baudrate: number) => UD3Connection,
     ): Promise<UD3Connection | undefined> {
         if (options.autoconnect) {
-            return this.autoConnectSerial(options.baudrate, create, options);
+            return this.autoConnectSerial(coil, options.baudrate, create, options);
         } else {
-            return create(options.serialPort, options.baudrate);
+            return create(coil, options.serialPort, options.baudrate);
         }
     }
 
     private static async autoConnectSerial(
+        coil: CoilID,
         baudrate: number,
-        create: (port: string, baudrate: number) => UD3Connection,
+        create: (coil: CoilID, port: string, baudrate: number) => UD3Connection,
         options: SerialConnectionOptions,
     ): Promise<UD3Connection | undefined> {
         if (!options.autoVendorID || !options.autoProductID) {
@@ -65,7 +69,7 @@ export class Idle implements IConnectionState {
         for (const port of all) {
             if (port.vendorId === options.autoVendorID && port.productId === options.autoProductID) {
                 console.log("Auto connecting to " + port.path);
-                return create(port.path, baudrate);
+                return create(coil, port.path, baudrate);
             }
         }
         ipcs.connectionUI.sendConnectionError("Did not find device with specified product/vendor ID");

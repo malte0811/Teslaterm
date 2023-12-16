@@ -6,7 +6,7 @@ import {SidFrame} from "./sid_api";
 export interface ISidConnection {
     onStart(): void;
 
-    processFrame(frame: SidFrame, commandServer: ICommandServer): Promise<void>;
+    queueFrame(frame: SidFrame): Promise<void>;
 
     flush(): Promise<void>;
 

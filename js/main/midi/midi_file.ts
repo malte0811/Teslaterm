@@ -14,5 +14,5 @@ export async function loadMidiFile(file: TransmittedFile) {
         stopMidiFile,
     );
     player.loadArrayBuffer(file.contents);
-    ipcs.scope.updateMediaInfo();
+    ipcs.misc.updateMediaInfo();
 }

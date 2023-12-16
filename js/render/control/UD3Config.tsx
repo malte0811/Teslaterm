@@ -1,6 +1,7 @@
 import React, {CSSProperties} from "react";
 import {Button, Col, Form, Row, Tab, Tabs} from "react-bootstrap";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {CoilID} from "../../common/constants";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {UD3ConfigOption, UD3ConfigType} from '../../common/IPCConstantsToRenderer';
 import {TTConfig} from "../../common/TTConfig";
 import {commands} from "../ipc/commands";
@@ -12,6 +13,7 @@ export interface UD3ConfigProps {
     close: () => any;
     ttConfig: TTConfig;
     darkMode: boolean;
+    coil: CoilID;
 }
 
 interface UD3ConfigState {
@@ -41,7 +43,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
                     <Button onClick={() => this.sendAndClose()}>Send to UD3</Button>
                     <Button onClick={() => {
                         this.sendAndClose();
-                        commands.saveEEPROM();
+                        commands(this.props.coil).saveEEPROM();
                     }}>Send & save to EEPROM</Button>
                     <Button onClick={this.props.close}>Discard</Button>
                 </div>
@@ -131,7 +133,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         for (const option of changed) {
             changeMap.set(option.name, option.current);
         }
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setParms, changeMap);
+        processIPC.send(getToMainIPCPerCoil(this.props.coil).commands.setParms, changeMap);
         this.props.close();
     }
 

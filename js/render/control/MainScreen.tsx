@@ -3,6 +3,7 @@ import React from "react";
 import {Button, ButtonToolbar, Col, Modal, Nav, Row, Tab} from "react-bootstrap";
 import * as xterm from "xterm";
 import {FitAddon} from "xterm-addon-fit";
+import {CoilID} from "../../common/constants";
 import {ConfirmReply, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     ConfirmationRequest,
@@ -18,7 +19,6 @@ import {CentralControlTab} from "./CentralControlTab";
 import {SingleCoilTab} from "./SingleCoilTab";
 
 interface MainScreenState {
-    ud3state: IUD3State;
     scriptPopup: ConfirmationRequest;
     scriptPopupShown: boolean;
 }
@@ -37,34 +37,40 @@ export interface TerminalRef {
 }
 
 export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState> {
-    private readonly terminal: TerminalRef[];
+    private readonly terminal = new Map<CoilID, TerminalRef>();
 
     constructor(props: any) {
         super(props);
         this.state = {
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
-            ud3state: {
-                busActive: false,
-                busControllable: false,
-                killBitSet: false,
-                transientActive: false,
-            },
         };
-        this.terminal = [];
     }
 
     public componentDidMount() {
         super.componentDidMount();
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, (state) => this.setState({ud3state: state}));
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
             (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),
         );
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, (coil) => {
+            if (!this.terminal.has(coil)) {
+                this.terminal.set(coil, {
+                    fitter: new FitAddon(),
+                    terminal: undefined,
+                });
+            }
+        });
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     public render(): React.ReactNode {
+        const coils = [...this.terminal.keys()].map((coil) => {
+            return <Tab.Pane eventKey="coil3" style={{
+                height: '100%',
+                overflow: 'hidden',
+            }}>{this.renderSingleTab(coil)}</Tab.Pane>
+        });
         return (
             <div ref={this.mainDivRef} className={'tt-main-screen'}>
                 <Tab.Container mountOnEnter={true} transition={false} defaultActiveKey={'control'}>
@@ -98,21 +104,9 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                     <CentralControlTab
                                         ttConfig={this.props.ttConfig}
                                         darkMode={this.props.darkMode}
-                                        ud3state={this.state.ud3state}
                                         />
                                 </Tab.Pane>
-                                <Tab.Pane eventKey="coil1" style={{
-                                    height: '100%',
-                                    overflow: 'hidden',
-                                }}>{this.renderSingleTab(0)}</Tab.Pane>
-                                <Tab.Pane eventKey="coil2" style={{
-                                    height: '100%',
-                                    overflow: 'hidden',
-                                }}>{this.renderSingleTab(1)}</Tab.Pane>
-                                <Tab.Pane eventKey="coil3" style={{
-                                    height: '100%',
-                                    overflow: 'hidden',
-                                }}>{this.renderSingleTab(2)}</Tab.Pane>
+                                {...coils}
                             </Tab.Content>
                         </Row>
                     </Col>
@@ -146,21 +140,15 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         }
     }
 
-    private renderSingleTab(id: number): React.ReactNode {
+    private renderSingleTab(coil: CoilID): React.ReactNode {
         const allowInteraction = this.props.connectionStatus === ConnectionStatus.CONNECTED;
-        if (!this.terminal[id]) {
-            this.terminal[id] = {
-                fitter: new FitAddon(),
-                terminal: undefined,
-            };
-        }
         return <SingleCoilTab
-            terminal={this.terminal[id]}
+            terminal={this.terminal.get(coil)}
             allowInteraction={allowInteraction}
             ttConfig={this.props.ttConfig}
             connectionStatus={this.props.connectionStatus}
             darkMode={this.props.darkMode}
-            ud3state={this.state.ud3state}
+            coil={coil}
         />;
     }
 

@@ -1,6 +1,11 @@
 import {CoilID} from "../../common/constants";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, UD3State} from "../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {
+    getToRenderIPCPerCoil,
+    IPC_CONSTANTS_TO_RENDERER,
+    PerCoilRenderIPCs,
+    UD3State
+} from "../../common/IPCConstantsToRenderer";
 import {pressButton} from "../connection/connection";
 import {requestConfig} from "../connection/telemetry/TelemetryFrame";
 import {media_state} from "../media/media_player";
@@ -9,28 +14,27 @@ import {ipcs, MultiWindowIPC} from "./IPCProvider";
 export class PerCoilMenuIPC {
     private lastUD3State: UD3State = UD3State.DEFAULT_STATE;
     private readonly processIPC: MultiWindowIPC;
-    private coil: CoilID;
+    private readonly coil: CoilID;
+    private readonly renderIPCs: PerCoilRenderIPCs;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, (source) => media_state.startPlaying(source));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.connectButton, pressButton);
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, async (source) => {
-            requestConfig(this.coil, (cfg) => ipcs.misc.openUDConfig(cfg, source));
+        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
+        processIPC.on(getToMainIPCPerCoil(coil).menu.requestUDConfig, async (source) => {
+            requestConfig(this.coil, (cfg) => ipcs.coilMisc(coil).openUDConfig(cfg, source));
         });
     }
 
     public setUD3State(newState: UD3State) {
         if (!newState.equals(this.lastUD3State)) {
             this.lastUD3State = newState;
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, this.lastUD3State);
+            this.processIPC.sendToAll(this.renderIPCs.menu.ud3State, this.lastUD3State);
         }
     }
 
     public sendFullState(target: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, target, this.lastUD3State);
+        this.processIPC.sendToWindow(this.renderIPCs.menu.ud3State, target, this.lastUD3State);
     }
 }
 
@@ -41,6 +45,9 @@ export class CommonMenuIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, (source) => media_state.startPlaying(source));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.connectButton, pressButton);
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, (source) => media_state.startPlaying(source));
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
     }

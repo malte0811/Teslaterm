@@ -27,7 +27,7 @@ export class Bootloading implements IConnectionState {
         this.bootload(file)
             .catch((e) => {
                 console.error(e);
-                ipcs.misc.openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
+                ipcs.coilMisc(this.coil).openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
             })
             .then(() => {
                 this.done = true;
@@ -83,29 +83,30 @@ export class Bootloading implements IConnectionState {
 
     private async bootload(file: Uint8Array) {
         try {
+            const terminal = ipcs.terminal(this.coil);
             const ldr = new Bootloader();
             await ldr.loadCyacd(file);
             // Ignore result: The UD3 won't ACK this command since it immediately goes into bootloader mode
             this.connection.commands().sendCommand('\rbootloader\r').catch(() => {});
-            ipcs.terminal.println("Waiting for bootloader to start...");
+            terminal.println("Waiting for bootloader to start...");
             await sleep(3000);
             this.connection.enterBootloaderMode((data) => {
                 ldr.onDataReceived(data);
             });
             this.inBootloadMode = true;
-            ipcs.terminal.println("Connecting to bootloader...");
-            ldr.set_info_cb((str: string) => ipcs.terminal.println(str));
+            terminal.println("Connecting to bootloader...");
+            ldr.set_info_cb((str: string) => terminal.println(str));
             ldr.set_progress_cb((percentage) => {
-                ipcs.terminal.print('\x1B[2K');
-                ipcs.terminal.print('\r|');
+                terminal.print('\x1B[2K');
+                terminal.print('\r|');
                 for (let i = 0; i < 50; i++) {
                     if (percentage >= (i * 2)) {
-                        ipcs.terminal.print('=');
+                        terminal.print('=');
                     } else {
-                        ipcs.terminal.print('.');
+                        terminal.print('.');
                     }
                 }
-                ipcs.terminal.print('| ' + percentage + '%');
+                terminal.print('| ' + percentage + '%');
             });
             ldr.set_write_cb((data) => {
                 return this.connection.sendBootloaderData(data);
@@ -113,10 +114,14 @@ export class Bootloading implements IConnectionState {
             await ldr.connectAndProgram();
         } catch (e) {
             console.error(e);
-            ipcs.misc.openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
+            ipcs.coilMisc(this.coil).openToast('Bootloader', 'Error while bootloading: ' + e, ToastSeverity.error);
         }
         if (this.inBootloadMode) {
             this.connection.leaveBootloaderMode();
         }
+    }
+
+    private get coil() {
+        return this.connection.getCoil();
     }
 }

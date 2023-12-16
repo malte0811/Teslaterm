@@ -1,5 +1,6 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {getUD3Connection} from "../connection/connection";
+import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {forEachCoil, getConnectionState} from "../connection/connection";
 import {ipcs} from "./IPCProvider";
 
 
@@ -32,9 +33,9 @@ export namespace BlockSender {
 
     export async function loadBlocks(file: TransmittedFile) {
         try {
-             ipcs.terminal.println("Load VMS file: " + file.name);
+             ipcs.misc.openGenericToast('VMS', "Load VMS file: " + file.name, ToastSeverity.info);
              const blocks = interpret((utf8ArrayToString(file.contents).split('\r\n')));
-             ipcs.terminal.println("Found " + blocks[1].blocks.length + " blocks");
+             ipcs.misc.openGenericToast('VMS', "Found " + blocks[1].blocks.length + " blocks", ToastSeverity.info);
              progNumber = 0;
              blocks[1].blocks.forEach((block) => {
                  if (block.uid !== -1) {
@@ -51,10 +52,10 @@ export namespace BlockSender {
              sendNullHeader();
              sendFlush();
 
-             // getUD3Connection().sendVMSFrames(buf);
+             // sendToAll(buf);
 
         } catch (e) {
-            ipcs.terminal.println("Failed to load blocks: " + e);
+            ipcs.misc.openGenericToast('VMS', "Failed to load blocks: " + e, ToastSeverity.error);
             console.log(e);
         }
     }
@@ -97,13 +98,13 @@ export namespace BlockSender {
             buf[index] = c;
             index++;
         });
-        getUD3Connection().sendVMSFrames(buf);
+        sendToAll(buf);
     }
 
     function sendFlush() {
         const buf: Buffer = new Buffer(1);
         buf[0] = 0x04;
-        getUD3Connection().sendVMSFrames(buf);
+        sendToAll(buf);
     }
 
     enum FLAGS {
@@ -149,17 +150,17 @@ export namespace BlockSender {
         writeUint8(buf, index, flag);
         index++;
         writeUint32(buf, index, entry.startBlock);
-        getUD3Connection().sendVMSFrames(buf);
+        sendToAll(buf);
     }
 
     function sendNullBlock(){
         const buf: Buffer = new Buffer(65);
-        getUD3Connection().sendVMSFrames(buf);
+        sendToAll(buf);
     }
 
     function sendNullHeader(){
         const buf: Buffer = new Buffer(20);
-        getUD3Connection().sendVMSFrames(buf);
+        sendToAll(buf);
     }
 
     function sendBlock(block) {
@@ -364,7 +365,7 @@ export namespace BlockSender {
         index += 4;
         writeUint32(buf, index, block.flags);
         
-        getUD3Connection().sendVMSFrames(buf);
+        sendToAll(buf);
        // console.log(block);
 
     }
@@ -506,6 +507,10 @@ export namespace BlockSender {
         temp.push(arr);
 
         return temp;
+    }
+
+    function sendToAll(frame: Buffer) {
+        forEachCoil((coil) => getConnectionState(coil).getActiveConnection().sendVMSFrames(frame));
     }
 
     export function init() {

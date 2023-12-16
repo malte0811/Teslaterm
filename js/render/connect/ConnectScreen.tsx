@@ -148,7 +148,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
         processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (frData) => {
             this.props.openFlightRecording(frData);
         });
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.flightRecorder.loadFlightRecording, [...new Uint8Array(data)]);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFlightRecording, [...new Uint8Array(data)]);
     }
 
     private makeToast() {

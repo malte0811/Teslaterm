@@ -92,6 +92,7 @@ export class Connecting implements IConnectionState {
         await this.connection.connect();
         this.autoTerminal = this.connection.setupNewTerminal((data) =>
             telemetry.receive_main(
+                this.connection.getCoil(),
                 data,
                 // After connecting the UD3 will send one alarm per 100 ms, generally less than 20 total. We
                 // do not want to show toasts for these alarms that happened before TT connected, so
@@ -105,7 +106,7 @@ export class Connecting implements IConnectionState {
         await this.connection.startTerminal(this.autoTerminal);
         this.state = State.initializing;
         await startConf(this.connection.getCoil(), this.advOptions.commandOptions.state);
-        await ipcs.terminal.onSlotsAvailable(true);
+        await ipcs.terminal(this.connection.getCoil()).onSlotsAvailable(true);
         this.doneInitializingAt = Date.now();
         this.state = State.connected;
     }

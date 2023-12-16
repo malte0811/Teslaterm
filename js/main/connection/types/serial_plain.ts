@@ -17,7 +17,7 @@ export class PlainSerialConnection extends UD3Connection {
         this.port = port;
     }
 
-    connect(): Promise<void> {
+    public connect(): Promise<void> {
         return new Promise<void>((res, rej) => {
             this.serialPort = new SerialPort(
                 {
@@ -29,7 +29,7 @@ export class PlainSerialConnection extends UD3Connection {
                         rej(e);
                     } else {
                         this.serialPort.on('data', (data: Buffer) => {
-                            getFlightRecorder().addEvent(FlightEventType.data_from_ud3, data);
+                            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_from_ud3, data);
                             for (const terminal of this.terminalCallbacks.values()) {
                                 terminal.callback(data);
                             }
@@ -58,60 +58,60 @@ export class PlainSerialConnection extends UD3Connection {
     }
 
     public async sendDisconnectData(): Promise<void> {
-        await this.sendTelnet(Buffer.from("tterm stop"))
+        await this.sendTelnet(Buffer.from("tterm stop"));
     }
 
-    getSidConnection(): ISidConnection {
-        //TODO add support for returning undefined here
+    public getSidConnection(): ISidConnection {
+        // TODO add support for returning undefined here
         return undefined;
     }
 
-    resetWatchdog(): void {
+    public resetWatchdog(): void {
         this.sendAsync(Buffer.of(0xF0, 0x0F, 0));
-        //this.sendAsync(Buffer.of(0x07));
+        // this.sendAsync(Buffer.of(0x07));
     }
 
-    sendMidi(data: Buffer): Promise<void> {
+    public sendMidi(data: Buffer): Promise<void> {
         if (data.length < 3) {
-            data = Buffer.concat([data, Buffer.alloc(3-data.length, 0)]);
+            data = Buffer.concat([data, Buffer.alloc(3 - data.length, 0)]);
         }
         console.assert(data[0] >= 0x80);
         return this.sendAsync(data);
     }
 
-    async sendTelnet(data: Buffer): Promise<void> {
+    public async sendTelnet(data: Buffer): Promise<void> {
         await this.sendAsync(data);
     }
 
-    setSynthImpl(type: SynthType): Promise<void> {
+    public setSynthImpl(type: SynthType): Promise<void> {
         const id = toCommandID(type);
         return this.sendTelnet(Buffer.from("set synth " + id.toString(10) + "\r"));
     }
 
-    tick(): void {
+    public tick(): void {
         // NOP
+    }
+
+    public getMaxTerminalID(): number {
+        throw new Error();
+    }
+
+    public isMultiTerminal(): boolean {
+        return false;
     }
 
     private async sendAsync(rawData: Buffer): Promise<void> {
         return new Promise<void>((res, rej) => {
-            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, rawData);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, rawData);
             this.serialPort.write(rawData, err => {
                 if (err) {
-                    getFlightRecorder().addEventString(FlightEventType.transmit_error, err.message);
+                    getFlightRecorder(this.getCoil()).addEventString(FlightEventType.transmit_error, err.message);
                     rej(err);
                 } else {
                     res();
                 }
             });
         });
-    }
-
-    getMaxTerminalID(): number {
-        throw new Error();
-    }
-
-    isMultiTerminal(): boolean {
-        return false;
     }
 }
 

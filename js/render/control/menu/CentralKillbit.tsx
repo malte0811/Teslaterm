@@ -10,8 +10,7 @@ export interface CentralKillbitProps {
 }
 
 function setKillbit(val: boolean) {
-    // TODO set/reset on *all*
-    processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setKillState, val);
+    processIPC.send(IPC_CONSTANTS_TO_MAIN.commands.setAllKillState, val);
 }
 
 export class CentralKillbit extends TTComponent<CentralKillbitProps, {}> {

@@ -81,8 +81,8 @@ export function updateFast() {
         setConnectionState(coil, newCoilState);
         const newStatus = newCoilState.getConnectionStatus();
         if (newStatus !== lastStatus) {
-            ipcs.misc.setConnectionState(newStatus);
-            getFlightRecorder().addEvent(FlightEventType.connection_state_change, [newStatus]);
+            ipcs.coilMisc(coil).setConnectionState(newStatus);
+            getFlightRecorder(coil).addEvent(FlightEventType.connection_state_change, [newStatus]);
         }
     }
 }
@@ -116,7 +116,7 @@ export function hasUD3Connection(coil: CoilID): boolean {
 export async function connectWithOptions(args: ConnectionOptions) {
     const id = makeNewCoilID();
     // TODO sort of a hack, I guess
-    const connection = await Idle.connectWithOptions(args);
+    const connection = await Idle.connectWithOptions(id, args);
     if (connection) {
         setConnectionState(id, new Connecting(connection, new Idle(), args.advanced));
     }

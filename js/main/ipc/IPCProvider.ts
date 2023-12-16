@@ -1,6 +1,7 @@
 import {CoilID} from "../../common/constants";
 import {IPCToMainKey} from "../../common/IPCConstantsToMain";
-import {IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
+import {IPCToRendererKey, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {initAlarms} from "../connection/telemetry/Alarms";
 import {CommandIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
@@ -191,6 +192,7 @@ export class IPCCollection {
         this.metersByCoil.set(coil, new MetersIPC(this.processIPC, coil));
         this.scopeByCoil.set(coil, new ScopeIPC(this.processIPC, coil));
         this.miscByCoil.set(coil, new ByCoilMiscIPC(this.processIPC, coil));
+        initAlarms(coil);
     }
 }
 

@@ -1,3 +1,4 @@
+import {CoilID} from "../../common/constants";
 import {ICommandServer} from "../command/CommandServer";
 import {getUD3Connection} from "../connection/connection";
 import * as microtime from "../microtime";
@@ -16,10 +17,13 @@ export class UD3FormattedConnection implements ISidConnection {
     private busy: boolean = false;
     private ffPrefixBytes: number = 4;
     private needsZeroSuffix: boolean = true;
+    private queuedFrames: SidFrame[] = [];
+    private coil: CoilID;
 
-    constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => Promise<void>) {
+    constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => Promise<void>, coil: CoilID) {
         this.flushCallback = flushCallback;
         this.sendToUD = sendToUD;
+        this.coil = coil;
     }
 
     public flush(): Promise<void> {
@@ -29,6 +33,14 @@ export class UD3FormattedConnection implements ISidConnection {
     public onStart(): void {
         this.busy = false;
         this.lastFrameTime = microtime.now() + 500e3;
+    }
+
+    public async tick() {
+        let i = 0;
+        while (!this.isBusy() && this.queuedFrames.length > 0 && i < 4) {
+            await this.processFrame(this.queuedFrames.shift());
+            ++i;
+        }
     }
 
     public switch_format(version: FormatVersion) {
@@ -47,7 +59,11 @@ export class UD3FormattedConnection implements ISidConnection {
     public async sendVMSFrames(data: Buffer) {
     }
 
-    public processFrame(frame: SidFrame, commandServer: ICommandServer): Promise<void> {
+    public async queueFrame(frame: SidFrame): Promise<void> {
+        this.queuedFrames.push(frame);
+    }
+
+    public processFrame(frame: SidFrame): Promise<void> {
         if (!this.lastFrameTime) {
             console.warn("SID: No previous frame time?");
             this.lastFrameTime = microtime.now();
@@ -55,13 +71,11 @@ export class UD3FormattedConnection implements ISidConnection {
         }
         const absoluteTime = this.lastFrameTime;
         this.lastFrameTime += frame.delayMicrosecond;
-        return this.processAbsoluteFrame(frame.data, absoluteTime, commandServer);
+        return this.processAbsoluteFrame(frame.data, absoluteTime);
     }
 
-    public processAbsoluteFrame(
-        frameData: Uint8Array, absoluteTime: number, commandServer: ICommandServer,
-    ): Promise<void> {
-        const ud_time = getUD3Connection().toUD3Time(absoluteTime);
+    public processAbsoluteFrame(frameData: Uint8Array, absoluteTime: number): Promise<void> {
+        const ud_time = getUD3Connection(this.coil).toUD3Time(absoluteTime);
         const frameSize = this.ffPrefixBytes + FRAME_LENGTH + FRAME_UDTIME_LENGTH + ( this.needsZeroSuffix ? 1 : 0);
         const data = Buffer.alloc(frameSize);
         let byteCount = 0;
@@ -79,7 +93,8 @@ export class UD3FormattedConnection implements ISidConnection {
         if (this.needsZeroSuffix) {
             data[byteCount] = 0;
         }
-        commandServer.sendSIDFrame(frameData, absoluteTime);
+        // TODO rework command server/client system for multicoil TT
+        //  commandServer.sendSIDFrame(frameData, absoluteTime);
         return this.sendToUD(data);
     }
 

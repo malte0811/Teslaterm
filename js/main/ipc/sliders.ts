@@ -1,6 +1,6 @@
 import {CoilID} from "../../common/constants";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, ISliderState} from "../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
+import {getToRenderIPCPerCoil, ISliderState} from "../../common/IPCConstantsToRenderer";
 import {CommandRole} from "../../common/Options";
 import {NumberOptionCommand} from "../command/CommandMessages";
 import {CommandInterface} from "../connection/commands";
@@ -58,11 +58,12 @@ export class SlidersIPC {
     private readonly commands: CommandInterface;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, this.callSwapped(this.setBPS));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
+        const channels = getToMainIPCPerCoil(coil);
+        processIPC.on(channels.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
+        processIPC.on(channels.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
+        processIPC.on(channels.sliders.setBPS, this.callSwapped(this.setBPS));
+        processIPC.on(channels.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
+        processIPC.on(channels.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
         this.processIPC = processIPC;
         this.coil = coil;
         this.commands = getCoilCommands(coil);
@@ -129,9 +130,7 @@ export class SlidersIPC {
     }
 
     public sendSliderSync(excluded?: object) {
-        this.processIPC.sendToAllExcept(
-            IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, excluded, [this.coil, this.state],
-        );
+        this.processIPC.sendToAllExcept(getToRenderIPCPerCoil(this.coil).sliders.syncSettings, excluded, this.state);
     }
 
     public reinitState(role: CommandRole) {

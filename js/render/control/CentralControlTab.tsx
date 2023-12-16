@@ -1,12 +1,10 @@
 import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ConnectionStatus, IUD3State} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
-import {Gauges} from "./gauges/Gauges";
-import {MenuBar, MenuControlLevel} from "./menu/Menu";
-import {Oscilloscope} from "./scope/Oscilloscope";
+import {MenuBar} from "./menu/Menu";
 import {Sliders} from "./sliders/Sliders";
 import {Toasts} from "./Toasts";
 
@@ -14,7 +12,6 @@ export interface ControlTabProps {
     ttConfig: TTConfig;
     // TODO move "full" disconnect button into tab row in multi-coil settings
     darkMode: boolean;
-    ud3state: IUD3State;
 }
 
 export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
@@ -24,32 +21,33 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
     }
 
     public render() {
+        // TODO get rid of UD3State.DEFAULT_STATE here
         return (
             <div className={'tt-coil-tab'}>
                 <div className={'tt-menu-bar'}>
                     <MenuBar
-                        ud3state={this.props.ud3state}
+                        ud3state={UD3State.DEFAULT_STATE}
                         connectionStatus={ConnectionStatus.CONNECTED}
                         ttConfig={this.props.ttConfig}
                         darkMode={this.props.darkMode}
-                        level={MenuControlLevel.central_control}
+                        level={{level: 'central-control'}}
                     />
                 </div>
                 <div className={'tt-terminal-and-gauges'}>
                     <div className={'tt-terminal-container'}>
                         <div className={'tt-scope-container'}>
-                            <Oscilloscope/>
+                            {/*TODO <Oscilloscope/>*/}
                             <Sliders
-                                // TODO only allow relative ontime here
-                                ud3State={this.props.ud3state}
+                                ud3State={UD3State.DEFAULT_STATE}
                                 disabled={false}
                                 enableMIDI={this.props.ttConfig.useMIDIPorts}
                                 darkMode={this.props.darkMode}
+                                level={{level: 'central-control'}}
                             />
                         </div>
                         TODO: Something to select single-coil telemetry to show in the central tab should go here
                     </div>
-                    <Gauges darkMode={this.props.darkMode}/>
+                    {/*TODO <Gauges darkMode={this.props.darkMode}/>*/}
                 </div>
                 <Toasts darkMode={this.props.darkMode}/>
             </div>

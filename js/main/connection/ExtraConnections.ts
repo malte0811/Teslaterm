@@ -31,7 +31,7 @@ export class ExtraConnections {
     public tickSlow() {
         this.commandServer.tick();
         if (this.commandClient && this.commandClient.tickSlow()) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 "Command server", "Command server timed out, reconnecting", ToastSeverity.warning, 'command-timeout',
             );
             for (const coil of getCoils()) {

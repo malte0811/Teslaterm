@@ -1,4 +1,5 @@
 import {Worker} from "worker_threads";
+import {CoilID} from "../../../common/constants";
 import {ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
@@ -19,10 +20,12 @@ export interface FlightRecorderEvent {
 
 export class FlightRecorder {
     private readonly worker: Worker;
+    private readonly coil: CoilID;
 
-    public constructor() {
+    public constructor(coil: CoilID) {
+        this.coil = coil;
         this.worker = makeFlightRecorderWorker(toast => {
-            ipcs.misc.openToast('Flight Recorder', toast.text, toast.level || ToastSeverity.info, 'flight-record');
+            ipcs.coilMisc(coil).openToast('Flight Recorder', toast.text, toast.level || ToastSeverity.info, 'flight-record');
         });
     }
 
@@ -34,8 +37,8 @@ export class FlightRecorder {
         data = data || new Uint8Array();
         const message: PassedEventData = {
             event: {type, data: new Uint8Array(data), time_us: microtime.now()},
-            meterConfig: ipcs.meters.getCurrentConfigs(),
-            scopeConfig: ipcs.scope.getCurrentConfigs(),
+            meterConfig: ipcs.meters(this.coil).getCurrentConfigs(),
+            scopeConfig: ipcs.scope(this.coil).getCurrentConfigs(),
         };
         this.worker.postMessage(message);
     }
@@ -45,8 +48,11 @@ export class FlightRecorder {
     }
 }
 
-const GLOBAL_FLIGHT_RECORDER = new FlightRecorder();
+const flightRecorder = new Map<CoilID, FlightRecorder>();
 
-export function getFlightRecorder() {
-    return GLOBAL_FLIGHT_RECORDER;
+export function getFlightRecorder(coil: CoilID) {
+    if (!flightRecorder.has(coil)) {
+        flightRecorder.set(coil, new FlightRecorder(coil));
+    }
+    return flightRecorder.get(coil);
 }

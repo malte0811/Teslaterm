@@ -205,43 +205,43 @@ export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, source: 
     switch (frame.type) {
         case TelemetryEvent.GAUGE32:
         case TelemetryEvent.GAUGE: {
-            ipcs.meters.setValue(frame.index, frame.value);
+            ipcs.meters(coil).setValue(frame.index, frame.value);
             break;
         }
         case TelemetryEvent.GAUGE32_CONF:
         case TelemetryEvent.GAUGE_CONF: {
-            ipcs.meters.configure(frame.meterId, frame.min, frame.max, frame.scale, frame.name);
+            ipcs.meters(coil).configure(frame.meterId, frame.min, frame.max, frame.scale, frame.name);
             break;
         }
         case TelemetryEvent.CHART_CONF:
         case TelemetryEvent.CHART32_CONF: {
             const config = frame.config;
-            ipcs.scope.configure(
+            ipcs.scope(coil).configure(
                 config.id, config.min, config.max, config.offset, config.div, config.unit, config.name,
             );
             break;
         }
         case TelemetryEvent.CHART32:
         case TelemetryEvent.CHART: {
-            ipcs.scope.addValue(frame.index, frame.value);
+            ipcs.scope(coil).addValue(frame.index, frame.value);
             break;
         }
         case TelemetryEvent.CHART_DRAW: {
-            ipcs.scope.drawChart();
+            ipcs.scope(coil).drawChart();
             break;
         }
         case TelemetryEvent.CHART_CLEAR: {
-            ipcs.scope.startControlledDraw(frame.title, source);
+            ipcs.scope(coil).startControlledDraw(frame.title, source);
             break;
         }
         case TelemetryEvent.CHART_LINE: {
-            ipcs.scope.drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex, source);
+            ipcs.scope(coil).drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex, source);
             break;
         }
         case TelemetryEvent.CHART_TEXT_CENTER:
         case TelemetryEvent.CHART_TEXT: {
             const center = frame.type === TelemetryEvent.CHART_TEXT_CENTER;
-            ipcs.scope.drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center, source);
+            ipcs.scope(coil).drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center, source);
             break;
         }
         case TelemetryEvent.STATE_SYNC: {
@@ -284,7 +284,7 @@ export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, source: 
             const level = Number.parseInt(levelStr, 10) as UD3AlarmLevel;
             const timestamp = Number.parseInt(timestampStr, 10);
             const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr, 10);
-            addAlarm({message, value, level, timestamp}, initializing);
+            addAlarm(coil, {message, value, level, timestamp}, initializing);
             break;
         }
     }

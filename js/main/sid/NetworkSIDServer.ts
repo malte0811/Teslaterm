@@ -1,7 +1,8 @@
 import * as net from "net";
+import {CoilID} from "../../common/constants";
 import {SynthType} from "../../common/MediaTypes";
 import {ICommandServer} from "../command/CommandServer";
-import {getOptionalUD3Connection} from "../connection/connection";
+import {forEachCoil, forEachCoilAsync, getOptionalUD3Connection} from "../connection/connection";
 import {getActiveSIDConnection} from "./ISidConnection";
 import {FRAME_LENGTH, SidFrame} from "./sid_api";
 import {Command, NTSC, PAL, ReplyCode, TimingStandard} from "./SIDConstants";
@@ -12,7 +13,7 @@ export class NetworkSIDServer {
     private readonly port: number;
     private timeSinceLastFrame: number = 0;
     private currentSIDState: Uint8Array = new Uint8Array(FRAME_LENGTH);
-    private localBuffer: SidFrame[] = [];
+    private localBuffer: Map<CoilID, SidFrame[]> = new Map<CoilID, SidFrame[]>();
     private timeStandard: TimingStandard = PAL;
     private firstAfterReset: boolean = false;
     private sendTimer: NodeJS.Timeout;
@@ -67,18 +68,19 @@ export class NetworkSIDServer {
     }
 
     private async sendFramesWhilePossible() {
-        if (this.localBuffer.length < 3) {
-            return;
-        }
-
-        if (await getOptionalUD3Connection()?.setSynth(SynthType.SID, true)) {
-            getActiveSIDConnection()?.onStart();
-        }
-
-        while (!getActiveSIDConnection()?.isBusy() && this.localBuffer.length > 0) {
-            const nextFrame = this.localBuffer.shift();
-            await getActiveSIDConnection()?.processFrame(nextFrame, this.commandServer);
-        }
+        await forEachCoilAsync(async (coil) => {
+            const coilBuffer = this.localBuffer.get(coil);
+            if (coilBuffer.length < 3) {
+                return;
+            }
+            if (await getOptionalUD3Connection(coil)?.setSynth(SynthType.SID, true)) {
+                getActiveSIDConnection(coil)?.onStart();
+            }
+            while (!getActiveSIDConnection(coil)?.isBusy() && coilBuffer.length > 0) {
+                const nextFrame = coilBuffer.shift();
+                await getActiveSIDConnection(coil)?.queueFrame(nextFrame);
+            }
+        });
     }
 
     private processFrames(data: number[] | Buffer) {
@@ -97,7 +99,14 @@ export class NetworkSIDServer {
                     frameTime *= 20;
                     this.firstAfterReset = false;
                 }
-                this.localBuffer.push(new SidFrame(Uint8Array.from(this.currentSIDState), this.timeSinceLastFrame));
+                forEachCoil((coil) => {
+                    if (!this.localBuffer.has(coil)) {
+                        this.localBuffer.set(coil, []);
+                    }
+                    this.localBuffer.get(coil).push(
+                        new SidFrame(Uint8Array.from(this.currentSIDState), this.timeSinceLastFrame),
+                    );
+                });
                 this.timeSinceLastFrame = 0;
             }
 
@@ -120,9 +129,11 @@ export class NetworkSIDServer {
         let toRead: undefined | number[] | Buffer;
         switch (command) {
             case Command.FLUSH:
-                getActiveSIDConnection()?.flush();
-                getActiveSIDConnection()?.onStart();
-                this.localBuffer = [];
+                forEachCoil((coil) => {
+                    getActiveSIDConnection(coil)?.flush();
+                    getActiveSIDConnection(coil)?.onStart();
+                    this.localBuffer.set(coil, []);
+                });
                 this.firstAfterReset = true;
                 break;
             case Command.TRY_SET_SID_COUNT:
@@ -143,7 +154,7 @@ export class NetworkSIDServer {
                 break;
             }
             case Command.TRY_WRITE:
-                if (this.localBuffer.length > 10) {
+                if (this.allCoilsBusy()) {
                     returnCode = Buffer.of(ReplyCode.BUSY);
                 } else {
                     toRead = additional;
@@ -151,7 +162,7 @@ export class NetworkSIDServer {
 
                 break;
             case Command.TRY_READ: {
-                if (this.localBuffer.length > 10) {
+                if (this.allCoilsBusy()) {
                     returnCode = Buffer.of(ReplyCode.BUSY);
                 } else {
                     toRead = additional.slice(0, len - 3);
@@ -198,5 +209,11 @@ export class NetworkSIDServer {
             this.processFrames(toRead);
         }
         // this.sendFramesSync();
+    }
+
+    private allCoilsBusy() {
+        const busyPerCoil = forEachCoil((coil) => this.localBuffer.get(coil).length > 10);
+        const someNotBusy = busyPerCoil.includes(false);
+        return !someNotBusy;
     }
 }

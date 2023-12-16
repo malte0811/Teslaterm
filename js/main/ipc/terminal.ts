@@ -1,6 +1,6 @@
 import {CoilID, FEATURE_NOTELEMETRY} from "../../common/constants";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
+import {getToRenderIPCPerCoil, IPC_CONSTANTS_TO_RENDERER, PerCoilRenderIPCs} from "../../common/IPCConstantsToRenderer";
 import {getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {receive_main} from "../connection/telemetry";
 import {TerminalHandle} from "../connection/types/UD3Connection";
@@ -18,19 +18,19 @@ export class TerminalIPC {
     private readonly buffers: Map<object, string> = new Map();
     private readonly processIPC: MultiWindowIPC;
     private readonly coil: CoilID;
+    private readonly renderIPCs: PerCoilRenderIPCs;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.manualCommand, async (source: object, [msgCoil, msg]) => {
-            if (msgCoil == coil) {
-                try {
-                    if (hasUD3Connection(coil) && this.terminals.has(source)) {
-                        await getUD3Connection(coil).sendTelnet(Buffer.from(msg), this.terminals.get(source));
-                    }
-                } catch (x) {
-                    console.log("Error while sending: ", x);
+        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
+        processIPC.on(getToMainIPCPerCoil(coil).manualCommand, async (source: object, msg) => {
+            try {
+                if (hasUD3Connection(coil) && this.terminals.has(source)) {
+                    await getUD3Connection(coil).sendTelnet(Buffer.from(msg), this.terminals.get(source));
                 }
+            } catch (x) {
+                console.log("Error while sending: ", x);
             }
         });
         //TODO one of the main tickers?
@@ -105,9 +105,9 @@ export class TerminalIPC {
     private tick() {
         for (const [key, text] of this.buffers) {
             if (key) {
-                this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.terminal, key, text);
+                this.processIPC.sendToWindow(this.renderIPCs.terminal, key, text);
             } else {
-                this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.terminal, text);
+                this.processIPC.sendToAll(this.renderIPCs.terminal, text);
             }
         }
         this.buffers.clear();

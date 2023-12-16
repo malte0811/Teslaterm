@@ -1,6 +1,5 @@
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
-import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {
     parseEventsForDisplay,
     parseEventsFromFile,
@@ -13,12 +12,8 @@ export class FlightRecorderIPC {
 
     public constructor(processIPC: MultiWindowIPC) {
         processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.flightRecorder.loadFlightRecording,
+            IPC_CONSTANTS_TO_MAIN.loadFlightRecording,
             (source, data) => this.loadRecording(source, data),
-        );
-        processIPC.on(
-            IPC_CONSTANTS_TO_MAIN.flightRecorder.dumpFlightRecorder,
-            async () => getFlightRecorder().exportAsFile(),
         );
         this.processIPC = processIPC;
     }
