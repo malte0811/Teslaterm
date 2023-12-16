@@ -5,7 +5,7 @@ import {
     IPC_CONSTANTS_TO_RENDERER,
     IUDPConnectionSuggestion,
 } from "../../common/IPCConstantsToRenderer";
-import {connectWithOptions} from "../connection/connection";
+import {clearCoils, connectWithOptions} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
 import {getUIConfig, setUIConfig} from "../UIConfig";
 import {MultiWindowIPC} from "./IPCProvider";
@@ -23,6 +23,7 @@ export class ConnectionUIIPC {
             IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, source, getUIConfig().connectionPresets,
         ));
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.setPresets, (source, presets) => this.setPresets(presets));
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.clearCoils, clearCoils);
     }
 
     public suggestUDP(key: object, suggestions: IUDPConnectionSuggestion[]) {

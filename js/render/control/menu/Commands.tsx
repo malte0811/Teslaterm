@@ -4,10 +4,9 @@ import Dropdown from "react-bootstrap/Dropdown";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
 import {
     getToRenderIPCPerCoil,
-    IPC_CONSTANTS_TO_RENDERER,
     IUD3State,
     UD3Alarm,
-    UD3ConfigOption
+    UD3ConfigOption,
 } from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
@@ -28,7 +27,7 @@ interface CommandsState {
 
 export interface CommandsMenuProps {
     level: TabControlLevel;
-    udState: IUD3State;
+    udState?: IUD3State;
     ttConfig: TTConfig;
     disabled: boolean;
     darkMode: boolean;
@@ -54,18 +53,20 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             getToMainIPCPerCoil(this.props.level.coil) :
             undefined;
         const combined = coilIPC ? coilIPC : IPC_CONSTANTS_TO_MAIN;
-        if (this.props.udState.busControllable) {
-            if (this.props.udState.busActive) {
+        if (!this.props.udState || this.props.udState.busControllable) {
+            if (!this.props.udState || this.props.udState.busActive) {
                 this.makeIPCItem(items, 'Bus off', combined.commands.setBusState, false);
-            } else {
+            }
+            if (!this.props.udState || !this.props.udState.busActive) {
                 this.makeWarningItem(
                     items, 'Bus on', 'The coil will be energized', combined.commands.setBusState, true,
                 );
             }
         }
-        if (this.props.udState.transientActive) {
+        if (!this.props.udState || this.props.udState.transientActive) {
             this.makeIPCItem(items, 'TR stop', combined.commands.setTRState, false);
-        } else {
+        }
+        if (!this.props.udState || !this.props.udState.transientActive) {
             this.makeIPCItem(items, 'TR start', combined.commands.setTRState, true);
         }
         if (this.props.level.level !== 'central-control') {

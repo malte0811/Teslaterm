@@ -1,12 +1,7 @@
 import React from "react";
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {
-    ConnectionStatus,
-    getToRenderIPCPerCoil,
-    IUD3State,
-    UD3State
-} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, getToRenderIPCPerCoil, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
@@ -18,10 +13,11 @@ import {Sliders} from "./sliders/Sliders";
 import {Terminal} from "./Terminal";
 import {Toasts} from "./Toasts";
 
-export type TabControlLevel = {
-    level: 'single-coil' | 'combined';
-    coil: CoilID;
-} | {level: 'central-control'};
+export type TabControlLevelBase<Single, Central> =
+    ({ level: 'single-coil' | 'combined'; } & Single) |
+    ({ level: 'central-control' } & Central);
+
+export type TabControlLevel = TabControlLevelBase<{ coil: CoilID }, {}>;
 
 export interface SingleCoilTabProps {
     terminal: TerminalRef;
@@ -30,25 +26,13 @@ export interface SingleCoilTabProps {
     connectionStatus: ConnectionStatus;
     darkMode: boolean;
     coil: CoilID;
-}
-
-interface SingleCoilTabState {
     ud3State: IUD3State;
 }
 
-export class SingleCoilTab extends TTComponent<SingleCoilTabProps, SingleCoilTabState> {
+export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
     constructor(props) {
         super(props);
         this.state = {ud3State: UD3State.DEFAULT_STATE};
-    }
-
-    public componentDidMount() {
-        // TODO only for this coil!
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
-        this.addIPCListener(
-            getToRenderIPCPerCoil(this.props.coil).menu.ud3State,
-            (state) => this.setState({ud3State: state}),
-        );
     }
 
     public render() {
@@ -56,11 +40,10 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, SingleCoilTab
             <div className={'tt-coil-tab'}>
                 <div className={'tt-menu-bar'}>
                     <MenuBar
-                        ud3state={this.state.ud3State}
                         connectionStatus={this.props.connectionStatus}
                         ttConfig={this.props.ttConfig}
                         darkMode={this.props.darkMode}
-                        level={{level: 'single-coil', coil: this.props.coil}}
+                        level={{level: 'single-coil', coil: this.props.coil, state: this.props.ud3State}}
                     />
                 </div>
                 <div className={'tt-terminal-and-gauges'}>
@@ -68,7 +51,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, SingleCoilTab
                         <div className={'tt-scope-container'}>
                             <Oscilloscope coil={this.props.coil}/>
                             <Sliders
-                                ud3State={this.state.ud3State}
+                                ud3State={this.props.ud3State}
                                 disabled={!this.props.allowInteraction}
                                 enableMIDI={this.props.ttConfig.useMIDIPorts}
                                 darkMode={this.props.darkMode}

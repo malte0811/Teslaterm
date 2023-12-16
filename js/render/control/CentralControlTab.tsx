@@ -1,6 +1,6 @@
 import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ConnectionStatus, UD3State} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
@@ -12,6 +12,8 @@ export interface ControlTabProps {
     ttConfig: TTConfig;
     // TODO move "full" disconnect button into tab row in multi-coil settings
     darkMode: boolean;
+    numCoils: number;
+    numKilled: number;
 }
 
 export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
@@ -26,11 +28,10 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
             <div className={'tt-coil-tab'}>
                 <div className={'tt-menu-bar'}>
                     <MenuBar
-                        ud3state={UD3State.DEFAULT_STATE}
                         connectionStatus={ConnectionStatus.CONNECTED}
                         ttConfig={this.props.ttConfig}
                         darkMode={this.props.darkMode}
-                        level={{level: 'central-control'}}
+                        level={{level: 'central-control', numCoils: this.props.numCoils, numKill: this.props.numKilled}}
                     />
                 </div>
                 <div className={'tt-terminal-and-gauges'}>

@@ -1,21 +1,20 @@
 import React from "react";
 import {Button, ButtonGroup, ButtonToolbar} from "react-bootstrap";
 import {CoilID} from "../../../common/constants";
-import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER, IUD3State} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
-import {TabControlLevel} from "../SingleCoilTab";
+import {TabControlLevel, TabControlLevelBase} from "../SingleCoilTab";
 import {CentralKillbit} from "./CentralKillbit";
 import {CommandsMenuItem} from "./Commands";
 import {Killbit} from "./Killbit";
 import {StartStopMenuItem} from "./StartStopItem";
 
 export interface MenuProps {
-    level: TabControlLevel;
+    level: TabControlLevelBase<{ coil: CoilID, state: IUD3State }, { numCoils: number, numKill: number }>;
     connectionStatus: ConnectionStatus;
-    ud3state: IUD3State;
     ttConfig: TTConfig;
     darkMode: boolean;
 }
@@ -39,12 +38,15 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
         const killbitElement = (() => {
             if (this.props.level.level !== 'central-control') {
                 return <Killbit
-                    killbit={this.props.ud3state.killBitSet}
+                    killbit={this.props.level.state.killBitSet}
                     disabled={!allowInteraction}
                     coil={this.props.level.coil}
                 />;
             } else {
-                return <CentralKillbit numSetKillbits={this.props.ud3state.killBitSet ? 3 : 1} totalNumCoils={3}/>;
+                return <CentralKillbit
+                    numSetKillbits={this.props.level.numKill}
+                    totalNumCoils={this.props.level.numCoils}
+                />;
             }
         })();
         return <ButtonToolbar className="justify-content-between">
@@ -61,15 +63,15 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
     }
 
     private onConnectionButton() {
-        if (this.props.connectionStatus !== ConnectionStatus.IDLE) {
-            processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton, undefined);
+        if (this.props.connectionStatus !== ConnectionStatus.IDLE && this.props.level.level !== 'central-control') {
+            processIPC.send(getToMainIPCPerCoil(this.props.level.coil).menu.connectButton, undefined);
         }
     }
 
     private makeMenuItems(allowInteraction: boolean) {
         const commandsMenuItem = (
             <CommandsMenuItem
-                udState={this.props.ud3state}
+                udState={this.props.level.level === 'central-control' ? undefined : this.props.level.state}
                 ttConfig={this.props.ttConfig}
                 disabled={!allowInteraction}
                 darkMode={this.props.darkMode}

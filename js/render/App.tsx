@@ -1,5 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import {FitAddon} from "xterm-addon-fit";
+import {CoilID} from "../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
 import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
 import {TTConfig} from "../common/TTConfig";
@@ -9,33 +11,33 @@ import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
 
+enum TopScreen {
+    connect,
+    control,
+    flight_recording,
+}
+
 interface TopLevelState {
-    connectionStatus: ConnectionStatus | 'fr-viewer';
+    screen: TopScreen;
     flightEvents?: FRDisplayData;
     ttConfig: TTConfig;
     udName?: string;
-    // If connection is lost, it may be because the UD3 died. In that case we want to stay on the "main" screen so the
-    // last telemetry is still visible.
-    wasConnected: boolean;
     darkMode: boolean;
+    coils: CoilID[];
 }
 
 export class App extends TTComponent<{}, TopLevelState> {
     constructor(props: any) {
         super(props);
         this.state = {
-            connectionStatus: ConnectionStatus.IDLE,
+            coils: [],
             darkMode: false,
+            screen: TopScreen.connect,
             ttConfig: undefined,
-            wasConnected: false,
         };
     }
 
     public componentDidMount() {
-        //TODO
-        // this.addIPCListener(
-        //     IPC_CONSTANTS_TO_RENDERER.updateConnectionState, status => this.onConnectionChange(status),
-        // );
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
         );
@@ -50,6 +52,15 @@ export class App extends TTComponent<{}, TopLevelState> {
         //     IPC_CONSTANTS_TO_RENDERER.udName, (udName) => this.setState({udName}),
         // );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, (coil) => {
+            if (!this.state.coils.includes(coil)) {
+                this.setState({
+                    coils: [...this.state.coils, coil],
+                    // TODO this should only happen once connect is done
+                    screen: TopScreen.control,
+                });
+            }
+        });
     }
 
     public render(): React.ReactNode {
@@ -68,43 +79,36 @@ export class App extends TTComponent<{}, TopLevelState> {
     private getMainElement(): React.JSX.Element {
         if (!this.state.ttConfig) {
             return <>Initializing...</>;
-        } else if (this.state.connectionStatus === 'fr-viewer') {
+        } else if (this.state.screen === TopScreen.flight_recording) {
             return <FlightRecordingScreen
                 darkMode={this.state.darkMode}
                 events={this.state.flightEvents}
-                close={() => this.setState({connectionStatus: ConnectionStatus.IDLE})}
+                close={() => this.setState({screen: TopScreen.connect})}
             />;
-        } else if (this.state.wasConnected) {
+        } else if (this.state.screen === TopScreen.control) {
             return <MainScreen
                 ttConfig={this.state.ttConfig}
-                connectionStatus={this.state.connectionStatus}
-                clearWasConnected={() => this.setState({wasConnected: false, udName: undefined})}
+                returnToConnect={() => {
+                    processIPC.send(IPC_CONSTANTS_TO_MAIN.clearCoils, undefined);
+                    this.setState({screen: TopScreen.connect, udName: undefined, coils: []});
+                }}
                 darkMode={this.state.darkMode}
+                coils={this.state.coils}
             />;
-        } else if (
-            this.state.connectionStatus === ConnectionStatus.CONNECTING ||
-            this.state.connectionStatus === ConnectionStatus.IDLE
-        ) {
+        } else if (this.state.screen === TopScreen.connect) {
             return <ConnectScreen
                 ttConfig={this.state.ttConfig}
-                connecting={this.state.connectionStatus === ConnectionStatus.CONNECTING}
+                connecting={false/*TODO*/}
                 darkMode={this.state.darkMode}
                 setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setDarkMode, newVal)}
                 openFlightRecording={(data) => this.setState({
-                    connectionStatus: 'fr-viewer',
                     flightEvents: data,
+                    screen: TopScreen.flight_recording,
                 })}
             />;
         } else {
-            return <>Unsupported status {this.state.connectionStatus} :(</>;
+            return <>Unsupported status {this.state.screen} :(</>;
         }
-    }
-
-    private onConnectionChange(newState: ConnectionStatus) {
-        this.setState(oldState => ({
-            connectionStatus: newState,
-            wasConnected: oldState.wasConnected || newState === ConnectionStatus.CONNECTED,
-        }));
     }
 }
 

@@ -13,21 +13,21 @@ function makeKey<Type>(channel: string): IPCToMainKey<Type> {
 }
 
 export const IPC_CONSTANTS_TO_MAIN = {
+    clearCoils: makeKey<undefined>('clear-coils'),
     commands: {
-        setBusState: makeKey<boolean>('set-bus-state'),
         setAllKillState: makeKey<boolean>('set-kill-state'),
+        setBusState: makeKey<boolean>('set-bus-state'),
         setTRState: makeKey<boolean>('set-tr-state'),
     },
-    loadFlightRecording: makeKey<number[]>('load-flight-recording'),
-    loadFile: makeKey<DroppedFile>('load-file'),
     connect: {
         connect: makeKey<ConnectionOptions>('connect-to-ud3'),
         getPresets: makeKey<undefined>('get-connect-presets'),
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
         setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),
     },
+    loadFile: makeKey<DroppedFile>('load-file'),
+    loadFlightRecording: makeKey<number[]>('load-flight-recording'),
     menu: {
-        connectButton: makeKey<undefined>('press-connect-button'),
         startMedia: makeKey<undefined>('start-media'),
         stopMedia: makeKey<undefined>('stop-media'),
     },
@@ -45,6 +45,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setBurstOntime: makeKey<number>('slider-set-burst-ontime'),
         setOntimeRelative: makeKey<number>('slider-set-ontime-rel'),
     },
+
 };
 
 export function getToMainIPCPerCoil(coil: CoilID) {

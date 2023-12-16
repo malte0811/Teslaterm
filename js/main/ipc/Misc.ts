@@ -7,13 +7,14 @@ import {
     UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
+import {BoolOptionCommand, setBoolOption} from "../command/CommandMessages";
+import {forEachCoilAsync} from "../connection/connection";
 import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
 import {media_state} from "../media/media_player";
 import {playMidiData} from "../midi/midi";
 import {getUIConfig, setUIConfig} from "../UIConfig";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
-import {PerCoilMenuIPC} from "./Menu";
 import {TermSetupResult} from "./terminal";
 
 export class ByCoilMiscIPC {
@@ -33,7 +34,7 @@ export class ByCoilMiscIPC {
             }
             ipcs.coilMenu(coil).sendFullState(source);
             this.processIPC.sendToWindow(
-                this.renderIPCs.updateConnectionState, source, this.lastConnectionState,
+                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, source, [coil, this.lastConnectionState],
             );
             ipcs.scope(coil).sendConfig(source);
             ipcs.meters(coil).sendConfig(source);
@@ -47,7 +48,7 @@ export class ByCoilMiscIPC {
 
     public setConnectionState(newState: ConnectionStatus) {
         this.lastConnectionState = newState;
-        this.processIPC.sendToAll(this.renderIPCs.updateConnectionState, newState);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, newState]);
         console.log("Setting to ", newState);
     }
 
@@ -84,6 +85,12 @@ export class CommonMiscIPC {
             setUIConfig({darkMode});
             this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
         });
+        this.processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.commands.setAllKillState,
+            ($, enable) => {
+                return forEachCoilAsync((coil) => setBoolOption(coil, BoolOptionCommand.kill, enable));
+            },
+        );
     }
 
     public syncTTConfig(configToSync: TTConfig, target: object) {

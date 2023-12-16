@@ -1,6 +1,6 @@
 import {CoilID} from "../../common/constants";
 import {IPCToMainKey} from "../../common/IPCConstantsToMain";
-import {IPCToRendererKey, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {initAlarms} from "../connection/telemetry/Alarms";
 import {CommandIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
@@ -154,6 +154,7 @@ export class IPCCollection {
         this.misc = new CommonMiscIPC(process);
         this.scripting = new ScriptingIPC(process);
         this.menu = new CommonMenuIPC(process);
+        this.processIPC = process;
     }
 
     public sliders(coil: CoilID): SlidersIPC {
@@ -193,6 +194,7 @@ export class IPCCollection {
         this.scopeByCoil.set(coil, new ScopeIPC(this.processIPC, coil));
         this.miscByCoil.set(coil, new ByCoilMiscIPC(this.processIPC, coil));
         initAlarms(coil);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.registerCoil, coil);
     }
 }
 

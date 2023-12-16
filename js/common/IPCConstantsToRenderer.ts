@@ -27,6 +27,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         fullList: makeKey<{events: ParsedEvent[], initial: InitialFRState}>('fr-event-list'),
     },
     menu: {
+        ud3State: makeKey<[CoilID, UD3State]>('menu-ud3-state'),
         setMediaTitle: makeKey<string>('menu-media-title'),
         setScriptName: makeKey<string>('menu-script-name'),
     },
@@ -40,6 +41,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     syncDarkMode: makeKey<boolean>('syncDarkMode'),
     ttConfig: makeKey<TTConfig>('tt-config'),
     registerCoil: makeKey<CoilID>('register-coil'),
+    updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
 
 export function getToRenderIPCPerCoil(coil: CoilID) {
@@ -47,9 +49,6 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
     const makeCoilKey = <Type>(channel: string) => makeKey<Type>(channel + suffix);
     return {
         alarmList: makeCoilKey<UD3Alarm[]>('alarms'),
-        menu: {
-            ud3State: makeCoilKey<UD3State>('menu-ud3-state'),
-        },
         meters: {
             configure: makeCoilKey<MeterConfig>('meter-config'),
             setValue: makeCoilKey<SetMeters>('meter-set-value'),
@@ -68,7 +67,6 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
         terminal: makeCoilKey<string>('terminal'),
         udConfig: makeCoilKey<UD3ConfigOption[]>('ud-config'),
         udName: makeCoilKey<string>('ud-name'),
-        updateConnectionState: makeCoilKey<ConnectionStatus>('update-connection-state'),
     };
 }
 

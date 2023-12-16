@@ -1,5 +1,6 @@
 import {ConnectionOptions} from "../../common/ConnectionOptions";
 import {CoilID} from "../../common/constants";
+import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {CommandRole} from "../../common/Options";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
@@ -28,6 +29,11 @@ export function getCoils() {
     return connectionState.keys();
 }
 
+export function clearCoils() {
+    connectionState.clear();
+    // TODO clear e.g. SID caches
+}
+
 export function forEachCoilAsync<T>(apply: (coil: CoilID) => Promise<T>) {
     return Promise.all([...getCoils()].map(apply));
 }
@@ -37,7 +43,16 @@ export function forEachCoil<T>(apply: (coil: CoilID) => T) {
 }
 
 export function setConnectionState(coil: CoilID, newState: IConnectionState) {
+    const lastStatus = connectionState.has(coil) ?
+        connectionState.get(coil).getConnectionStatus() :
+        ConnectionStatus.IDLE;
     connectionState.set(coil, newState);
+    const newStatus = newState.getConnectionStatus();
+    if (newStatus !== lastStatus) {
+        console.log('Update on ', coil, ':', newStatus);
+        ipcs.coilMisc(coil).setConnectionState(newStatus);
+        getFlightRecorder(coil).addEvent(FlightEventType.connection_state_change, [newStatus]);
+    }
 }
 
 export async function startConf(coil: CoilID, commandState: CommandRole) {
@@ -58,6 +73,7 @@ export async function startConf(coil: CoilID, commandState: CommandRole) {
 }
 
 export async function pressButton(coil: CoilID, window: object) {
+    console.log('Pressed button on ', coil);
     setConnectionState(coil, await getConnectionState(coil).pressButton(window));
 }
 
@@ -76,14 +92,7 @@ export function startBootloading(coil: CoilID, cyacd: Uint8Array): boolean {
 
 export function updateFast() {
     for (const [coil, coilState] of connectionState.entries()) {
-        const lastStatus = coilState.getConnectionStatus();
-        const newCoilState = coilState.tickFast();
-        setConnectionState(coil, newCoilState);
-        const newStatus = newCoilState.getConnectionStatus();
-        if (newStatus !== lastStatus) {
-            ipcs.coilMisc(coil).setConnectionState(newStatus);
-            getFlightRecorder(coil).addEvent(FlightEventType.connection_state_change, [newStatus]);
-        }
+        setConnectionState(coil, coilState.tickFast());
     }
 }
 
@@ -122,7 +131,10 @@ export async function connectWithOptions(args: ConnectionOptions) {
     }
 }
 
+let nextCoilID = 0;
+
 function makeNewCoilID(): CoilID {
-    throw new Error("Need to implement coil ID creation");
-    // TODO call ipcs.initCoilIPC(newCoil)
+    const id: CoilID = nextCoilID++;
+    ipcs.initCoilIPC(id);
+    return id;
 }

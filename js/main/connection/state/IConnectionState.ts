@@ -20,4 +20,3 @@ export interface IConnectionState {
 
     getCommandRole(): CommandRole;
 }
-

@@ -47,12 +47,13 @@ CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_min, "Serial (MIN)");
 CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_plain, "Serial (Plain)");
 // connection_types.set(dummy, "Dummy connection (debug only!)");
 
-export interface CoilID {
-    id: number;
-}
+//export interface CoilID {
+//    id: number;
+//}
+export type CoilID = number;
 
 export function coilSuffix(coil: CoilID) {
-    return coil.id.toString();
+    return coil.toString();
 }
 
 export enum UD3AlarmLevel {

@@ -26,16 +26,30 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
         super(props);
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const totalOntime = this.props.valueAbsolute * (this.props.valueRelative / 100);
-        const relative = this.props.level.level == 'central-control' ? true :
+        const relative = this.props.level.level === 'central-control' ? true :
             this.props.level.level === 'single-coil' ? false :
                 this.props.controllingRelative;
-        let desc: JSX.Element;
+        let desc: React.JSX.Element;
         if (relative) {
             desc = <span><b>{this.props.valueRelative}%</b> of {this.props.valueAbsolute} µs</span>;
         } else {
             desc = <span>{this.props.valueRelative}% of <b>{this.props.valueAbsolute} µs</b></span>;
+        }
+        let relativeControl: React.JSX.Element;
+        if (this.props.level.level === 'combined') {
+            relativeControl = <>
+                <input
+                    id={'enable-relative-ontime'}
+                    type={'checkbox'}
+                    disabled={!this.props.relativeAllowed}
+                    onChange={(e) => this.props.setControllingRelative(e.target.checked)}
+                    checked={relative}
+                /><label htmlFor={'enable-relative-ontime'}>Relative</label>
+            </>;
+        } else {
+            relativeControl = <></>;
         }
         return <div className={'tt-slider-container'}>
             Ontime: {totalOntime.toFixed()} µs ({desc})<br/>
@@ -48,14 +62,7 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
                 onChange={(e) => this.props.setValue(e.target.valueAsNumber, relative)}
                 disabled={this.props.disabled}
             /><br/>
-            {this.props.level.level === 'combined' && <input
-                id={'enable-relative-ontime'}
-                type={'checkbox'}
-                disabled={!this.props.relativeAllowed}
-                onChange={(e) => this.props.setControllingRelative(e.target.checked)}
-                checked={relative}
-            />}
-            <label htmlFor={'enable-relative-ontime'}>Relative</label>
+            {relativeControl}
         </div>;
     }
 }

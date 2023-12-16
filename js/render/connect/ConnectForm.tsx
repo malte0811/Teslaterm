@@ -31,7 +31,8 @@ export interface ConnectFormState {
 
 export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState> {
     private static abort() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton, undefined);
+        //TODO
+        // processIPC.send(IPC_CONSTANTS_TO_MAIN.menu.connectButton, undefined);
     }
 
     private readonly firstFieldRef: React.RefObject<HTMLInputElement> = React.createRef();

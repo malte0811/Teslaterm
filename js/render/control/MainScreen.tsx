@@ -3,13 +3,13 @@ import React from "react";
 import {Button, ButtonToolbar, Col, Modal, Nav, Row, Tab} from "react-bootstrap";
 import * as xterm from "xterm";
 import {FitAddon} from "xterm-addon-fit";
-import {CoilID} from "../../common/constants";
+import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     ConfirmationRequest,
-    ConnectionStatus,
+    ConnectionStatus, getToRenderIPCPerCoil,
     IPC_CONSTANTS_TO_RENDERER,
-    IUD3State,
+    IUD3State, UD3State,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
@@ -18,16 +18,22 @@ import {ScreenWithDrop} from "../ScreenWithDrop";
 import {CentralControlTab} from "./CentralControlTab";
 import {SingleCoilTab} from "./SingleCoilTab";
 
+interface CoilState {
+    connection: ConnectionStatus;
+    ud: IUD3State;
+}
+
 interface MainScreenState {
     scriptPopup: ConfirmationRequest;
     scriptPopupShown: boolean;
+    coilStates: CoilState[];
 }
 
 export interface MainScreenProps {
     ttConfig: TTConfig;
-    connectionStatus: ConnectionStatus;
-    clearWasConnected: () => any;
+    returnToConnect: () => any;
     darkMode: boolean;
+    coils: CoilID[];
 }
 
 // TODO this is a hack. I'm not 100% sure why, but Terminal does not like open/dispose cycles
@@ -42,6 +48,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     constructor(props: any) {
         super(props);
         this.state = {
+            coilStates: this.props.coils.map(() => ({connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE})),
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
         };
@@ -53,23 +60,26 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
             (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),
         );
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, (coil) => {
-            if (!this.terminal.has(coil)) {
-                this.terminal.set(coil, {
-                    fitter: new FitAddon(),
-                    terminal: undefined,
-                });
-            }
-        });
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.updateConnectionState,
+            ([coil, status]) => this.onConnectionChange(coil, {connection: status}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.menu.ud3State,
+            ([coil, state]) => this.onConnectionChange(coil, {ud: state}),
+        );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     public render(): React.ReactNode {
-        const coils = [...this.terminal.keys()].map((coil) => {
-            return <Tab.Pane eventKey="coil3" style={{
+        const tabs = this.props.coils.map((coil) => {
+            return <Nav.Item><Nav.Link eventKey={"coil" + coilSuffix(coil)}>Coil {coil}</Nav.Link></Nav.Item>;
+        });
+        const coils = this.props.coils.map((coil) => {
+            return <Tab.Pane eventKey={"coil" + coilSuffix(coil)} style={{
                 height: '100%',
                 overflow: 'hidden',
-            }}>{this.renderSingleTab(coil)}</Tab.Pane>
+            }}>{this.renderSingleTab(coil)}</Tab.Pane>;
         });
         return (
             <div ref={this.mainDivRef} className={'tt-main-screen'}>
@@ -79,23 +89,23 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                             <ButtonToolbar className="justify-content-between">
                                 <Nav variant={'tabs'}>
                                     <Nav.Item><Nav.Link eventKey="control">Control</Nav.Link></Nav.Item>
-                                    <Nav.Item><Nav.Link eventKey="coil1">Coil 1</Nav.Link></Nav.Item>
-                                    <Nav.Item><Nav.Link eventKey="coil2">Coil 2</Nav.Link></Nav.Item>
-                                    <Nav.Item><Nav.Link eventKey="coil3">Coil 3</Nav.Link></Nav.Item>
+                                    {...tabs}
                                 </Nav>
                                 <Button
                                     variant={"warning"}
-                                    disabled={this.props.connectionStatus !== ConnectionStatus.IDLE}
-                                    onClick={this.props.clearWasConnected}
+                                    disabled={
+                                        !this.state.coilStates.every((v) => v.connection === ConnectionStatus.IDLE)
+                                    }
+                                    onClick={this.props.returnToConnect}
                                 >Close</Button>
                             </ButtonToolbar>
                         </Row>
                         <Row className={'tt-coil-tab-main'}>
                             <Tab.Content style={{
-                                overflow: 'hidden',
-                                flex: '1 1 auto',
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flex: '1 1 auto',
+                                flexDirection: 'column',
+                                overflow: 'hidden',
                             }}>
                                 <Tab.Pane eventKey="control" style={{
                                     height: '100%',
@@ -104,7 +114,11 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                     <CentralControlTab
                                         ttConfig={this.props.ttConfig}
                                         darkMode={this.props.darkMode}
-                                        />
+                                        numCoils={this.props.coils.length}
+                                        numKilled={this.props.coils.filter(
+                                            (c) => this.getCoilStatus(c).ud.killBitSet,
+                                        ).length}
+                                    />
                                 </Tab.Pane>
                                 {...coils}
                             </Tab.Content>
@@ -140,15 +154,42 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         }
     }
 
+    private onConnectionChange(coil: CoilID, newState: Partial<CoilState>) {
+        console.log(coil, 'update', newState);
+        this.setState((oldState) => {
+            const oldCoilState = this.getCoilStatus(coil);
+            const index = this.props.coils.indexOf(coil);
+            const newStates = [...oldState.coilStates];
+            newStates[index] = {...oldCoilState, ...newState};
+            return {coilStates: newStates};
+        });
+    }
+
+    private getCoilStatus(coil: CoilID) {
+        const index = this.props.coils.indexOf(coil);
+        if (index >= 0) {
+            return this.state.coilStates[index];
+        } else {
+            return {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
+        }
+    }
+
     private renderSingleTab(coil: CoilID): React.ReactNode {
-        const allowInteraction = this.props.connectionStatus === ConnectionStatus.CONNECTED;
+        if (!this.terminal.has(coil)) {
+            this.terminal.set(coil, {
+                fitter: new FitAddon(),
+                terminal: undefined,
+            });
+        }
+        const coilStatus = this.getCoilStatus(coil);
         return <SingleCoilTab
             terminal={this.terminal.get(coil)}
-            allowInteraction={allowInteraction}
+            allowInteraction={coilStatus.connection === ConnectionStatus.CONNECTED}
             ttConfig={this.props.ttConfig}
-            connectionStatus={this.props.connectionStatus}
+            connectionStatus={coilStatus.connection}
             darkMode={this.props.darkMode}
             coil={coil}
+            ud3State={coilStatus.ud}
         />;
     }
 
