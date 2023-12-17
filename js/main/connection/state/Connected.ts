@@ -1,3 +1,4 @@
+import {CoilID} from "../../../common/constants";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {PlayerActivity, SynthType} from "../../../common/MediaTypes";
 import {AdvancedOptions, CommandRole} from "../../../common/Options";
@@ -12,10 +13,17 @@ import {Idle} from "./Idle";
 import {Reconnecting} from "./Reconnecting";
 
 const TIMEOUT = 1000;
-let lastResponseTime = Date.now();
+const lastResponseTime = new Map<CoilID, number>();
 
-export function resetResponseTimeout() {
-    lastResponseTime = Date.now();
+export function resetResponseTimeout(coil: CoilID) {
+    lastResponseTime.set(coil, Date.now());
+}
+
+function getResponseTime(coil: CoilID) {
+    if (!lastResponseTime.has(coil)) {
+        lastResponseTime.set(coil, Date.now());
+    }
+    return lastResponseTime.get(coil);
 }
 
 export class Connected implements IConnectionState {
@@ -110,7 +118,8 @@ export class Connected implements IConnectionState {
                 return false;
             }
         }
-        return Date.now() - lastResponseTime > TIMEOUT;
+        const coil = this.getActiveConnection().getCoil();
+        return Date.now() - getResponseTime(coil) > TIMEOUT;
     }
 
     private async disconnectInternal() {

@@ -10,7 +10,7 @@ let consoleLine: string = "";
 
 export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, source?: object) {
     const buf = new Uint8Array(data);
-    resetResponseTimeout();
+    resetResponseTimeout(coil);
     if (!channels.has(source)) {
         channels.set(source, new TelemetryChannel());
     }

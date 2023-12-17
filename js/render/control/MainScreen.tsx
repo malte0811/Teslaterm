@@ -167,11 +167,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
 
     private getCoilStatus(coil: CoilID) {
         const index = this.props.coils.indexOf(coil);
-        if (index >= 0) {
-            return this.state.coilStates[index];
-        } else {
-            return {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
-        }
+        return this.state.coilStates[index] || {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
     }
 
     private renderSingleTab(coil: CoilID): React.ReactNode {
