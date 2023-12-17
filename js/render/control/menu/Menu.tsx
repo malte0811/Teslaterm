@@ -6,7 +6,7 @@ import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER, IUD3State} from "../../../c
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
-import {TabControlLevel, TabControlLevelBase} from "../SingleCoilTab";
+import {TabControlLevelBase} from "../SingleCoilTab";
 import {CentralKillbit} from "./CentralKillbit";
 import {CommandsMenuItem} from "./Commands";
 import {Killbit} from "./Killbit";

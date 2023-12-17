@@ -85,12 +85,6 @@ export class CommonMiscIPC {
             setUIConfig({darkMode});
             this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
         });
-        this.processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.commands.setAllKillState,
-            ($, enable) => {
-                return forEachCoilAsync((coil) => setBoolOption(coil, BoolOptionCommand.kill, enable));
-            },
-        );
     }
 
     public syncTTConfig(configToSync: TTConfig, target: object) {

@@ -83,7 +83,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         });
         return (
             <div ref={this.mainDivRef} className={'tt-main-screen'}>
-                <Tab.Container mountOnEnter={true} transition={false} defaultActiveKey={'control'}>
+                <Tab.Container transition={false} defaultActiveKey={'control'}>
                     <Col className={'tt-coil-tabs'}>
                         <Row className={'tt-coil-tab-bar'}>
                             <ButtonToolbar className="justify-content-between">

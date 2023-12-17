@@ -81,40 +81,40 @@ export class SlidersIPC {
         return this.state.burstOfftime;
     }
 
-    public async setAbsoluteOntime(val: number, key?: object) {
+    public async setAbsoluteOntime(val: number) {
         this.state.ontimeAbs = val;
         await this.commands.setOntime(this.state.ontime);
-        this.sendSliderSync(key);
+        this.sendSliderSync();
     }
 
-    public async setRelativeOntime(val: number, key?: object) {
+    public async setRelativeOntime(val: number) {
         this.state.ontimeRel = val;
         await this.commands.setOntime(this.state.ontime);
         getConnectionState(this.coil).getCommandServer().setNumberOption(NumberOptionCommand.relative_ontime, val);
-        this.sendSliderSync(key);
+        this.sendSliderSync();
     }
 
-    public async setBPS(val: number, key?: object) {
+    public async setBPS(val: number) {
         this.state.bps = val;
         await this.commands.setBPS(val);
-        this.sendSliderSync(key);
+        this.sendSliderSync();
     }
 
-    public async setBurstOntime(val: number, key?: object) {
+    public async setBurstOntime(val: number) {
         this.state.burstOntime = val;
         await this.commands.setBurstOntime(val);
-        this.sendSliderSync(key);
+        this.sendSliderSync();
     }
 
-    public async setBurstOfftime(val: number, key?: object) {
+    public async setBurstOfftime(val: number) {
         this.state.burstOfftime = val;
         await this.commands.setBurstOfftime(val);
-        this.sendSliderSync(key);
+        this.sendSliderSync();
     }
 
-    public setOnlyMaxOntimeSettable(allowed: boolean, key?: object) {
+    public setOnlyMaxOntimeSettable(allowed: boolean) {
         this.state.onlyMaxOntimeSettable = allowed;
-        this.sendSliderSync(key);
+        this.sendSliderSync();
     }
 
     public async setSliderRanges(maxOntime: number, maxBPS: number) {
@@ -129,8 +129,8 @@ export class SlidersIPC {
         }
     }
 
-    public sendSliderSync(excluded?: object) {
-        this.processIPC.sendToAllExcept(getToRenderIPCPerCoil(this.coil).sliders.syncSettings, excluded, this.state);
+    public sendSliderSync() {
+        this.processIPC.sendToAll(getToRenderIPCPerCoil(this.coil).sliders.syncSettings, this.state);
     }
 
     public reinitState(role: CommandRole) {

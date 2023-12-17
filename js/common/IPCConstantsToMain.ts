@@ -77,6 +77,8 @@ export function getToMainIPCPerCoil(coil: CoilID) {
     };
 }
 
+export type PerCoilMainIPCs = ReturnType<typeof getToMainIPCPerCoil>;
+
 export class TransmittedFile {
     public readonly name: string;
     public readonly contents: Uint8Array;

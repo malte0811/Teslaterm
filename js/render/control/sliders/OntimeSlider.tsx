@@ -1,6 +1,6 @@
 import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {processIPC} from "../../ipc/IPCProvider";
+import {MultiWindowIPC} from "../../../main/ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TabControlLevel} from "../SingleCoilTab";
 
@@ -28,14 +28,23 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
 
     public render(): React.ReactNode {
         const totalOntime = this.props.valueAbsolute * (this.props.valueRelative / 100);
-        const relative = this.props.level.level === 'central-control' ? true :
-            this.props.level.level === 'single-coil' ? false :
-                this.props.controllingRelative;
         let desc: React.JSX.Element;
-        if (relative) {
-            desc = <span><b>{this.props.valueRelative}%</b> of {this.props.valueAbsolute} µs</span>;
+        let relative: boolean;
+        if (this.props.level.level === 'central-control' ) {
+            relative = true;
+            desc = <span>{this.props.valueRelative}%</span>;
         } else {
-            desc = <span>{this.props.valueRelative}% of <b>{this.props.valueAbsolute} µs</b></span>;
+            relative = this.props.level.level !== 'single-coil' && this.props.controllingRelative;
+            desc = <span>{this.props.valueAbsolute} µs</span>;
+            let innerDesc: React.JSX.Element;
+            if (this.props.level.level === 'single-coil') {
+                innerDesc = <span>{this.props.valueRelative}% of {this.props.valueAbsolute} µs</span>;
+            } else if (relative) {
+                innerDesc = <span><b>{this.props.valueRelative}%</b> of {this.props.valueAbsolute} µs</span>;
+            } else {
+                innerDesc = <span>{this.props.valueRelative}% of <b>{this.props.valueAbsolute} µs</b></span>;
+            }
+            desc = <>{totalOntime.toFixed()} µs ({innerDesc})</>;
         }
         let relativeControl: React.JSX.Element;
         if (this.props.level.level === 'combined') {
@@ -52,7 +61,7 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
             relativeControl = <></>;
         }
         return <div className={'tt-slider-container'}>
-            Ontime: {totalOntime.toFixed()} µs ({desc})<br/>
+            Ontime: {desc}<br/>
             <input
                 className={this.props.visuallyEnabled ? 'tt-slider' : 'tt-slider-gray'}
                 type={'range'}
@@ -65,4 +74,11 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
             {relativeControl}
         </div>;
     }
+}
+
+export function registerCommonSliderIPC(processIPC: MultiWindowIPC) {
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, (c) => c.sliders.setBPS);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, (c) => c.sliders.setBurstOfftime);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, (c) => c.sliders.setBurstOntime);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, (c) => c.sliders.setOntimeRelative);
 }

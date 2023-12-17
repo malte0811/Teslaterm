@@ -1,7 +1,12 @@
 import {CoilID} from "../../common/constants";
-import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
+import {
+    getToMainIPCPerCoil,
+    IPC_CONSTANTS_TO_MAIN,
+    IPCToMainKey,
+    PerCoilMainIPCs,
+} from "../../common/IPCConstantsToMain";
 import {BoolOptionCommand, setBoolOption} from "../command/CommandMessages";
-import {getCoilCommands} from "../connection/connection";
+import {forEachCoil, getCoilCommands} from "../connection/connection";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class CommandIPC {
@@ -27,4 +32,10 @@ export class CommandIPC {
             }
         });
     }
+}
+
+export function registerCommonCommandsIPC(processIPC: MultiWindowIPC) {
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.commands.setAllKillState, (c) => c.commands.setKillState);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.commands.setBusState, (c) => c.commands.setBusState);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.commands.setTRState, (c) => c.commands.setTRState);
 }

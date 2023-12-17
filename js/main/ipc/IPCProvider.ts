@@ -1,8 +1,10 @@
 import {CoilID} from "../../common/constants";
-import {IPCToMainKey} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil, IPCToMainKey, PerCoilMainIPCs} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
+import {registerCommonSliderIPC} from "../../render/control/sliders/OntimeSlider";
+import {forEachCoil} from "../connection/connection";
 import {initAlarms} from "../connection/telemetry/Alarms";
-import {CommandIPC} from "./Commands";
+import {CommandIPC, registerCommonCommandsIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
 import {FlightRecorderIPC} from "./FlightRecorderIPC";
@@ -39,8 +41,7 @@ export class MultiWindowIPC {
                 this.addSingleCallback(channel.channel, key);
             }
         }
-        const arr = this.callbacks.get(channel.channel);
-        arr.push({cb: callback});
+        this.callbacks.get(channel.channel).push({cb: callback});
     }
 
     public onAsync<T>(channel: IPCToMainKey<T>, callback: (source: object, data: T) => Promise<any>) {
@@ -101,6 +102,18 @@ export class MultiWindowIPC {
         } else {
             this.sendToAll(channel, data);
         }
+    }
+
+    public triggerFromWindow<T>(channel: IPCToRendererKey<T>, key: object, data: T) {
+        for (const cb of this.callbacks.get(channel.channel) || []) {
+            cb.cb(key, data);
+        }
+    }
+
+    public distributeTo<T>(global: IPCToMainKey<T>, perCoil: (channels: PerCoilMainIPCs) => IPCToMainKey<T>) {
+        processIPC.on(global, (source, data) => {
+            forEachCoil((coil) => processIPC.triggerFromWindow(perCoil(getToMainIPCPerCoil(coil)), source, data));
+        });
     }
 
     public addDisconnectCallback(key: object, cb: () => void) {
@@ -204,4 +217,6 @@ export let ipcs: IPCCollection;
 export function init() {
     processIPC = new MultiWindowIPC();
     ipcs = new IPCCollection(processIPC);
+    registerCommonCommandsIPC(processIPC);
+    registerCommonSliderIPC(processIPC);
 }

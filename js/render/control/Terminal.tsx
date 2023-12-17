@@ -61,9 +61,15 @@ export class Terminal extends TTComponent<TerminalProps, {}> {
     private fitManually() {
         // Hack: The layout rules don't seem to be enough to make the fitter only take the height it has if the terminal
         // already exceeds that, so shrink the terminal vertically and then let the fitter expand it again
-        if (this.props.terminal.terminal) {
-            this.props.terminal.terminal.resize(this.props.terminal.terminal.cols, 1);
+        const terminal = this.props.terminal.terminal;
+        if (terminal) {
+            terminal.resize(terminal.cols, 1);
             this.props.terminal.fitter.fit();
+            // Hack: When the terminal is not visible, we may end up with near-zero dimensions here. But with those the
+            // UD3 startup text does not show properly, so make the terminal big enough for that.
+            if (terminal.cols < 70) {
+                terminal.resize(70, terminal.rows);
+            }
         }
     }
 }

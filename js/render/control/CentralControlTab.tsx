@@ -1,10 +1,12 @@
 import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ConnectionStatus, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
+import {Gauges} from "./gauges/Gauges";
 import {MenuBar} from "./menu/Menu";
+import {Oscilloscope} from "./scope/Oscilloscope";
 import {Sliders} from "./sliders/Sliders";
 import {Toasts} from "./Toasts";
 
@@ -18,12 +20,12 @@ export interface ControlTabProps {
 
 export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
     public componentDidMount() {
-        // TODO only for this coil!
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     public render() {
-        // TODO get rid of UD3State.DEFAULT_STATE here
+        // TODO Fix telemetry
+        // TODO Get rid of UD3State.DEFAULT_STATE(?)
         return (
             <div className={'tt-coil-tab'}>
                 <div className={'tt-menu-bar'}>
@@ -37,7 +39,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                 <div className={'tt-terminal-and-gauges'}>
                     <div className={'tt-terminal-container'}>
                         <div className={'tt-scope-container'}>
-                            {/*TODO <Oscilloscope/>*/}
+                            <Oscilloscope coil={-1}/>
                             <Sliders
                                 ud3State={UD3State.DEFAULT_STATE}
                                 disabled={false}
@@ -48,7 +50,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                         </div>
                         TODO: Something to select single-coil telemetry to show in the central tab should go here
                     </div>
-                    {/*TODO <Gauges darkMode={this.props.darkMode}/>*/}
+                    <Gauges darkMode={this.props.darkMode} coil={-1}/>
                 </div>
                 <Toasts darkMode={this.props.darkMode}/>
             </div>
