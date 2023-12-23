@@ -5,6 +5,7 @@ import {ConnectionPreset, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConst
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {areOptionsValid, MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
+import {MulticonnectPopup} from "./MulticonnectPopup";
 
 export interface PresetsProps {
     mainFormProps: MergedConnectionOptions;
@@ -16,12 +17,35 @@ export interface PresetsProps {
 interface PresetsState {
     presets: ConnectionPreset[];
     newEntryName: string;
+    inMulticonnect: boolean;
 }
 
 export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
+    public static makeTooltip(preset: ConnectionPreset) {
+        let description = `Type: ${CONNECTION_TYPE_DESCS.get(preset.options.connectionType)}`;
+        switch (preset.options.connectionType) {
+            case UD3ConnectionType.serial_min:
+            case UD3ConnectionType.serial_plain:
+                if (preset.options.options.serialPort) {
+                    description += `\nPort: ${preset.options.options.serialPort}`;
+                } else {
+                    description += `\nVendor ID: ${preset.options.options.autoVendorID}`;
+                    description += `\nProduct ID: ${preset.options.options.autoProductID}`;
+                }
+                description += `\nBaudrate: ${preset.options.options.baudrate}`;
+                break;
+            case UD3ConnectionType.udp_min:
+                description += `\nRemote IP: ${preset.options.options.remoteIP}`;
+                description += `\nRemote port: ${preset.options.options.udpMinPort}`;
+                break;
+        }
+        return description;
+    }
+
     constructor(props) {
         super(props);
         this.state = {
+            inMulticonnect: false,
             newEntryName: '',
             presets: [],
         };
@@ -42,6 +66,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
             <div className={'tt-connect-presets'}>
                 {this.makeNewEntryField()}
                 {presetList}
+                <Button onClick={() => this.setState({inMulticonnect: true})}>Multiconnect</Button>
             </div>
         );
     }
@@ -57,33 +82,26 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, preset.options);
         };
         const deletePreset = () => {
-            const newPresets = this.state.presets.filter((cp) => cp != preset);
+            const newPresets = this.state.presets.filter((cp) => cp !== preset);
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, newPresets);
         };
-        let description = `Type: ${CONNECTION_TYPE_DESCS.get(preset.options.connectionType)}`;
-        switch (preset.options.connectionType) {
-            case UD3ConnectionType.serial_min:
-            case UD3ConnectionType.serial_plain:
-                if (preset.options.options.serialPort) {
-                    description += `\nPort: ${preset.options.options.serialPort}`;
-                } else {
-                    description += `\nVendor ID: ${preset.options.options.autoVendorID}`;
-                    description += `\nProduct ID: ${preset.options.options.autoProductID}`;
-                }
-                description += `\nBaudrate: ${preset.options.options.baudrate}`;
-                break;
-            case UD3ConnectionType.udp_min:
-                description += `\nRemote IP: ${preset.options.options.remoteIP}`;
-                description += `\nRemote port: ${preset.options.options.udpMinPort}`;
-                break;
-        }
-        return <div className={'tt-side-aligned tt-connect-preset'} title={description} key={preset.name}>
+        return <div
+            className={'tt-side-aligned tt-connect-preset'}
+            title={ConnectionPresets.makeTooltip(preset)}
+            key={preset.name}
+        >
             <span className={'tt-align-left'}>{preset.name}</span>
             <ButtonGroup>
                 <Button disabled={this.props.connecting} onClick={load}>Load</Button>
                 <Button disabled={this.props.connecting} onClick={connect}>Connect</Button>
                 <Button disabled={this.props.connecting} onClick={deletePreset} variant={'danger'}>Delete</Button>
             </ButtonGroup>
+            <MulticonnectPopup
+                darkMode={this.props.darkMode}
+                presets={this.state.presets}
+                visible={this.state.inMulticonnect}
+                close={() => this.setState({inMulticonnect: false})}
+            />
         </div>;
     }
 

@@ -68,7 +68,9 @@ export class TelemetryTab extends TTComponent<TelemetryTabProps, TelemetryTabSta
                 case TelemetryEvent.GAUGE32:
                     newGaugeProps = [...oldGaugeProps];
                     const oldProps = oldGaugeProps[frame.index];
-                    newGaugeProps[frame.index] = {...oldProps, value: frame.value / oldProps.config.scale};
+                    if (oldProps) {
+                        newGaugeProps[frame.index] = {...oldProps, value: frame.value / oldProps.config.scale};
+                    }
                     break;
                 case TelemetryEvent.GAUGE32_CONF:
                 case TelemetryEvent.GAUGE_CONF:
@@ -85,7 +87,9 @@ export class TelemetryTab extends TTComponent<TelemetryTabProps, TelemetryTabSta
                     break;
                 case TelemetryEvent.CHART:
                 case TelemetryEvent.CHART32:
-                    nextChartStates[frame.index] = {...nextChartStates[frame.index], currentValue: frame.value};
+                    if (nextChartStates[frame.index]) {
+                        nextChartStates[frame.index] = {...nextChartStates[frame.index], currentValue: frame.value};
+                    }
                     break;
                 case TelemetryEvent.CHART_DRAW:
                     chartStates.push(nextChartStates);

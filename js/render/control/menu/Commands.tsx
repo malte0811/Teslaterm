@@ -83,7 +83,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
                 items,
                 'Export Flight Recording',
                 coilIPC.dumpFlightRecorder,
-                undefined,
+                this.props.level.coil,
                 true,
             );
         }

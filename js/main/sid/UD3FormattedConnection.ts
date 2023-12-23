@@ -10,14 +10,20 @@ export enum FormatVersion {
     v2,
 }
 
+interface AbsoluteSIDFrame {
+    data: Uint8Array;
+    time: number;
+}
+
 export class UD3FormattedConnection implements ISidConnection {
     public sendToUD: (data: Buffer) => Promise<void>;
     private readonly flushCallback: () => Promise<void>;
-    private lastFrameTime: number | undefined;
+    private lastQueuedFrameTime: number | undefined;
+    private lastSentFrameTime: number | undefined;
     private busy: boolean = false;
     private ffPrefixBytes: number = 4;
     private needsZeroSuffix: boolean = true;
-    private queuedFrames: SidFrame[] = [];
+    private queuedFrames: AbsoluteSIDFrame[] = [];
     private coil: CoilID;
 
     constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => Promise<void>, coil: CoilID) {
@@ -32,13 +38,14 @@ export class UD3FormattedConnection implements ISidConnection {
 
     public onStart(): void {
         this.busy = false;
-        this.lastFrameTime = microtime.now() + 500e3;
+        this.lastQueuedFrameTime = this.lastSentFrameTime = microtime.now() + 500e3;
+        this.queuedFrames = [];
     }
 
     public async tick() {
         let i = 0;
-        while (!this.isBusy() && this.queuedFrames.length > 0 && i < 4) {
-            await this.processFrame(this.queuedFrames.shift());
+        while (!this.isBusyImpl(this.lastSentFrameTime) && this.queuedFrames.length > 0 && i < 4) {
+            await this.processAbsoluteFrame(this.queuedFrames.shift());
             ++i;
         }
     }
@@ -60,22 +67,18 @@ export class UD3FormattedConnection implements ISidConnection {
     }
 
     public async queueFrame(frame: SidFrame): Promise<void> {
-        this.queuedFrames.push(frame);
-    }
-
-    public processFrame(frame: SidFrame): Promise<void> {
-        if (!this.lastFrameTime) {
+        if (!this.lastQueuedFrameTime) {
             console.warn("SID: No previous frame time?");
-            this.lastFrameTime = microtime.now();
+            this.lastSentFrameTime = this.lastQueuedFrameTime = microtime.now();
             return;
         }
-        const absoluteTime = this.lastFrameTime;
-        this.lastFrameTime += frame.delayMicrosecond;
-        return this.processAbsoluteFrame(frame.data, absoluteTime);
+        const absoluteTime = this.lastQueuedFrameTime;
+        this.lastQueuedFrameTime += frame.delayMicrosecond;
+        this.queuedFrames.push({data: frame.data, time: absoluteTime});
     }
 
-    public processAbsoluteFrame(frameData: Uint8Array, absoluteTime: number): Promise<void> {
-        const ud_time = getUD3Connection(this.coil).toUD3Time(absoluteTime);
+    public processAbsoluteFrame(frame: AbsoluteSIDFrame): Promise<void> {
+        const ud_time = getUD3Connection(this.coil).toUD3Time(frame.time);
         const frameSize = this.ffPrefixBytes + FRAME_LENGTH + FRAME_UDTIME_LENGTH + ( this.needsZeroSuffix ? 1 : 0);
         const data = Buffer.alloc(frameSize);
         let byteCount = 0;
@@ -84,7 +87,7 @@ export class UD3FormattedConnection implements ISidConnection {
             data[byteCount++] = 0xFF;
         }
         for (let j = 0; j < FRAME_LENGTH; ++j) {
-            data[byteCount++] = frameData[j];
+            data[byteCount++] = frame.data[j];
         }
 
         for (let j = 0; j < FRAME_UDTIME_LENGTH; ++j) {
@@ -95,6 +98,7 @@ export class UD3FormattedConnection implements ISidConnection {
         }
         // TODO rework command server/client system for multicoil TT
         //  commandServer.sendSIDFrame(frameData, absoluteTime);
+        this.lastSentFrameTime = frame.time;
         return this.sendToUD(data);
     }
 
@@ -103,9 +107,13 @@ export class UD3FormattedConnection implements ISidConnection {
     }
 
     public isBusy(): boolean {
+        return this.isBusyImpl(this.lastQueuedFrameTime);
+    }
+
+    private isBusyImpl(lastFrameTime: number): boolean {
         // Refuse to send new frames if we're ahead by 1 seconds or more: In this case the UD3 probably sent an "XOFF"
         // already, but it has not arrived yet (e.g. due to noise on the line requiring MIN retransmits). Additionally,
         // the UD3's buffer is only about 1 second (64 entries), so anything much above 1 second will be lost anyway.
-        return this.busy || this.lastFrameTime - microtime.now() > 0.5e6;
+        return this.busy || lastFrameTime - microtime.now() > 0.5e6;
     }
 }

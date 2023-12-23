@@ -58,7 +58,7 @@ export class ByCoilMiscIPC {
 
     public openToast(title: string, message: string, level: ToastSeverity, mergeKey?: string, target?: object) {
         const msg: ToastData = {level, title, message, mergeKey};
-        this.processIPC.sendToWindow(this.renderIPCs.openToast, target, msg);
+        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.openToastOn, target, [msg, this.coil]);
     }
 
     public sendUDName(name: string) {
@@ -93,7 +93,7 @@ export class CommonMiscIPC {
 
     public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string, owner?: any) {
         this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.openToast, owner, {title, message, level: severity, mergeKey},
+            IPC_CONSTANTS_TO_RENDERER.openToastEverywhere, owner, {title, message, level: severity, mergeKey},
         );
     }
 

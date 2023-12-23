@@ -66,7 +66,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                     </div>
                     <Gauges darkMode={this.props.darkMode} coil={this.props.coil}/>
                 </div>
-                <Toasts darkMode={this.props.darkMode}/>
+                <Toasts darkMode={this.props.darkMode} coil={this.props.coil}/>
             </div>
         );
     }

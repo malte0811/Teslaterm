@@ -31,7 +31,8 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setMediaTitle: makeKey<string>('menu-media-title'),
         setScriptName: makeKey<string>('menu-script-name'),
     },
-    openToast: makeKey<ToastData>('open-toast'),
+    openToastEverywhere: makeKey<ToastData>('open-toast'),
+    openToastOn: makeKey<[ToastData, CoilID]>('open-toast-coil'),
     script: {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
@@ -53,7 +54,6 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
             configure: makeCoilKey<MeterConfig>('meter-config'),
             setValue: makeCoilKey<SetMeters>('meter-set-value'),
         },
-        openToast: makeCoilKey<ToastData>('open-toast'),
         scope: {
             addValues: makeCoilKey<ScopeValues>('scope-values'),
             configure: makeCoilKey<ScopeTraceConfig>('scope-config'),

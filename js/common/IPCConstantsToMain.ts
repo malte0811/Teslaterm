@@ -59,7 +59,7 @@ export function getToMainIPCPerCoil(coil: CoilID) {
             setParms: makeCoilKey<Map<string, string>>('set-parms'),
             setTRState: makeCoilKey<boolean>('set-tr-state'),
         },
-        dumpFlightRecorder: makeCoilKey<undefined>('dump-flight-recorder'),
+        dumpFlightRecorder: makeCoilKey<CoilID>('dump-flight-recorder'),
         manualCommand: makeCoilKey<string>('manual-command'),
         menu: {
             connectButton: makeCoilKey<undefined>('press-connect-button'),
