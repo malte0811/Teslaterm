@@ -8,7 +8,7 @@ import {Gauges} from "./gauges/Gauges";
 import {MenuBar} from "./menu/Menu";
 import {Oscilloscope} from "./scope/Oscilloscope";
 import {Sliders} from "./sliders/Sliders";
-import {Toasts} from "./Toasts";
+import {Toasts, ToastsProps} from "./Toasts";
 
 export interface ControlTabProps {
     ttConfig: TTConfig;
@@ -16,6 +16,7 @@ export interface ControlTabProps {
     darkMode: boolean;
     numCoils: number;
     numKilled: number;
+    toasts: ToastsProps;
 }
 
 export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
@@ -26,6 +27,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
     public render() {
         // TODO Fix telemetry
         // TODO Get rid of UD3State.DEFAULT_STATE(?)
+        // TODO start at 0 relative+absolute ontime in multicoil? Or 0 relative, 100 absolute?
         return (
             <div className={'tt-coil-tab'}>
                 <div className={'tt-menu-bar'}>
@@ -52,7 +54,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                     </div>
                     <Gauges darkMode={this.props.darkMode} coil={-1}/>
                 </div>
-                <Toasts darkMode={this.props.darkMode}/>
+                <Toasts {...this.props.toasts}/>
             </div>
         );
     }

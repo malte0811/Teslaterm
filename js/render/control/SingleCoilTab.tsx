@@ -1,9 +1,7 @@
 import React from "react";
 import {CoilID} from "../../common/constants";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ConnectionStatus, getToRenderIPCPerCoil, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
-import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {Gauges} from "./gauges/Gauges";
 import {TerminalRef} from "./MainScreen";
@@ -11,7 +9,7 @@ import {MenuBar} from "./menu/Menu";
 import {Oscilloscope} from "./scope/Oscilloscope";
 import {Sliders} from "./sliders/Sliders";
 import {Terminal} from "./Terminal";
-import {Toasts} from "./Toasts";
+import {Toasts, ToastsProps} from "./Toasts";
 
 export type TabControlLevelBase<Single, Central> =
     ({ level: 'single-coil' | 'combined'; } & Single) |
@@ -27,6 +25,7 @@ export interface SingleCoilTabProps {
     darkMode: boolean;
     coil: CoilID;
     ud3State: IUD3State;
+    toasts: ToastsProps;
 }
 
 export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
@@ -66,7 +65,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                     </div>
                     <Gauges darkMode={this.props.darkMode} coil={this.props.coil}/>
                 </div>
-                <Toasts darkMode={this.props.darkMode} coil={this.props.coil}/>
+                <Toasts {...this.props.toasts}/>
             </div>
         );
     }

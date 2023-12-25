@@ -7,7 +7,7 @@ import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     ConfirmationRequest,
-    ConnectionStatus, getToRenderIPCPerCoil,
+    ConnectionStatus,
     IPC_CONSTANTS_TO_RENDERER,
     IUD3State, UD3State,
 } from "../../common/IPCConstantsToRenderer";
@@ -17,6 +17,8 @@ import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
 import {CentralControlTab} from "./CentralControlTab";
 import {SingleCoilTab} from "./SingleCoilTab";
+import {addToast, getToasts, makeToastRemover, ToastManager, ToastUpdater} from "./ToastManager";
+import {ToastsProps} from "./Toasts";
 
 interface CoilState {
     connection: ConnectionStatus;
@@ -28,6 +30,7 @@ interface MainScreenState {
     scriptPopup: ConfirmationRequest;
     scriptPopupShown: boolean;
     coilStates: CoilState[];
+    toasts: ToastManager;
 }
 
 export interface MainScreenProps {
@@ -52,6 +55,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             coilStates: this.props.coils.map(() => ({connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE})),
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
+            toasts: {allToasts: [], nextIndex: 0},
         };
     }
 
@@ -73,6 +77,10 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             IPC_CONSTANTS_TO_RENDERER.udName,
             ([coil, name]) => this.onConnectionChange(coil, {name}),
         );
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.openToastOn, ([toast, coil]) => {
+            addToast(this.toastUpdater(), toast, coil);
+        });
+
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
@@ -128,6 +136,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                         numKilled={this.props.coils.filter(
                                             (c) => this.getCoilStatus(c).ud.killBitSet,
                                         ).length}
+                                        toasts={this.toastsForCoil()}
                                     />
                                 </Tab.Pane>
                                 {...coils}
@@ -196,6 +205,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             darkMode={this.props.darkMode}
             coil={coil}
             ud3State={coilStatus.ud}
+            toasts={this.toastsForCoil(coil)}
         />;
     }
 
@@ -228,6 +238,18 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         } else {
             return 'Unknown UD3';
         }
+    }
+
+    private toastUpdater(): ToastUpdater {
+        return (update) => this.setState((state) => ({...state, toasts: update(state.toasts)}));
+    }
+
+    private toastsForCoil(coil?: CoilID): ToastsProps {
+        return {
+            closeToast: makeToastRemover(this.toastUpdater()),
+            darkMode: this.props.darkMode,
+            toasts: getToasts(this.state.toasts, (coil) => this.getCoilStatus(coil).name, coil),
+        };
     }
 
     private static findScriptName(files: FileList) {

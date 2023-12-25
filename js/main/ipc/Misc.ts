@@ -7,8 +7,6 @@ import {
     UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
-import {BoolOptionCommand, setBoolOption} from "../command/CommandMessages";
-import {forEachCoilAsync} from "../connection/connection";
 import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
 import {media_state} from "../media/media_player";
@@ -97,7 +95,7 @@ export class CommonMiscIPC {
 
     public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string, owner?: any) {
         this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.openToastEverywhere, owner, {title, message, level: severity, mergeKey},
+            IPC_CONSTANTS_TO_RENDERER.openToastOn, owner, [{title, message, level: severity, mergeKey}, undefined],
         );
     }
 

@@ -31,8 +31,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setMediaTitle: makeKey<string>('menu-media-title'),
         setScriptName: makeKey<string>('menu-script-name'),
     },
-    openToastEverywhere: makeKey<ToastData>('open-toast'),
-    openToastOn: makeKey<[ToastData, CoilID]>('open-toast-coil'),
+    openToastOn: makeKey<[ToastData, CoilID?]>('open-toast-coil'),
     script: {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
