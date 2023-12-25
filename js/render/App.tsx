@@ -21,7 +21,6 @@ interface TopLevelState {
     screen: TopScreen;
     flightEvents?: FRDisplayData;
     ttConfig: TTConfig;
-    udName?: string;
     darkMode: boolean;
     coils: CoilID[];
 }
@@ -47,10 +46,6 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.syncDarkMode, (darkMode) => this.setState({darkMode}),
         );
-        //TODO
-        // this.addIPCListener(
-        //     IPC_CONSTANTS_TO_RENDERER.udName, (udName) => this.setState({udName}),
-        // );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, (coil) => {
             if (!this.state.coils.includes(coil)) {
@@ -64,11 +59,6 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     public render(): React.ReactNode {
-        if (this.state.udName) {
-            document.title = `Teslaterm - ${this.state.udName}`;
-        } else {
-            document.title = 'Teslaterm';
-        }
         return <>
             <div className={this.state.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
                 {this.getMainElement()}
@@ -90,7 +80,7 @@ export class App extends TTComponent<{}, TopLevelState> {
                 ttConfig={this.state.ttConfig}
                 returnToConnect={() => {
                     processIPC.send(IPC_CONSTANTS_TO_MAIN.clearCoils, undefined);
-                    this.setState({screen: TopScreen.connect, udName: undefined, coils: []});
+                    this.setState({screen: TopScreen.connect, coils: []});
                 }}
                 darkMode={this.state.darkMode}
                 coils={this.state.coils}

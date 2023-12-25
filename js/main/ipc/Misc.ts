@@ -19,9 +19,10 @@ import {TermSetupResult} from "./terminal";
 
 export class ByCoilMiscIPC {
     private readonly processIPC: MultiWindowIPC;
-    private lastConnectionState: ConnectionStatus = ConnectionStatus.IDLE;
     private readonly coil: CoilID;
+    private lastConnectionState: ConnectionStatus = ConnectionStatus.IDLE;
     private renderIPCs: PerCoilRenderIPCs;
+    private udName: string;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.coil = coil;
@@ -39,6 +40,9 @@ export class ByCoilMiscIPC {
             ipcs.scope(coil).sendConfig(source);
             ipcs.meters(coil).sendConfig(source);
             ipcs.sliders(coil).sendSliderSync();
+            if (this.udName) {
+                this.sendUDName(this.udName);
+            }
         });
         processIPC.on(
             getToMainIPCPerCoil(coil).dumpFlightRecorder,
@@ -49,7 +53,6 @@ export class ByCoilMiscIPC {
     public setConnectionState(newState: ConnectionStatus) {
         this.lastConnectionState = newState;
         this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, newState]);
-        console.log("Setting to ", newState);
     }
 
     public openUDConfig(configToSync: UD3ConfigOption[], target: object) {
@@ -62,7 +65,8 @@ export class ByCoilMiscIPC {
     }
 
     public sendUDName(name: string) {
-        this.processIPC.sendToAll(this.renderIPCs.udName, name);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, name]);
+        this.udName = name;
     }
 
     public init() {

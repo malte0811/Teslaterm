@@ -42,6 +42,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     syncDarkMode: makeKey<boolean>('syncDarkMode'),
     ttConfig: makeKey<TTConfig>('tt-config'),
     registerCoil: makeKey<CoilID>('register-coil'),
+    udName: makeKey<[CoilID, string]>('ud-name'),
     updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
 
@@ -66,7 +67,6 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
         },
         terminal: makeCoilKey<string>('terminal'),
         udConfig: makeCoilKey<UD3ConfigOption[]>('ud-config'),
-        udName: makeCoilKey<string>('ud-name'),
     };
 }
 

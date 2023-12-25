@@ -21,6 +21,7 @@ import {SingleCoilTab} from "./SingleCoilTab";
 interface CoilState {
     connection: ConnectionStatus;
     ud: IUD3State;
+    name?: string;
 }
 
 interface MainScreenState {
@@ -68,13 +69,23 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             IPC_CONSTANTS_TO_RENDERER.menu.ud3State,
             ([coil, state]) => this.onConnectionChange(coil, {ud: state}),
         );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.udName,
+            ([coil, name]) => this.onConnectionChange(coil, {name}),
+        );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     public render(): React.ReactNode {
         const tabs = this.props.coils.map((coil) => {
-            return <Nav.Item><Nav.Link eventKey={"coil" + coilSuffix(coil)}>Coil {coil}</Nav.Link></Nav.Item>;
+            const coilTitle = this.getTabTitle(coil);
+            return <Nav.Item>
+                <Nav.Link eventKey={"coil" + coilSuffix(coil)}>{coilTitle}</Nav.Link>
+            </Nav.Item>;
         });
+        tabs.unshift(<Nav.Item>
+            <Nav.Link eventKey="control">Control</Nav.Link>
+        </Nav.Item>);
         const coils = this.props.coils.map((coil) => {
             return <Tab.Pane eventKey={"coil" + coilSuffix(coil)} style={{
                 height: '100%',
@@ -88,7 +99,6 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                         <Row className={'tt-coil-tab-bar'}>
                             <ButtonToolbar className="justify-content-between">
                                 <Nav variant={'tabs'}>
-                                    <Nav.Item><Nav.Link eventKey="control">Control</Nav.Link></Nav.Item>
                                     {...tabs}
                                 </Nav>
                                 <Button
@@ -155,9 +165,8 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     private onConnectionChange(coil: CoilID, newState: Partial<CoilState>) {
-        console.log(coil, 'update', newState);
         this.setState((oldState) => {
-            const oldCoilState = this.getCoilStatus(coil);
+            const oldCoilState = this.getCoilStatus(coil, oldState);
             const index = this.props.coils.indexOf(coil);
             const newStates = [...oldState.coilStates];
             newStates[index] = {...oldCoilState, ...newState};
@@ -165,9 +174,10 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         });
     }
 
-    private getCoilStatus(coil: CoilID) {
+    private getCoilStatus(coil: CoilID, state?: MainScreenState) {
         const index = this.props.coils.indexOf(coil);
-        return this.state.coilStates[index] || {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
+        return (state || this.state).coilStates[index] ||
+            {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
     }
 
     private renderSingleTab(coil: CoilID): React.ReactNode {
@@ -209,6 +219,15 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                 <Button variant={'secondary'} onClick={() => confirm(false)}>Abort script</Button>
             </Modal.Footer>
         </Modal>;
+    }
+
+    private getTabTitle(coil: CoilID) {
+        const coilProps = this.getCoilStatus(coil);
+        if (coilProps.name) {
+            return coilProps.name;
+        } else {
+            return 'Unknown UD3';
+        }
     }
 
     private static findScriptName(files: FileList) {
