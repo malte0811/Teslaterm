@@ -6,7 +6,8 @@ import {
     PerCoilRenderIPCs,
     UD3State
 } from "../../common/IPCConstantsToRenderer";
-import {pressButton} from "../connection/connection";
+import {disconnectFrom, getConnectionState} from "../connection/connection";
+import {Idle} from "../connection/state/Idle";
 import {requestConfig} from "../connection/telemetry/TelemetryFrame";
 import {media_state} from "../media/media_player";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
@@ -25,7 +26,13 @@ export class PerCoilMenuIPC {
         processIPC.on(mainIPCs.menu.requestUDConfig, async (source) => {
             requestConfig(this.coil, (cfg) => ipcs.coilMisc(coil).openUDConfig(cfg, source));
         });
-        processIPC.on(mainIPCs.menu.connectButton, (source) => pressButton(coil, source));
+        processIPC.on(mainIPCs.menu.disconnect, (source) => disconnectFrom(coil));
+        processIPC.on(mainIPCs.menu.reconnect, (source) => {
+            const coilState = getConnectionState(coil);
+            if (coilState instanceof Idle) {
+                coilState.connect(coil).catch((err) => console.error("While reconnecting", err));
+            }
+        });
     }
 
     public setUD3State(newState: UD3State) {

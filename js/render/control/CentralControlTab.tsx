@@ -36,6 +36,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                         ttConfig={this.props.ttConfig}
                         darkMode={this.props.darkMode}
                         level={{level: 'central-control', numCoils: this.props.numCoils, numKill: this.props.numKilled}}
+                        returnToConnect={() => {}}
                     />
                 </div>
                 <div className={'tt-terminal-and-gauges'}>

@@ -12,7 +12,7 @@ import {Terminal} from "./Terminal";
 import {Toasts, ToastsProps} from "./Toasts";
 
 export type TabControlLevelBase<Single, Central> =
-    ({ level: 'single-coil' | 'combined'; } & Single) |
+    ({ level: 'single-coil' | 'combined' } & Single) |
     ({ level: 'central-control' } & Central);
 
 export type TabControlLevel = TabControlLevelBase<{ coil: CoilID }, {}>;
@@ -26,6 +26,8 @@ export interface SingleCoilTabProps {
     coil: CoilID;
     ud3State: IUD3State;
     toasts: ToastsProps;
+    level: 'single-coil' | 'combined';
+    returnToConnect: () => any;
 }
 
 export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
@@ -42,7 +44,8 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                         connectionStatus={this.props.connectionStatus}
                         ttConfig={this.props.ttConfig}
                         darkMode={this.props.darkMode}
-                        level={{level: 'single-coil', coil: this.props.coil, state: this.props.ud3State}}
+                        level={{level: this.props.level, coil: this.props.coil, state: this.props.ud3State}}
+                        returnToConnect={this.props.returnToConnect}
                     />
                 </div>
                 <div className={'tt-terminal-and-gauges'}>
@@ -54,7 +57,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                                 disabled={!this.props.allowInteraction}
                                 enableMIDI={this.props.ttConfig.useMIDIPorts}
                                 darkMode={this.props.darkMode}
-                                level={{level: 'single-coil', coil: this.props.coil}}
+                                level={{level: this.props.level, coil: this.props.coil}}
                             />
                         </div>
                         <Terminal

@@ -22,7 +22,7 @@ export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, 
         print = (s) => {
             if (s === '\n' || s === '\r') {
                 if (consoleLine !== "") {
-                    console.log(consoleLine);
+                    //console.log(consoleLine);
                     consoleLine = "";
                 }
             } else if (s !== '\u0000') {

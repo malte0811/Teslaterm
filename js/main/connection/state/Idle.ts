@@ -5,33 +5,93 @@ import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {CommandRole} from "../../../common/Options";
 import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
+import {setConnectionState} from "../connection";
 import {resetAlarms} from "../telemetry/Alarms";
 import {createPlainSerialConnection} from "../types/serial_plain";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {createMinUDPConnection} from "../types/UDPMinConnection";
+import {Connecting} from "./Connecting";
 import {IConnectionState} from "./IConnectionState";
 
 export class Idle implements IConnectionState {
+    private readonly options: ConnectionOptions;
 
-    public static async connectWithOptions(
-        coil: CoilID, options: ConnectionOptions,
-    ): Promise<UD3Connection | undefined> {
+    constructor(args: ConnectionOptions) {
+        this.options = args;
+    }
+
+    public async connect(id: CoilID) {
+        const connection = await this.createConnection(id);
+        if (connection) {
+            setConnectionState(id, new Connecting(connection, this, this));
+        } else {
+            return undefined;
+        }
+    }
+
+    public getAdvancedOptions() {
+        return this.options.advanced;
+    }
+
+    public getActiveConnection(): UD3Connection | undefined {
+        return undefined;
+    }
+
+    public getAutoTerminal(): TerminalHandle | undefined {
+        return undefined;
+    }
+
+    public getConnectionStatus(): ConnectionStatus {
+        return ConnectionStatus.IDLE;
+    }
+
+    public async disconnectFromCoil(): Promise<Idle> {
+        return this;
+    }
+
+    public tickFast(): IConnectionState {
+        return this;
+    }
+
+    public tickSlow() {
+    }
+
+    public getCommandServer(): ICommandServer {
+        return DUMMY_SERVER;
+    }
+
+    public getCommandRole(): CommandRole {
+        return 'disable';
+    }
+    private async createConnection(coil: CoilID): Promise<UD3Connection | undefined> {
         resetAlarms();
-        const type = options.connectionType;
+        const type = this.options.connectionType;
         switch (type) {
             case UD3ConnectionType.serial_plain:
-                return this.connectSerial(coil, options.options, createPlainSerialConnection);
+                return this.connectSerial(coil, this.options.options, createPlainSerialConnection);
             case UD3ConnectionType.serial_min:
-                return this.connectSerial(coil, options.options, createMinSerialConnection);
+                return this.connectSerial(coil, this.options.options, createMinSerialConnection);
             case UD3ConnectionType.udp_min:
                 return createMinUDPConnection(
-                    coil, options.options.udpMinPort, Idle.addressFromString(options.options.remoteIP),
+                    coil, this.options.options.udpMinPort, Idle.addressFromString(this.options.options.remoteIP),
                 );
             default:
                 ipcs.connectionUI.sendConnectionError("Connection type \"" + CONNECTION_TYPE_DESCS.get(type) +
                     "\" (" + type + ") is currently not supported");
                 return undefined;
+        }
+    }
+
+    private async connectSerial(
+        coil: CoilID,
+        options: SerialConnectionOptions,
+        create: (coil: CoilID, port: string, baudrate: number) => UD3Connection,
+    ): Promise<UD3Connection | undefined> {
+        if (options.autoconnect) {
+            return Idle.autoConnectSerial(coil, options.baudrate, create, options);
+        } else {
+            return create(coil, options.serialPort, options.baudrate);
         }
     }
 
@@ -41,18 +101,6 @@ export class Idle implements IConnectionState {
             return input.substring(suffixStart + 2, input.length - 1);
         } else {
             return input;
-        }
-    }
-
-    private static async connectSerial(
-        coil: CoilID,
-        options: SerialConnectionOptions,
-        create: (coil: CoilID, port: string, baudrate: number) => UD3Connection,
-    ): Promise<UD3Connection | undefined> {
-        if (options.autoconnect) {
-            return this.autoConnectSerial(coil, options.baudrate, create, options);
-        } else {
-            return create(coil, options.serialPort, options.baudrate);
         }
     }
 
@@ -74,36 +122,5 @@ export class Idle implements IConnectionState {
         }
         ipcs.connectionUI.sendConnectionError("Did not find device with specified product/vendor ID");
         return undefined;
-    }
-
-    public getActiveConnection(): UD3Connection | undefined {
-        return undefined;
-    }
-
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return undefined;
-    }
-
-    public getConnectionStatus(): ConnectionStatus {
-        return ConnectionStatus.IDLE;
-    }
-
-    public async pressButton(window: object): Promise<IConnectionState> {
-        return this;
-    }
-
-    public tickFast(): IConnectionState {
-        return this;
-    }
-
-    public tickSlow() {
-    }
-
-    public getCommandServer(): ICommandServer {
-        return DUMMY_SERVER;
-    }
-
-    public getCommandRole(): CommandRole {
-        return 'disable';
     }
 }

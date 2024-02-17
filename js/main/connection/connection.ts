@@ -19,9 +19,7 @@ export function getCoilCommands(coil: CoilID) {
 }
 
 export function getConnectionState(coil: CoilID) {
-    if (!connectionState.has(coil)) {
-        connectionState.set(coil, new Idle());
-    }
+    // TODO what if uninit?
     return connectionState.get(coil);
 }
 
@@ -72,9 +70,8 @@ export async function startConf(coil: CoilID, commandState: CommandRole) {
     await commands.startTelemetry();
 }
 
-export async function pressButton(coil: CoilID, window: object) {
-    console.log('Pressed button on ', coil);
-    setConnectionState(coil, await getConnectionState(coil).pressButton(window));
+export async function disconnectFrom(coil: CoilID) {
+    setConnectionState(coil, await getConnectionState(coil).disconnectFromCoil());
 }
 
 export function startBootloading(coil: CoilID, cyacd: Uint8Array): boolean {
@@ -119,16 +116,12 @@ export function getAutoTerminal(coil: CoilID): TerminalHandle | undefined {
 }
 
 export function hasUD3Connection(coil: CoilID): boolean {
-    return getConnectionState(coil).getActiveConnection() !== undefined;
+    const connectionState = getConnectionState(coil);
+    return connectionState && connectionState.getActiveConnection() !== undefined;
 }
 
 export async function connectWithOptions(args: ConnectionOptions) {
-    const id = makeNewCoilID();
-    // TODO sort of a hack, I guess
-    const connection = await Idle.connectWithOptions(id, args);
-    if (connection) {
-        setConnectionState(id, new Connecting(connection, new Idle(), args.advanced));
-    }
+    await new Idle(args).connect(makeNewCoilID());
 }
 
 let nextCoilID = 0;

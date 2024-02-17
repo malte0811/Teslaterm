@@ -13,17 +13,17 @@ import {Reconnecting} from "./Reconnecting";
 export class Bootloading implements IConnectionState {
     private readonly connection: BootloadableConnection;
     private readonly autoTerminal: TerminalHandle;
-    private readonly advOptions: AdvancedOptions;
+    private readonly idleState: Idle;
     private done: boolean = false;
     private cancelled: boolean = false;
     private inBootloadMode: boolean = false;
 
     constructor(
-        connection: BootloadableConnection, autoTerm: TerminalHandle, advOptions: AdvancedOptions, file: Uint8Array,
+        connection: BootloadableConnection, autoTerm: TerminalHandle, idleState: Idle, file: Uint8Array,
     ) {
         this.connection = connection;
         this.autoTerminal = autoTerm;
-        this.advOptions = advOptions;
+        this.idleState = idleState;
         this.bootload(file)
             .catch((e) => {
                 console.error(e);
@@ -54,10 +54,10 @@ export class Bootloading implements IConnectionState {
         return ConnectionStatus.BOOTLOADING;
     }
 
-    public async pressButton(window: object): Promise<IConnectionState> {
+    public async disconnectFromCoil(): Promise<Idle> {
         this.cancelled = true;
-        await this.connection.releaseResources();
-        return new Idle();
+        this.connection.releaseResources();
+        return this.idleState;
     }
 
     public tickFast(): IConnectionState {
@@ -65,7 +65,7 @@ export class Bootloading implements IConnectionState {
             this.connection.tick();
         } else if (this.done) {
             this.connection.releaseResources();
-            return new Reconnecting(this.connection, this.advOptions);
+            return new Reconnecting(this.connection, this.idleState);
         }
         return this;
     }
@@ -78,7 +78,7 @@ export class Bootloading implements IConnectionState {
     }
 
     public getCommandRole(): CommandRole {
-        return this.advOptions.commandOptions.state;
+        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 
     private async bootload(file: Uint8Array) {

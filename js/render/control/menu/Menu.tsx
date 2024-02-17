@@ -17,23 +17,25 @@ export interface MenuProps {
     connectionStatus: ConnectionStatus;
     ttConfig: TTConfig;
     darkMode: boolean;
+    returnToConnect: () => any;
+}
+
+function getConnectionButtonText(status: ConnectionStatus) {
+    switch (status) {
+        case ConnectionStatus.CONNECTING:
+        case ConnectionStatus.RECONNECTING:
+            return 'Abort connection';
+        case ConnectionStatus.IDLE:
+            return 'Close';
+        case ConnectionStatus.CONNECTED:
+            return 'Disconnect';
+        case ConnectionStatus.BOOTLOADING:
+            return 'Abort bootloading';
+    }
 }
 
 export class MenuBar extends TTComponent<MenuProps, {}> {
     public render(): React.ReactNode {
-        const connectionBtnDisabled = this.props.connectionStatus === ConnectionStatus.IDLE;
-        const connectionBtnText = (() => {
-            switch (this.props.connectionStatus) {
-                case ConnectionStatus.CONNECTING:
-                case ConnectionStatus.RECONNECTING:
-                    return "Abort connection";
-                case ConnectionStatus.IDLE:
-                case ConnectionStatus.CONNECTED:
-                    return "Disconnect";
-                case ConnectionStatus.BOOTLOADING:
-                    return "Abort bootloading";
-            }
-        })();
         const allowInteraction = this.props.connectionStatus === ConnectionStatus.CONNECTED;
         const killbitElement = (() => {
             if (this.props.level.level !== 'central-control') {
@@ -52,19 +54,32 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
         return <ButtonToolbar className="justify-content-between">
             <ButtonGroup>{this.makeMenuItems(allowInteraction)}</ButtonGroup>
             {killbitElement}
-            {
-                this.props.level.level !== 'central-control' && <Button
-                    onClick={() => this.onConnectionButton()}
-                    variant={"warning"}
-                    disabled={connectionBtnDisabled}
-                >{connectionBtnText}</Button>
-            }
+            {this.makeDisconnectButton()}
         </ButtonToolbar>;
     }
 
-    private onConnectionButton() {
-        if (this.props.connectionStatus !== ConnectionStatus.IDLE && this.props.level.level !== 'central-control') {
-            processIPC.send(getToMainIPCPerCoil(this.props.level.coil).menu.connectButton, undefined);
+    private makeDisconnectButton() {
+        if (this.props.level.level === 'central-control') {
+            return <></>;
+        } else if (this.props.level.level !== 'combined' && this.props.connectionStatus === ConnectionStatus.IDLE) {
+            const coilIPC = getToMainIPCPerCoil(this.props.level.coil);
+            return <Button onClick={() => processIPC.send(coilIPC.menu.reconnect, undefined)} variant={'warning'}>
+                Reconnect
+            </Button>;
+        } else {
+            const connectionBtnText = getConnectionButtonText(this.props.connectionStatus);
+            return <Button
+                onClick={() => this.onDisconnectButton()}
+                variant={"warning"}
+            >{connectionBtnText}</Button>;
+        }
+    }
+
+    private onDisconnectButton() {
+        if (this.props.connectionStatus === ConnectionStatus.IDLE) {
+            this.props.returnToConnect();
+        } else if (this.props.level.level !== 'central-control') {
+            processIPC.send(getToMainIPCPerCoil(this.props.level.coil).menu.disconnect, undefined);
         }
     }
 

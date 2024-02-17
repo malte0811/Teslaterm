@@ -30,13 +30,13 @@ export class Connected implements IConnectionState {
     private readonly activeConnection: UD3Connection;
     private readonly autoTerminal: TerminalHandle;
     private readonly extraState: ExtraConnections;
-    private readonly advOptions: AdvancedOptions;
+    private readonly idleState: Idle;
 
-    public constructor(conn: UD3Connection, autoTerm: TerminalHandle, advOptions: AdvancedOptions) {
+    public constructor(conn: UD3Connection, autoTerm: TerminalHandle, idleState: Idle) {
         this.activeConnection = conn;
         this.autoTerminal = autoTerm;
-        this.extraState = new ExtraConnections(advOptions);
-        this.advOptions = advOptions;
+        this.extraState = new ExtraConnections(idleState.getAdvancedOptions());
+        this.idleState = idleState;
     }
 
     public getActiveConnection(): UD3Connection {
@@ -47,14 +47,14 @@ export class Connected implements IConnectionState {
         return ConnectionStatus.CONNECTED;
     }
 
-    public async pressButton(window: object): Promise<IConnectionState> {
+    public async disconnectFromCoil(): Promise<Idle> {
         try {
             await this.disconnectInternal();
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
         } catch (err) {
             console.error("While disconnecting:", err);
         }
-        return new Idle();
+        return this.idleState;
     }
 
     public tickFast(): IConnectionState {
@@ -72,7 +72,7 @@ export class Connected implements IConnectionState {
             this.activeConnection.disconnect();
             this.closeAdditionalConnections();
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
-            return new Reconnecting(this.activeConnection, this.advOptions);
+            return new Reconnecting(this.activeConnection, this.idleState);
         }
 
         return this;
@@ -86,7 +86,7 @@ export class Connected implements IConnectionState {
     public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
         if (this.activeConnection instanceof BootloadableConnection) {
             this.closeAdditionalConnections();
-            return new Bootloading(this.activeConnection, this.autoTerminal, this.advOptions, cyacd);
+            return new Bootloading(this.activeConnection, this.autoTerminal, this.idleState, cyacd);
         } else {
             return undefined;
         }
@@ -107,7 +107,7 @@ export class Connected implements IConnectionState {
     }
 
     public getCommandRole(): CommandRole {
-        return this.advOptions.commandOptions.state;
+        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 
     private isConnectionLost(): boolean {

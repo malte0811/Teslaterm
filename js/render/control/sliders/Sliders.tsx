@@ -2,7 +2,6 @@ import React from 'react';
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {
     getToRenderIPCPerCoil,
-    IPC_CONSTANTS_TO_RENDERER,
     ISliderState,
     IUD3State
 } from "../../../common/IPCConstantsToRenderer";

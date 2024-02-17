@@ -13,11 +13,11 @@ export class Reconnecting implements IConnectionState {
     private ticksSinceLastFailure: number = 0;
     private failedAttempts: number = 0;
     private readonly connectionToReestablish: UD3Connection;
-    private readonly advOptions: AdvancedOptions;
+    private readonly idleState: Idle;
 
-    public constructor(connection: UD3Connection, advOptions: AdvancedOptions) {
+    public constructor(connection: UD3Connection, idleState: Idle) {
         this.connectionToReestablish = connection;
-        this.advOptions = advOptions;
+        this.idleState = idleState;
     }
 
     public getActiveConnection(): UD3Connection | undefined {
@@ -32,15 +32,15 @@ export class Reconnecting implements IConnectionState {
         return ConnectionStatus.RECONNECTING;
     }
 
-    public async pressButton(window: object): Promise<IConnectionState> {
-        return new Idle();
+    public async disconnectFromCoil(): Promise<Idle> {
+        return this.idleState;
     }
 
     public tickFast(): IConnectionState {
         const miscIPC = ipcs.coilMisc(this.connectionToReestablish.getCoil());
         if (this.failedAttempts >= Reconnecting.MAX_RETRIES) {
             miscIPC.openToast('Reconnect', "Aborting attempts to reconnect", ToastSeverity.error, 'reconnect-fail');
-            return new Idle();
+            return this.idleState;
         }
         ++this.ticksSinceLastFailure;
         if (this.ticksSinceLastFailure > Reconnecting.TICKS_BETWEEN_RETRIES) {
@@ -52,7 +52,7 @@ export class Reconnecting implements IConnectionState {
                 ToastSeverity.info,
                 'reconnect-attempt-id',
             );
-            return new Connecting(this.connectionToReestablish, this, this.advOptions);
+            return new Connecting(this.connectionToReestablish, this, this.idleState);
         } else {
             return this;
         }
@@ -66,6 +66,6 @@ export class Reconnecting implements IConnectionState {
     }
 
     public getCommandRole(): CommandRole {
-        return this.advOptions.commandOptions.state;
+        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 }

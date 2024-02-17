@@ -4,12 +4,13 @@ import {Button, ButtonToolbar, Col, Modal, Nav, Row, Tab} from "react-bootstrap"
 import * as xterm from "xterm";
 import {FitAddon} from "xterm-addon-fit";
 import {CoilID, coilSuffix} from "../../common/constants";
-import {ConfirmReply, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {ConfirmReply, getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     ConfirmationRequest,
     ConnectionStatus,
     IPC_CONSTANTS_TO_RENDERER,
-    IUD3State, UD3State,
+    IUD3State,
+    UD3State,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
@@ -85,6 +86,38 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     public render(): React.ReactNode {
+        if (this.props.coils.length === 1) {
+            return this.renderSingleTab(this.props.coils[0], 'combined');
+        } else {
+            return this.renderMultiCoil();
+        }
+    }
+
+    protected async onDrop(e: DragEvent) {
+        const files = e.dataTransfer.files;
+        if (e.dataTransfer.items.length === 1 && !files[0].name.endsWith(".js")) {
+            // only one file, not a script
+            await FileUploadIPC.uploadFile(files[0]);
+        } else {
+            // Multiple files or a JS file => compress and treat as script
+            let scriptName = MainScreen.findScriptName(files);
+            if (!scriptName) {
+                return;
+            }
+            scriptName = scriptName.substring(0, scriptName.length - 2) + "zip";
+            const zip = new JSZip();
+            // Not actually possible here!
+            // tslint:disable-next-line:prefer-for-of
+            for (let i = 0; i < files.length; ++i) {
+                const file = files[i];
+                zip.file(file.name, await file.arrayBuffer());
+            }
+            const zipContent = await zip.generateAsync({type: "uint8array"});
+            FileUploadIPC.upload(scriptName, zipContent);
+        }
+    }
+
+    private renderMultiCoil() {
         const tabs = this.props.coils.map((coil) => {
             const coilTitle = this.getTabTitle(coil);
             return <Nav.Item>
@@ -98,7 +131,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             return <Tab.Pane eventKey={"coil" + coilSuffix(coil)} style={{
                 height: '100%',
                 overflow: 'hidden',
-            }}>{this.renderSingleTab(coil)}</Tab.Pane>;
+            }}>{this.renderSingleTab(coil, 'single-coil')}</Tab.Pane>;
         });
         return (
             <div ref={this.mainDivRef} className={'tt-main-screen'}>
@@ -109,13 +142,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                 <Nav variant={'tabs'}>
                                     {...tabs}
                                 </Nav>
-                                <Button
-                                    variant={"warning"}
-                                    disabled={
-                                        !this.state.coilStates.every((v) => v.connection === ConnectionStatus.IDLE)
-                                    }
-                                    onClick={this.props.returnToConnect}
-                                >Close</Button>
+                                {this.makeCloseButton()}
                             </ButtonToolbar>
                         </Row>
                         <Row className={'tt-coil-tab-main'}>
@@ -149,30 +176,6 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         );
     }
 
-    protected async onDrop(e: DragEvent) {
-        const files = e.dataTransfer.files;
-        if (e.dataTransfer.items.length === 1 && !files[0].name.endsWith(".js")) {
-            // only one file, not a script
-            await FileUploadIPC.uploadFile(files[0]);
-        } else {
-            // Multiple files or a JS file => compress and treat as script
-            let scriptName = MainScreen.findScriptName(files);
-            if (!scriptName) {
-                return;
-            }
-            scriptName = scriptName.substr(0, scriptName.length - 2) + "zip";
-            const zip = new JSZip();
-            // Not actually possible here!
-            // tslint:disable-next-line:prefer-for-of
-            for (let i = 0; i < files.length; ++i) {
-                const file = files[i];
-                zip.file(file.name, await file.arrayBuffer());
-            }
-            const zipContent = await zip.generateAsync({type: "uint8array"});
-            FileUploadIPC.upload(scriptName, zipContent);
-        }
-    }
-
     private onConnectionChange(coil: CoilID, newState: Partial<CoilState>) {
         this.setState((oldState) => {
             const oldCoilState = this.getCoilStatus(coil, oldState);
@@ -183,13 +186,26 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         });
     }
 
+    private makeCloseButton() {
+        const anyConnected = !this.state.coilStates.every((v) => v.connection === ConnectionStatus.IDLE);
+        if (anyConnected) {
+            const disconnectCoil = (id: CoilID) => processIPC.send(getToMainIPCPerCoil(id).menu.disconnect, undefined);
+            return <Button
+                variant={"warning"}
+                onClick={() => this.props.coils.forEach(disconnectCoil)}
+            >Disconnect All</Button>;
+        } else {
+            return <Button variant={"warning"} onClick={this.props.returnToConnect}>Close</Button>;
+        }
+    }
+
     private getCoilStatus(coil: CoilID, state?: MainScreenState) {
         const index = this.props.coils.indexOf(coil);
         return (state || this.state).coilStates[index] ||
             {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
     }
 
-    private renderSingleTab(coil: CoilID): React.ReactNode {
+    private renderSingleTab(coil: CoilID, type: 'single-coil' | 'combined'): React.ReactNode {
         if (!this.terminal.has(coil)) {
             this.terminal.set(coil, {
                 fitter: new FitAddon(),
@@ -206,6 +222,8 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             coil={coil}
             ud3State={coilStatus.ud}
             toasts={this.toastsForCoil(coil)}
+            level={type}
+            returnToConnect={this.props.returnToConnect}
         />;
     }
 

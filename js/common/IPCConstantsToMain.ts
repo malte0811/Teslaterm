@@ -62,9 +62,10 @@ export function getToMainIPCPerCoil(coil: CoilID) {
         dumpFlightRecorder: makeCoilKey<CoilID>('dump-flight-recorder'),
         manualCommand: makeCoilKey<string>('manual-command'),
         menu: {
-            connectButton: makeCoilKey<undefined>('press-connect-button'),
+            disconnect: makeCoilKey<undefined>('disconnect-from-coil'),
             downloadUD3ConfigElectron: makeCoilKey<undefined>('download-ud-config-electron'),
             requestAlarmList: makeCoilKey<undefined>('request-alarms'),
+            reconnect: makeCoilKey<undefined>('reconnect-if-idle'),
             requestUDConfig: makeCoilKey<undefined>('request-ud-config'),
         },
         sliders: {

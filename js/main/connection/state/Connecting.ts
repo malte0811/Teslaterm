@@ -1,5 +1,5 @@
 import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
-import {AdvancedOptions, CommandRole} from "../../../common/Options";
+import {CommandRole} from "../../../common/Options";
 import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {startConf} from "../connection";
@@ -19,16 +19,18 @@ enum State {
 
 export class Connecting implements IConnectionState {
     private readonly connection: UD3Connection;
-    private readonly advOptions: AdvancedOptions;
     private autoTerminal: TerminalHandle | undefined;
     private state: State = State.waiting_for_ud_connection;
     private readonly stateOnFailure: IConnectionState;
     private doneInitializingAt: number;
+    private readonly idleState: Idle;
 
-    public constructor(connection: UD3Connection, onFailure: IConnectionState, advOptions: AdvancedOptions) {
+    public constructor(
+        connection: UD3Connection, onFailure: IConnectionState, idleState: Idle,
+    ) {
         this.stateOnFailure = onFailure;
         this.connection = connection;
-        this.advOptions = advOptions;
+        this.idleState = idleState;
         this.connect().catch((error) => {
             ipcs.connectionUI.sendConnectionError(this.removeErrorPrefixes(error + ''));
             console.log("While connecting: ", error);
@@ -49,9 +51,9 @@ export class Connecting implements IConnectionState {
         return ConnectionStatus.CONNECTING;
     }
 
-    public async pressButton(window: object): Promise<IConnectionState> {
+    public async disconnectFromCoil(): Promise<Idle> {
         this.connection.releaseResources();
-        return new Idle();
+        return this.idleState;
     }
 
     public tickFast(): IConnectionState {
@@ -63,7 +65,7 @@ export class Connecting implements IConnectionState {
                 this.connection.tick();
                 return this;
             case State.connected:
-                return new Connected(this.connection, this.autoTerminal, this.advOptions);
+                return new Connected(this.connection, this.autoTerminal, this.idleState);
             case State.failed:
                 return this.stateOnFailure;
             default:
@@ -83,12 +85,12 @@ export class Connecting implements IConnectionState {
     }
 
     public getCommandRole(): CommandRole {
-        return this.advOptions.commandOptions.state;
+        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 
     private async connect() {
         this.state = State.connecting;
-        ipcs.sliders(this.connection.getCoil()).reinitState(this.advOptions.commandOptions.state);
+        ipcs.sliders(this.connection.getCoil()).reinitState(this.idleState.getAdvancedOptions().commandOptions.state);
         await this.connection.connect();
         this.autoTerminal = this.connection.setupNewTerminal((data) =>
             telemetry.receive_main(
@@ -105,7 +107,7 @@ export class Connecting implements IConnectionState {
         }
         await this.connection.startTerminal(this.autoTerminal);
         this.state = State.initializing;
-        await startConf(this.connection.getCoil(), this.advOptions.commandOptions.state);
+        await startConf(this.connection.getCoil(), this.idleState.getAdvancedOptions().commandOptions.state);
         await ipcs.terminal(this.connection.getCoil()).onSlotsAvailable(true);
         this.doneInitializingAt = Date.now();
         this.state = State.connected;
