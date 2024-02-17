@@ -8,6 +8,7 @@ import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
 export class FileUploadIPC {
     private static async loadFile(source: object, name: string, data: number[], coil?: CoilID) {
+        console.log('Loading file ', name);
         const file = new TransmittedFile(name, new Uint8Array(data));
         const extension = file.name.substring(file.name.lastIndexOf(".") + 1);
         if (extension === "zip") {

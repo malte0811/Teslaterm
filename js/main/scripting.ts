@@ -5,6 +5,7 @@ import {TransmittedFile} from "../common/IPCConstantsToMain";
 import {ToastSeverity} from "../common/IPCConstantsToRenderer";
 import {forEachCoil, getCoilCommands} from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
+import {setRelativeOntime} from "./ipc/sliders";
 import * as media_player from "./media/media_player";
 import {isMediaFile} from "./media/media_player";
 
@@ -49,9 +50,7 @@ export class Script {
             setBurstOntime: this.wrapForSandboxNonPromise(
                 d => forEachCoil(coil => ipcs.sliders(coil).setBurstOntime(d)),
             ),
-            setOntime: this.wrapForSandboxNonPromise(
-                d => forEachCoil(coil => ipcs.sliders(coil).setRelativeOntime(d)),
-            ),
+            setOntime: this.wrapForSandboxNonPromise(setRelativeOntime),
             setTransientMode: this.wrapForSandboxNonPromise(
                 enabled => forEachCoil(coil => getCoilCommands(coil).setTransientEnabled(enabled)),
             ),

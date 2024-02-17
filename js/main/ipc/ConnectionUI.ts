@@ -5,7 +5,7 @@ import {
     IPC_CONSTANTS_TO_RENDERER,
     IUDPConnectionSuggestion,
 } from "../../common/IPCConstantsToRenderer";
-import {clearCoils, connectWithOptions} from "../connection/connection";
+import {clearCoils, multiConnect, singleConnect} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
 import {getUIConfig, setUIConfig} from "../UIConfig";
 import {MultiWindowIPC} from "./IPCProvider";
@@ -16,7 +16,12 @@ export class ConnectionUIIPC {
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
         this.processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.connect.connect, async (source: object, args) => await connectWithOptions(args),
+            IPC_CONSTANTS_TO_MAIN.connect.connect,
+            async (source: object, args) => await singleConnect(args),
+        );
+        this.processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.connect.multiconnect,
+            async (source: object, args) => await multiConnect(args),
         );
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, sendConnectionSuggestions);
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.getPresets, (source) => this.processIPC.sendToWindow(

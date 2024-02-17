@@ -14,6 +14,11 @@ export class SidFrame {
     }
 }
 
+export interface AbsoluteSIDFrame {
+    data: Uint8Array;
+    time: number;
+}
+
 export interface ISidSource {
     next_frame(): SidFrame;
 

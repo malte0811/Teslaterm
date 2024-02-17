@@ -1,5 +1,5 @@
 {
-  "include": ["js/**/*.ts"],
+  "include": ["js/**/*.ts", "js/**/*.tsx"],
   "compilerOptions": {
     "typeRoots": [
       "node_modules/@types",

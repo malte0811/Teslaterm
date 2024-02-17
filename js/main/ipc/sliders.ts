@@ -1,15 +1,32 @@
 import {CoilID} from "../../common/constants";
-import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
-import {getToRenderIPCPerCoil, ISliderState} from "../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {getToRenderIPCPerCoil} from "../../common/IPCConstantsToRenderer";
 import {CommandRole} from "../../common/Options";
 import {NumberOptionCommand} from "../command/CommandMessages";
 import {CommandInterface} from "../connection/commands";
-import {getCoilCommands, getConnectionState} from "../connection/connection";
-import {MultiWindowIPC} from "./IPCProvider";
+import {
+    forEachCoilAsync,
+    getCoilCommands,
+    getConnectionState,
+} from "../connection/connection";
+import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
-export class SliderState implements ISliderState {
+let relativeOntime: number = 0;
+
+export async function setRelativeOntime(newRelative: number) {
+    relativeOntime = newRelative;
+    await forEachCoilAsync(async (coil) => {
+        const coilIPC = ipcs.sliders(coil);
+        coilIPC.sendSliderSync();
+        await getCoilCommands(coil).setOntime(coilIPC.ontime);
+        getConnectionState(coil).getCommandServer().setNumberOption(
+            NumberOptionCommand.relative_ontime, relativeOntime,
+        );
+    });
+}
+
+export class SliderState {
     public ontimeAbs: number;
-    public ontimeRel: number;
     public bps: number = 20;
     public burstOntime: number = 500;
     public burstOfftime: number = 0;
@@ -18,15 +35,15 @@ export class SliderState implements ISliderState {
     public maxBPS: number = 1000;
     public startAtRelativeOntime: boolean;
 
-    constructor(role: CommandRole) {
-        this.ontimeAbs = role !== "disable" ? this.maxOntime : 0;
-        this.ontimeRel = role !== "disable" ? 0 : 100;
+    constructor(role: CommandRole, multicoil: boolean) {
+        const zeroAbsolute = role === 'disable' && !multicoil;
+        this.ontimeAbs = zeroAbsolute ? 0 : this.maxOntime;
         this.onlyMaxOntimeSettable = role === "client";
         this.startAtRelativeOntime = role === "server";
     }
 
     public get ontime() {
-        return this.ontimeAbs * this.ontimeRel / 100;
+        return this.ontimeAbs * relativeOntime / 100;
     }
 
     public updateRanges(maxOntime: number, maxBPS: number): boolean {
@@ -52,15 +69,17 @@ export class SliderState implements ISliderState {
 }
 
 export class SlidersIPC {
-    private state = new SliderState('disable');
+    private state: SliderState;
     private readonly processIPC: MultiWindowIPC;
     private readonly coil: CoilID;
     private readonly commands: CommandInterface;
+    private commandRole: CommandRole;
+    private multicoil: boolean;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+        this.reinitState('disable', false);
         const channels = getToMainIPCPerCoil(coil);
         processIPC.on(channels.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
-        processIPC.on(channels.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
         processIPC.on(channels.sliders.setBPS, this.callSwapped(this.setBPS));
         processIPC.on(channels.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
         processIPC.on(channels.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
@@ -71,6 +90,10 @@ export class SlidersIPC {
 
     public get bps() {
         return this.state.bps;
+    }
+
+    public get ontime() {
+        return this.state.ontime;
     }
 
     public get burstOntime() {
@@ -84,13 +107,6 @@ export class SlidersIPC {
     public async setAbsoluteOntime(val: number) {
         this.state.ontimeAbs = val;
         await this.commands.setOntime(this.state.ontime);
-        this.sendSliderSync();
-    }
-
-    public async setRelativeOntime(val: number) {
-        this.state.ontimeRel = val;
-        await this.commands.setOntime(this.state.ontime);
-        getConnectionState(this.coil).getCommandServer().setNumberOption(NumberOptionCommand.relative_ontime, val);
         this.sendSliderSync();
     }
 
@@ -117,6 +133,12 @@ export class SlidersIPC {
         this.sendSliderSync();
     }
 
+    public async resetOntimeOnConnect() {
+        if (!this.multicoil && this.commandRole === "disable") {
+            await this.setAbsoluteOntime(0);
+        }
+    }
+
     public async setSliderRanges(maxOntime: number, maxBPS: number) {
         const oldOntime = this.state.ontime;
         if (this.state.updateRanges(maxOntime, maxBPS)) {
@@ -130,11 +152,18 @@ export class SlidersIPC {
     }
 
     public sendSliderSync() {
-        this.processIPC.sendToAll(getToRenderIPCPerCoil(this.coil).sliders.syncSettings, this.state);
+        if (this.processIPC) {
+            this.processIPC.sendToAll(
+                getToRenderIPCPerCoil(this.coil).sliders.syncSettings,
+                {...this.state, ontimeRel: relativeOntime},
+            );
+        }
     }
 
-    public reinitState(role: CommandRole) {
-        this.state = new SliderState(role);
+    public reinitState(role: CommandRole, multicoil: boolean) {
+        this.state = new SliderState(role, multicoil);
+        this.commandRole = role;
+        this.multicoil = multicoil;
         this.sendSliderSync();
     }
 
@@ -147,4 +176,11 @@ export class SlidersIPC {
             }
         };
     }
+}
+
+export function registerCommonSliderIPC(processIPC: MultiWindowIPC) {
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, (c) => c.sliders.setBPS);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, (c) => c.sliders.setBurstOfftime);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, (c) => c.sliders.setBurstOntime);
+    processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, (c, val) => setRelativeOntime(val));
 }

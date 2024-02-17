@@ -16,12 +16,15 @@ import {IConnectionState} from "./IConnectionState";
 
 export class Idle implements IConnectionState {
     private readonly options: ConnectionOptions;
+    private readonly isMultiCoil: boolean;
 
-    constructor(args: ConnectionOptions) {
+    constructor(args: ConnectionOptions, isMulticoil: boolean) {
         this.options = args;
+        this.isMultiCoil = isMulticoil;
     }
 
     public async connect(id: CoilID) {
+        setConnectionState(id, this);
         const connection = await this.createConnection(id);
         if (connection) {
             setConnectionState(id, new Connecting(connection, this, this));
@@ -32,6 +35,10 @@ export class Idle implements IConnectionState {
 
     public getAdvancedOptions() {
         return this.options.advanced;
+    }
+
+    public isMulticoil() {
+        return this.isMultiCoil;
     }
 
     public getActiveConnection(): UD3Connection | undefined {
@@ -64,6 +71,7 @@ export class Idle implements IConnectionState {
     public getCommandRole(): CommandRole {
         return 'disable';
     }
+
     private async createConnection(coil: CoilID): Promise<UD3Connection | undefined> {
         resetAlarms();
         const type = this.options.connectionType;

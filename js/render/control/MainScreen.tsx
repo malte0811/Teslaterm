@@ -87,7 +87,9 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
 
     public render(): React.ReactNode {
         if (this.props.coils.length === 1) {
-            return this.renderSingleTab(this.props.coils[0], 'combined');
+            return <div ref={this.mainDivRef} className={'tt-main-screen'}>
+                {this.renderSingleTab(this.props.coils[0], 'combined')}
+            </div>;
         } else {
             return this.renderMultiCoil();
         }

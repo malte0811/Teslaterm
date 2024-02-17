@@ -48,13 +48,15 @@ export class App extends TTComponent<{}, TopLevelState> {
         );
         processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, (coil) => {
-            if (!this.state.coils.includes(coil)) {
-                this.setState({
-                    coils: [...this.state.coils, coil],
-                    // TODO this should only happen once connect is done
-                    screen: TopScreen.control,
-                });
-            }
+            this.setState((oldState) => {
+                if (!oldState.coils.includes(coil)) {
+                    return {
+                        coils: [...oldState.coils, coil],
+                        // TODO this should only happen once connect is done
+                        screen: TopScreen.control,
+                    };
+                }
+            });
         });
     }
 

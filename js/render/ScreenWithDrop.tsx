@@ -23,6 +23,7 @@ export abstract class ScreenWithDrop<Props, State> extends TTComponent<Props, St
 
     public componentDidMount() {
         if (this.mainDivRef.current) {
+            console.log("Mount", this);
             this.mainDivRef.current.addEventListener('dragover', this.dragoverListener);
             this.mainDivRef.current.addEventListener('drop', this.dropListener);
         }
@@ -31,6 +32,7 @@ export abstract class ScreenWithDrop<Props, State> extends TTComponent<Props, St
     public componentWillUnmount() {
         super.componentWillUnmount();
         if (this.mainDivRef.current) {
+            console.log("Unmount", this);
             this.mainDivRef.current.removeEventListener('dragover', this.dragoverListener);
             this.mainDivRef.current.removeEventListener('drop', this.dropListener);
         }

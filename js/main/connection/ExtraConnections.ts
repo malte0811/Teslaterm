@@ -24,7 +24,7 @@ export class ExtraConnections {
             this.initCommandClient();
         }
         if (options.netSidOptions.enabled) {
-            this.sidServer = new NetworkSIDServer(options.netSidOptions.port, this.commandServer);
+            this.sidServer = new NetworkSIDServer(options.netSidOptions.port);
         }
     }
 

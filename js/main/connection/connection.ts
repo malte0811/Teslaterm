@@ -1,13 +1,15 @@
 import {ConnectionOptions} from "../../common/ConnectionOptions";
 import {CoilID} from "../../common/constants";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
+import {PlayerActivity} from "../../common/MediaTypes";
 import {CommandRole} from "../../common/Options";
 import {ipcs} from "../ipc/IPCProvider";
+import {setRelativeOntime} from "../ipc/sliders";
+import * as media from "../media/media_player";
 import {media_state} from "../media/media_player";
 import {CommandInterface} from "./commands";
 import {FlightEventType, getFlightRecorder} from "./flightrecorder/FlightRecorder";
 import {Connected} from "./state/Connected";
-import {Connecting} from "./state/Connecting";
 import {IConnectionState} from "./state/IConnectionState";
 import {Idle} from "./state/Idle";
 import {TerminalHandle, UD3Connection} from "./types/UD3Connection";
@@ -33,7 +35,7 @@ export function clearCoils() {
 }
 
 export function forEachCoilAsync<T>(apply: (coil: CoilID) => Promise<T>) {
-    return Promise.all([...getCoils()].map(apply));
+    return Promise.all(forEachCoil(apply));
 }
 
 export function forEachCoil<T>(apply: (coil: CoilID) => T) {
@@ -57,11 +59,7 @@ export async function startConf(coil: CoilID, commandState: CommandRole) {
     const commands = getCoilCommands(coil);
     const sliderIPC = ipcs.sliders(coil);
     await commands.sendCommand('\r');
-    if (commandState === "disable") {
-        await sliderIPC.setAbsoluteOntime(0);
-    } else {
-        await sliderIPC.setRelativeOntime(0);
-    }
+    await sliderIPC.resetOntimeOnConnect();
     await commands.setBPS(sliderIPC.bps);
     await commands.setBurstOntime(sliderIPC.burstOntime);
     await commands.setBurstOfftime(sliderIPC.burstOfftime);
@@ -86,10 +84,22 @@ export function startBootloading(coil: CoilID, cyacd: Uint8Array): boolean {
     return false;
 }
 
+export function getConnectedCoils(): CoilID[] {
+    return [...connectionState.entries()]
+        .filter(([id, state]) => state.getConnectionStatus() === ConnectionStatus.CONNECTED)
+        .map(([id]) => id);
+}
+
+function anyConnected() {
+    return getConnectedCoils().length > 0;
+}
 
 export function updateFast() {
     for (const [coil, coilState] of connectionState.entries()) {
         setConnectionState(coil, coilState.tickFast());
+    }
+    if (!anyConnected() && media.media_state.state === PlayerActivity.playing) {
+        media.media_state.stopPlaying();
     }
 }
 
@@ -120,8 +130,14 @@ export function hasUD3Connection(coil: CoilID): boolean {
     return connectionState && connectionState.getActiveConnection() !== undefined;
 }
 
-export async function connectWithOptions(args: ConnectionOptions) {
-    await new Idle(args).connect(makeNewCoilID());
+export async function singleConnect(args: ConnectionOptions) {
+    await setRelativeOntime(100);
+    await new Idle(args, false).connect(makeNewCoilID());
+}
+
+export async function multiConnect(args: ConnectionOptions[]) {
+    await setRelativeOntime(0);
+    await Promise.all(args.map((coilArg) => new Idle(coilArg, true).connect(makeNewCoilID())));
 }
 
 let nextCoilID = 0;

@@ -42,7 +42,10 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
             <Modal.Header>Connect to multiple coils</Modal.Header>
             <Modal.Body>{...checkboxes}</Modal.Body>
             <Modal.Footer>
-                <Button onClick={() => this.connect()}>Connect</Button>
+                <Button
+                    onClick={() => this.connect()}
+                    disabled={this.getSelectedOptions().length < 2}
+                >Connect</Button>
                 <Button onClick={() => {
                     this.setState({selected: []});
                     this.props.close();
@@ -67,10 +70,11 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
     }
 
     private connect() {
-        this.props.presets.forEach((preset, i) => {
-            if (this.isSelected(i)) {
-                processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, preset.options);
-            }
-        });
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.multiconnect, this.getSelectedOptions());
+    }
+
+    private getSelectedOptions() {
+        return this.props.presets.filter((_, i) => this.isSelected(i))
+            .map((preset) => preset.options);
     }
 }

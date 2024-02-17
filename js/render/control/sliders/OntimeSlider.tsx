@@ -1,6 +1,4 @@
 import React from "react";
-import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {MultiWindowIPC} from "../../../main/ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TabControlLevel} from "../SingleCoilTab";
 
@@ -74,11 +72,4 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
             {relativeControl}
         </div>;
     }
-}
-
-export function registerCommonSliderIPC(processIPC: MultiWindowIPC) {
-    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, (c) => c.sliders.setBPS);
-    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, (c) => c.sliders.setBurstOfftime);
-    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, (c) => c.sliders.setBurstOntime);
-    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, (c) => c.sliders.setOntimeRelative);
 }

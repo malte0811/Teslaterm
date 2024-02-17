@@ -85,13 +85,13 @@ export class CommandClient {
                 this.sidFrameQueue.push({data: packet.data, absTime: packet.absoluteServerTime + this.averagedOffset});
                 break;
             case MessageType.midi_message:
-                playMidiData(packet.message);
+                await playMidiData(packet.message);
                 break;
             case MessageType.bool_command:
                 await forEachCoilAsync((coil) => setBoolOption(coil, packet.option, packet.value));
                 break;
             case MessageType.number_command:
-                await forEachCoilAsync((coil) => setNumberOption(coil, packet.option, packet.value));
+                await setNumberOption(packet.option, packet.value);
                 break;
         }
     }

@@ -22,6 +22,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
     connect: {
         connect: makeKey<ConnectionOptions>('connect-to-ud3'),
         getPresets: makeKey<undefined>('get-connect-presets'),
+        multiconnect: makeKey<ConnectionOptions[]>('connect-to-multiple-ud3'),
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
         setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),
     },
@@ -73,7 +74,6 @@ export function getToMainIPCPerCoil(coil: CoilID) {
             setBurstOfftime: makeCoilKey<number>('slider-set-burst-offtime'),
             setBurstOntime: makeCoilKey<number>('slider-set-burst-ontime'),
             setOntimeAbsolute: makeCoilKey<number>('slider-set-ontime-abs'),
-            setOntimeRelative: makeCoilKey<number>('slider-set-ontime-rel'),
         },
     };
 }

@@ -1,7 +1,6 @@
 import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPCToMainKey, PerCoilMainIPCs} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
-import {registerCommonSliderIPC} from "../../render/control/sliders/OntimeSlider";
 import {forEachCoil} from "../connection/connection";
 import {initAlarms} from "../connection/telemetry/Alarms";
 import {CommandIPC, registerCommonCommandsIPC} from "./Commands";
@@ -13,7 +12,7 @@ import {MetersIPC} from "./Meters";
 import {ByCoilMiscIPC, CommonMiscIPC} from "./Misc";
 import {ScopeIPC} from "./Scope";
 import {ScriptingIPC} from "./Scripting";
-import {SlidersIPC} from "./sliders";
+import {registerCommonSliderIPC, SlidersIPC} from "./sliders";
 import {TerminalIPC} from "./terminal";
 
 export interface ISingleWindowIPC {

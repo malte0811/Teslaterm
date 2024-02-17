@@ -1,23 +1,55 @@
 import * as path from "path";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
-import {forEachCoil, forEachCoilAsync, hasUD3Connection} from "../connection/connection";
+import {forEachCoil, forEachCoilAsync} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, isSID, media_state} from "../media/media_player";
+import * as microtime from "../microtime";
 import {getActiveSIDConnection} from "./ISidConnection";
-import {ISidSource} from "./sid_api";
+import {AbsoluteSIDFrame, ISidSource, SidFrame} from "./sid_api";
 import {DumpSidSource} from "./sid_dump";
 import {EmulationSidSource} from "./sid_emulated";
 
 let current_sid_source: ISidSource | null = null;
+let queuedFutureFrames: AbsoluteSIDFrame[] = [];
+let nextFrameTime = 0;
 
 async function startPlayingSID() {
-    await forEachCoilAsync(async (coil) => {
+    await flushAllSID();
+    forEachCoil((coil) => {
         const sidConnection = getActiveSIDConnection(coil);
         if (sidConnection) {
-            await sidConnection.flush();
             sidConnection.onStart();
         }
+    });
+}
+
+export function getFirstQueuedFrameAfter(afterMicrotime: number) {
+    for (const frame of queuedFutureFrames) {
+        if (frame.time > afterMicrotime) {
+            return frame;
+        }
+    }
+    return undefined;
+}
+
+export function shouldQueueSIDFrames() {
+    return queuedFutureFrames.length < 10;
+}
+
+export function queueSIDFrame(frame: SidFrame) {
+    if (nextFrameTime < microtime.now()) {
+        nextFrameTime = microtime.now() + 100e3;
+    }
+    queuedFutureFrames.push({data: frame.data, time: nextFrameTime});
+    nextFrameTime += frame.delayMicrosecond;
+    // TODO command server
+}
+
+export async function flushAllSID() {
+    queuedFutureFrames = [];
+    await forEachCoilAsync(async (coil) => {
+        await getActiveSIDConnection(coil)?.flush();
     });
 }
 
@@ -52,23 +84,16 @@ export function update() {
     updateAsync().catch(err => console.error("Ticking SID", err));
 }
 
-function someSIDNeedsData() {
-    return forEachCoil((coil) => {
-        if (!hasUD3Connection(coil)) {
-            return false;
-        }
-        const sidConnection = getActiveSIDConnection(coil);
-        return sidConnection && !sidConnection.isBusy();
-    }).includes(true);
-}
-
 async function updateAsync() {
     if (current_sid_source && media_state.state === PlayerActivity.playing && isSID(media_state.type)) {
         await checkTransientDisabled();
-        if (someSIDNeedsData()) {
+        const now = microtime.now();
+        while (queuedFutureFrames.length > 0 && queuedFutureFrames[0].time < now) {
+            queuedFutureFrames.shift();
+        }
+        if (shouldQueueSIDFrames()) {
             for (let i = 0; i < 4 && !current_sid_source.isDone(); ++i) {
-                const real_frame = current_sid_source.next_frame();
-                forEachCoil((coil) => getActiveSIDConnection(coil)?.queueFrame(real_frame));
+                queueSIDFrame(current_sid_source.next_frame());
             }
         }
         const totalFrames = current_sid_source.getTotalFrameCount();

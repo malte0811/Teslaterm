@@ -1,30 +1,24 @@
 import {CoilID} from "../../common/constants";
-import {ICommandServer} from "../command/CommandServer";
-import {getUD3Connection} from "../connection/connection";
+import {getOptionalUD3Connection, getUD3Connection} from "../connection/connection";
 import * as microtime from "../microtime";
 import {ISidConnection} from "./ISidConnection";
-import {FRAME_LENGTH, FRAME_UDTIME_LENGTH, SidFrame} from "./sid_api";
+import {getFirstQueuedFrameAfter} from "./sid";
+import {AbsoluteSIDFrame, FRAME_LENGTH, FRAME_UDTIME_LENGTH, SidFrame} from "./sid_api";
 
 export enum FormatVersion {
     v1,
     v2,
 }
 
-interface AbsoluteSIDFrame {
-    data: Uint8Array;
-    time: number;
-}
-
 export class UD3FormattedConnection implements ISidConnection {
     public sendToUD: (data: Buffer) => Promise<void>;
     private readonly flushCallback: () => Promise<void>;
-    private lastQueuedFrameTime: number | undefined;
-    private lastSentFrameTime: number | undefined;
+    private lastQueuedFrameTime: number | undefined = 0;
+    private lastSentFrameTime: number | undefined = 0;
     private busy: boolean = false;
     private ffPrefixBytes: number = 4;
     private needsZeroSuffix: boolean = true;
-    private queuedFrames: AbsoluteSIDFrame[] = [];
-    private coil: CoilID;
+    private readonly coil: CoilID;
 
     constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => Promise<void>, coil: CoilID) {
         this.flushCallback = flushCallback;
@@ -33,19 +27,23 @@ export class UD3FormattedConnection implements ISidConnection {
     }
 
     public flush(): Promise<void> {
+        this.lastQueuedFrameTime = this.lastSentFrameTime = microtime.now() + 500e3;
         return this.flushCallback();
     }
 
     public onStart(): void {
         this.busy = false;
-        this.lastQueuedFrameTime = this.lastSentFrameTime = microtime.now() + 500e3;
-        this.queuedFrames = [];
     }
 
     public async tick() {
         let i = 0;
-        while (!this.isBusyImpl(this.lastSentFrameTime) && this.queuedFrames.length > 0 && i < 4) {
-            await this.processAbsoluteFrame(this.queuedFrames.shift());
+        while (!this.isBusyImpl(this.lastSentFrameTime) && i < 4) {
+            const nextFrame = getFirstQueuedFrameAfter(this.lastSentFrameTime);
+            if (nextFrame) {
+                await this.sendAbsoluteFrame(nextFrame);
+            } else {
+                break;
+            }
             ++i;
         }
     }
@@ -63,22 +61,12 @@ export class UD3FormattedConnection implements ISidConnection {
         }
     }
 
-    public async sendVMSFrames(data: Buffer) {
-    }
-
-    public async queueFrame(frame: SidFrame): Promise<void> {
-        if (!this.lastQueuedFrameTime) {
-            console.warn("SID: No previous frame time?");
-            this.lastSentFrameTime = this.lastQueuedFrameTime = microtime.now();
+    public async sendAbsoluteFrame(frame: AbsoluteSIDFrame): Promise<void> {
+        const connection = getOptionalUD3Connection(this.coil);
+        if (!connection) {
             return;
         }
-        const absoluteTime = this.lastQueuedFrameTime;
-        this.lastQueuedFrameTime += frame.delayMicrosecond;
-        this.queuedFrames.push({data: frame.data, time: absoluteTime});
-    }
-
-    public processAbsoluteFrame(frame: AbsoluteSIDFrame): Promise<void> {
-        const ud_time = getUD3Connection(this.coil).toUD3Time(frame.time);
+        const ud_time = connection.toUD3Time(frame.time);
         const frameSize = this.ffPrefixBytes + FRAME_LENGTH + FRAME_UDTIME_LENGTH + ( this.needsZeroSuffix ? 1 : 0);
         const data = Buffer.alloc(frameSize);
         let byteCount = 0;
@@ -99,7 +87,7 @@ export class UD3FormattedConnection implements ISidConnection {
         // TODO rework command server/client system for multicoil TT
         //  commandServer.sendSIDFrame(frameData, absoluteTime);
         this.lastSentFrameTime = frame.time;
-        return this.sendToUD(data);
+        await this.sendToUD(data);
     }
 
     public setBusy(busy: boolean): void {

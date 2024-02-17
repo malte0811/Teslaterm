@@ -70,7 +70,7 @@ export class Connected implements IConnectionState {
                 'will-reconnect',
             );
             this.activeConnection.disconnect();
-            this.closeAdditionalConnections();
+            this.extraState.close();
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
             return new Reconnecting(this.activeConnection, this.idleState);
         }
@@ -85,7 +85,7 @@ export class Connected implements IConnectionState {
 
     public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
         if (this.activeConnection instanceof BootloadableConnection) {
-            this.closeAdditionalConnections();
+            this.extraState.close();
             return new Bootloading(this.activeConnection, this.autoTerminal, this.idleState, cyacd);
         } else {
             return undefined;
@@ -124,18 +124,11 @@ export class Connected implements IConnectionState {
 
     private async disconnectInternal() {
         try {
-            this.closeAdditionalConnections();
+            this.extraState.close();
             await this.activeConnection.commands().stop();
         } catch (e) {
             console.error("Failed to send stop command:", e);
         }
         await this.activeConnection.disconnect();
-    }
-
-    private closeAdditionalConnections() {
-        this.extraState.close();
-        if (media.media_state.state === PlayerActivity.playing) {
-            media.media_state.stopPlaying();
-        }
     }
 }

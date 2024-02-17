@@ -28,7 +28,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
     constructor(props: any) {
         super(props);
         this.state = {
-            bps: 0,
+            bps: 20,
             burstOfftime: 0,
             burstOntime: 500,
             controllingRelativeOntime: false,
@@ -36,7 +36,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
             maxOntime: 400,
             onlyMaxOntimeSettable: false,
             ontimeAbs: 0,
-            ontimeRel: 100,
+            ontimeRel: this.props.level.level === 'central-control' ? 0 : 100,
             startAtRelativeOntime: false,
         };
     }
@@ -70,7 +70,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
         const combinedIPC = coilIPC ? coilIPC : IPC_CONSTANTS_TO_MAIN;
         const setOntime = (val: number, relative: boolean) => {
             const channel = relative ?
-                combinedIPC.sliders.setOntimeRelative :
+                IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative :
                 coilIPC.sliders.setOntimeAbsolute;
             processIPC.send(channel, val);
             if (relative) {

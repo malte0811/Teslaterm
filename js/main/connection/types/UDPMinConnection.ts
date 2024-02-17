@@ -37,16 +37,20 @@ class UDPMinConnection extends MinConnection {
         }
     }
 
-    registerListener(listener: (data: Buffer) => void): void {
+    public registerListener(listener: (data: Buffer) => void): void {
         this.socket.addListener("message", listener);
     }
 
-    send(data: Buffer | number[], onError: (err) => void): void {
-        this.socket.send(Buffer.from(data), e => {
-            if (e) {
-                onError(e);
-            }
-        });
+    public send(data: Buffer | number[], onError: (err) => void): void {
+        try {
+            this.socket.send(Buffer.from(data), e => {
+                if (e) {
+                    onError(e);
+                }
+            });
+        } catch (e) {
+            onError(e);
+        }
     }
 }
 

@@ -1,7 +1,8 @@
 import {jspack} from "jspack";
 import {CoilID} from "../../common/constants";
-import {getCoilCommands} from "../connection/connection";
+import {forEachCoilAsync, getCoilCommands} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
+import {setRelativeOntime} from "../ipc/sliders";
 
 export const timeout_us = 5_000_000;
 
@@ -30,17 +31,21 @@ export function setBoolOption(coil: CoilID, option: BoolOptionCommand, value: bo
     }
 }
 
-export function setNumberOption(coil: CoilID, option: NumberOptionCommand, value: number) {
-    const sliders = ipcs.sliders(coil);
-    switch (option) {
-        case NumberOptionCommand.relative_ontime:
-            return sliders.setRelativeOntime(value);
-        case NumberOptionCommand.bps:
-            return sliders.setBPS(value);
-        case NumberOptionCommand.burst_on:
-            return sliders.setBurstOntime(value);
-        case NumberOptionCommand.burst_off:
-            return sliders.setBurstOfftime(value);
+export function setNumberOption(option: NumberOptionCommand, value: number) {
+    if (option === NumberOptionCommand.relative_ontime) {
+        return setRelativeOntime(value);
+    } else {
+        return forEachCoilAsync((coil) => {
+            const sliders = ipcs.sliders(coil);
+            switch (option) {
+                case NumberOptionCommand.bps:
+                    return sliders.setBPS(value);
+                case NumberOptionCommand.burst_on:
+                    return sliders.setBurstOntime(value);
+                case NumberOptionCommand.burst_off:
+                    return sliders.setBurstOfftime(value);
+            }
+        });
     }
 }
 
