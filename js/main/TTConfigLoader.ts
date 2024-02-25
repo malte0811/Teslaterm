@@ -15,7 +15,7 @@ import {
     DEFAULT_SERIAL_PRODUCT,
     DEFAULT_SERIAL_VENDOR,
     getDefaultSerialPortForConfig
-} from "./connection/types/serial_plain";
+} from "./connection/types/SerialCommon";
 import {convertArrayBufferToString} from "./helper";
 
 export const COMMAND_ROLES = new Map<string, CommandRole>();

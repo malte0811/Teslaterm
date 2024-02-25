@@ -1,5 +1,6 @@
 import {CoilID, DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
 import {ScopeTraceConfig, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
+import {ChartText, TelemetryFrame} from "../../../common/TelemetryTypes";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {getCoilCommands} from "../connection";
@@ -17,62 +18,6 @@ export function requestConfig(coil: CoilID, out: UD3ConfigConsumer) {
 }
 
 let udconfig: UD3ConfigOption[] = [];
-
-interface MeasuredValue {
-    type: TelemetryEvent.GAUGE | TelemetryEvent.GAUGE32 | TelemetryEvent.CHART | TelemetryEvent.CHART32;
-    value: number;
-    index: number;
-}
-
-interface GaugeConf {
-    type: TelemetryEvent.GAUGE32_CONF | TelemetryEvent.GAUGE_CONF;
-    meterId: number;
-    min: number;
-    max: number;
-    scale: number;
-    name: string;
-}
-
-interface TraceConf {
-    type: TelemetryEvent.CHART32_CONF | TelemetryEvent.CHART_CONF;
-    config: ScopeTraceConfig;
-}
-
-interface ChartLine {
-    type: TelemetryEvent.CHART_LINE;
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-    colorIndex: number;
-}
-
-interface ChartText {
-    type: TelemetryEvent.CHART_TEXT_CENTER | TelemetryEvent.CHART_TEXT;
-    text: string;
-    x: number;
-    y: number;
-    colorIndex: number;
-    size: number;
-}
-
-interface StateSync {
-    type: TelemetryEvent.STATE_SYNC;
-    packedState: number;
-    maxPw?: number;
-    maxPrf?: number;
-}
-
-export type TelemetryFrame = MeasuredValue |
-    GaugeConf |
-    TraceConf |
-    {type: TelemetryEvent.CHART_DRAW} |
-    {type: TelemetryEvent.CHART_CLEAR, title: string} |
-    ChartLine |
-    ChartText |
-    StateSync |
-    { type: TelemetryEvent.CONFIG_GET | TelemetryEvent.EVENT, data: string } |
-    {type: TelemetryEvent.UNKNOWN, data: number[]};
 
 export class TelemetryFrameParser {
     private readonly length: number;

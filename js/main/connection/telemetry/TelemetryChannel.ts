@@ -1,4 +1,5 @@
-import {TelemetryFrame, TelemetryFrameParser} from "./TelemetryFrame";
+import {TelemetryFrame} from "../../../common/TelemetryTypes";
+import {TelemetryFrameParser} from "./TelemetryFrame";
 
 enum TelemetryFrameState {
     idle,

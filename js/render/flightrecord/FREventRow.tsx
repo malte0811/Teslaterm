@@ -1,5 +1,5 @@
 import React from "react";
-import {FREventType, getEventTypeDesc, ParsedEvent} from "../../common/FlightRecorderTypes";
+import {FRDisplayEventType, getEventTypeDesc, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {TTComponent} from "../TTComponent";
 
 export interface EventSelectorProps {
@@ -16,12 +16,12 @@ export class FREventRow extends TTComponent<EventSelectorProps, {}> {
         const time = ((this.props.event.time - this.props.endTime) / 1e6).toFixed(4);
         const direction = this.props.event.toUD3 ? 'TT \u2192 UD3' : 'UD3 \u2192 TT';
         let descElement: React.JSX.Element;
-        if (this.props.event.type === FREventType.terminal_data) {
+        if (this.props.event.type === FRDisplayEventType.terminal_data) {
             descElement = <>
                 {this.props.event.desc}<br/>
                 <pre>{this.props.event.printed}</pre>
             </>;
-        } else if (this.props.event.type === FREventType.event_info && this.props.event.infoObject) {
+        } else if (this.props.event.type === FRDisplayEventType.event_info && this.props.event.infoObject) {
             descElement = <>
                 {this.props.event.desc}<br/>
                 <pre>{JSON.stringify(this.props.event.infoObject, undefined, '    ')}</pre>

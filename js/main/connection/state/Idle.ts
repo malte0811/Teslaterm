@@ -7,7 +7,7 @@ import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {setConnectionState} from "../connection";
 import {resetAlarms} from "../telemetry/Alarms";
-import {createPlainSerialConnection} from "../types/serial_plain";
+import {createPlainSerialConnection} from "../types/PlainSerialConnection";
 import {createMinSerialConnection} from "../types/SerialMinConnection";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {createMinUDPConnection} from "../types/UDPMinConnection";

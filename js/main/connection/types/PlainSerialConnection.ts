@@ -1,9 +1,9 @@
-import * as os from "os";
 import {SerialPort} from "serialport";
 import {CoilID} from "../../../common/constants";
+import {FlightEventType} from "../../../common/FlightRecorderTypes";
 import {SynthType} from "../../../common/MediaTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
-import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
+import {getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {toCommandID, UD3Connection} from "./UD3Connection";
 
 export class PlainSerialConnection extends UD3Connection {
@@ -118,14 +118,3 @@ export class PlainSerialConnection extends UD3Connection {
 export function createPlainSerialConnection(coil: CoilID, port: string, baudrate: number): UD3Connection {
     return new PlainSerialConnection(coil, port, baudrate);
 }
-
-export function getDefaultSerialPortForConfig() {
-    if (os.platform() === "win32") {
-        return "COM1";
-    } else {
-        return "/dev/ttyACM0";
-    }
-}
-
-export const DEFAULT_SERIAL_VENDOR = "1a86";
-export const DEFAULT_SERIAL_PRODUCT = "7523";

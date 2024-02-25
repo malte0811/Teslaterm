@@ -1,13 +1,13 @@
 import fs from "fs";
 import JSZip from "jszip";
-import {InitialFRState, FREventType, ParsedEvent} from "../../../common/FlightRecorderTypes";
+import {InitialFRState, FRDisplayEventType, ParsedEvent, FlightEventType} from "../../../common/FlightRecorderTypes";
 import {synthTypeToString} from "../../../common/MediaTypes";
+import {TelemetryFrame} from "../../../common/TelemetryTypes";
 import {ACK_BYTE, RESET} from "../../min/MINConstants";
 import {MINReceiver, ReceivedMINFrame} from "../../min/MINReceiver";
 import {TelemetryChannel} from "../telemetry/TelemetryChannel";
-import {TelemetryFrame} from "../telemetry/TelemetryFrame";
 import {EVENT_GET_INFO, parseEventInfo, SYNTH_CMD_FLUSH, UD3MinIDs} from "../types/UD3MINConstants";
-import {FlightEventType, FlightRecorderEvent} from "./FlightRecorder";
+import {FlightRecorderEvent} from "./FlightRecorder";
 import {FlightRecorderJSON} from "./FlightRecordingWorker";
 
 export interface MINFlightEvent {
@@ -148,7 +148,7 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
                                 ...baseEvent,
                                 desc: describeTelemetry(tFrame, appID),
                                 frame: tFrame,
-                                type: FREventType.telemetry,
+                                type: FRDisplayEventType.telemetry,
                             });
                         }
                     },
@@ -158,12 +158,12 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
                 printed = cleanFormatting(printed);
                 printed = makeStringSafe(printed);
                 humanEvents.push({
-                    ...baseEvent, desc: 'Data on terminal ' + appID + ':\n', printed, type: FREventType.terminal_data,
+                    ...baseEvent, desc: 'Data on terminal ' + appID + ':\n', printed, type: FRDisplayEventType.terminal_data,
                 });
             }
         } else if (appID === UD3MinIDs.FEATURE && !minEvent.toUD3) {
             humanEvents.push({
-                ...baseEvent, desc: 'Feature support: ' + toSafeString(frame.payload), type: FREventType.feature_sync,
+                ...baseEvent, desc: 'Feature support: ' + toSafeString(frame.payload), type: FRDisplayEventType.feature_sync,
             });
         } else if (appID === UD3MinIDs.SOCKET && minEvent.toUD3) {
             const id = frame.payload[0];
@@ -171,7 +171,7 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
             humanEvents.push({
                 ...baseEvent,
                 desc: `${type} terminal ${id}: ${toSafeString(frame.payload.slice(2, frame.payload.length - 1))}`,
-                type: FREventType.terminal_start_stop,
+                type: FRDisplayEventType.terminal_start_stop,
             });
         } else if (appID === UD3MinIDs.SYNTH && minEvent.toUD3 && frame.payload.length === 1) {
             let desc;
@@ -180,15 +180,15 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
             } else {
                 desc = 'Setting synth to ' + synthTypeToString(frame.payload[0]);
             }
-            humanEvents.push({...baseEvent, desc, type: FREventType.set_synth});
+            humanEvents.push({...baseEvent, desc, type: FRDisplayEventType.set_synth});
         } else if (appID === UD3MinIDs.SID || appID === UD3MinIDs.MEDIA) {
             // TODO put MIDI; SID data and flow control somewhere!
         } else if (appID === UD3MinIDs.EVENT && minEvent.toUD3) {
             if (frame.payload.length === 1 && frame.payload[0] === EVENT_GET_INFO) {
-                humanEvents.push({...baseEvent, desc: `Request for UD3 info`, type: FREventType.event_info});
+                humanEvents.push({...baseEvent, desc: `Request for UD3 info`, type: FRDisplayEventType.event_info});
             } else {
                 humanEvents.push({
-                    ...baseEvent, desc: `Unknown event request: ${frame.payload}`, type: FREventType.event_info,
+                    ...baseEvent, desc: `Unknown event request: ${frame.payload}`, type: FRDisplayEventType.event_info,
                 });
             }
         } else if (appID === UD3MinIDs.EVENT && !minEvent.toUD3) {
@@ -196,13 +196,13 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
                 ...baseEvent,
                 desc: `UD3 info received`,
                 infoObject: parseEventInfo(frame.payload),
-                type: FREventType.event_info,
+                type: FRDisplayEventType.event_info,
             });
         } else {
             humanEvents.push({
                 ...baseEvent,
                 desc: `Unexpected ID ${frame.id_control} (${appID}), payload ${frame.payload}`,
-                type: FREventType.unknown,
+                type: FRDisplayEventType.unknown,
             });
         }
     }

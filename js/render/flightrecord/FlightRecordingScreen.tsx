@@ -1,6 +1,6 @@
 import React from "react";
 import {Button, Col, Nav, Row, Tab} from "react-bootstrap";
-import {FREventType, ParsedEvent} from "../../common/FlightRecorderTypes";
+import {FRDisplayEventType, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {FRDisplayData} from "../connect/ConnectScreen";
 import {TTComponent} from "../TTComponent";
 import {EventListTab} from "./EventListTab";
@@ -20,7 +20,7 @@ export class FlightRecordingScreen extends TTComponent<FRScreenProps, FRScreenSt
     constructor(props) {
         super(props);
         this.state = {
-            eventsForList: this.props.events.events.filter((event) => event.type !== FREventType.telemetry),
+            eventsForList: this.props.events.events.filter((event) => event.type !== FRDisplayEventType.telemetry),
         };
     }
 

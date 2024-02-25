@@ -5,8 +5,8 @@ import {getDefaultAdvancedOptions} from "../common/TTConfig";
 import {
     DEFAULT_SERIAL_PRODUCT,
     DEFAULT_SERIAL_VENDOR,
-    getDefaultSerialPortForConfig,
-} from "./connection/types/serial_plain";
+    getDefaultSerialPortForConfig
+} from "./connection/types/SerialCommon";
 import {convertArrayBufferToString} from "./helper";
 import {config} from "./init";
 

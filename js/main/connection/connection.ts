@@ -1,5 +1,6 @@
 import {ConnectionOptions} from "../../common/ConnectionOptions";
 import {CoilID} from "../../common/constants";
+import {FlightEventType} from "../../common/FlightRecorderTypes";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {PlayerActivity} from "../../common/MediaTypes";
 import {CommandRole} from "../../common/Options";
@@ -8,7 +9,7 @@ import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
 import {media_state} from "../media/media_player";
 import {CommandInterface} from "./commands";
-import {FlightEventType, getFlightRecorder} from "./flightrecorder/FlightRecorder";
+import {getFlightRecorder} from "./flightrecorder/FlightRecorder";
 import {Connected} from "./state/Connected";
 import {IConnectionState} from "./state/IConnectionState";
 import {Idle} from "./state/Idle";

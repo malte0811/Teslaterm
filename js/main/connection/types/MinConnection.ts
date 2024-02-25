@@ -1,4 +1,5 @@
 import * as electron from "electron";
+import {FlightEventType} from "../../../common/FlightRecorderTypes";
 import {SynthType} from "../../../common/MediaTypes";
 import {CoilID, FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {convertBufferToString, withTimeout} from "../../helper";
@@ -9,7 +10,7 @@ import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
-import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
+import {getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {TerminalHandle} from "./UD3Connection";
 import {EVENT_GET_INFO, parseEventInfo, SYNTH_CMD_FLUSH, UD3MinIDs} from "./UD3MINConstants";
 

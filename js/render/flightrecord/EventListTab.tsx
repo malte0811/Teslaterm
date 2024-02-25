@@ -1,5 +1,5 @@
 import React from "react";
-import {FREventSet, FREventType, makeEmptyEventSet, ParsedEvent} from "../../common/FlightRecorderTypes";
+import {FREventSet, FRDisplayEventType, makeEmptyEventSet, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {TTComponent} from "../TTComponent";
 import {EventFilter, FRFilter} from "./EventFilter";
 import {FREventList} from "./EventList";
@@ -20,7 +20,7 @@ export class EventListTab extends TTComponent<FREVentsTabProps, FREventsTabState
         const presentTypes: FREventSet = makeEmptyEventSet();
         const selectedTypes: FREventSet = makeEmptyEventSet();
         for (const event of this.props.events) {
-            if (event.type !== FREventType.telemetry) {
+            if (event.type !== FRDisplayEventType.telemetry) {
                 presentTypes[event.type] = true;
                 selectedTypes[event.type] = true;
             }

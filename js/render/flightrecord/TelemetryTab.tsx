@@ -1,6 +1,6 @@
 import React from "react";
 import {TelemetryEvent} from "../../common/constants";
-import {FREventType} from "../../common/FlightRecorderTypes";
+import {FRDisplayEventType} from "../../common/FlightRecorderTypes";
 import {MeterConfig} from "../../common/IPCConstantsToRenderer";
 import {FRDisplayData} from "../connect/ConnectScreen";
 import {Gauge, GaugeProps} from "../control/gauges/Gauge";
@@ -56,7 +56,7 @@ export class TelemetryTab extends TTComponent<TelemetryTabProps, TelemetryTabSta
         const eventList = this.props.events.events;
         const endTime = eventList[eventList.length - 1].time;
         for (const event of eventList) {
-            if (event.type !== FREventType.telemetry) {
+            if (event.type !== FRDisplayEventType.telemetry) {
                 continue;
             }
             const frame = event.frame;

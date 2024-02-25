@@ -1,5 +1,5 @@
 import { Form } from "react-bootstrap";
-import {allFREvents, FREventSet, FREventType, getEventTypeDesc} from "../../common/FlightRecorderTypes";
+import {allFREvents, FREventSet, FRDisplayEventType, getEventTypeDesc} from "../../common/FlightRecorderTypes";
 import {TTComponent} from "../TTComponent";
 
 export interface FRFilter {
@@ -49,7 +49,7 @@ export class EventFilter extends TTComponent<EventSelectorProps, {}> {
         );
     }
 
-    private toggleType(type: FREventType) {
+    private toggleType(type: FRDisplayEventType) {
         const oldTypes = this.props.filter.selectedTypes;
         this.props.setFilter({selectedTypes: {...oldTypes, [type]: !oldTypes[type]}});
     }
