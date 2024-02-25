@@ -1,4 +1,4 @@
-import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {startConf} from "../connection";
 import * as telemetry from "../telemetry";
@@ -30,6 +30,12 @@ export class Connecting implements IConnectionState {
         this.connection = connection;
         this.idleState = idleState;
         this.connect().catch((error) => {
+            ipcs.coilMisc(connection.getCoil()).openToast(
+                'Connection error',
+                this.removeErrorPrefixes(error + ''),
+                ToastSeverity.error,
+                'connection-error',
+            );
             ipcs.connectionUI.sendConnectionError(this.removeErrorPrefixes(error + ''));
             console.log("While connecting: ", error);
             connection.releaseResources();
