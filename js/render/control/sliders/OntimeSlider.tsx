@@ -8,7 +8,6 @@ export interface OntimeSliderProps {
     valueRelative: number;
     setValue: (val: number, relative: boolean) => any;
     relativeAllowed: boolean;
-    relativeIsDefault: boolean;
     // Gray out the slider, but do not actually stop the user from interacting. Indicates that changing the value
     // probably does not affect the coil right now, but might when the coil is turned on.
     visuallyEnabled: boolean;

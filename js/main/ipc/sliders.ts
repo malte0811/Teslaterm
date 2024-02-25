@@ -1,13 +1,10 @@
 import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {getToRenderIPCPerCoil} from "../../common/IPCConstantsToRenderer";
-import {CommandRole} from "../../common/Options";
-import {NumberOptionCommand} from "../command/CommandMessages";
 import {CommandInterface} from "../connection/commands";
 import {
     forEachCoilAsync,
     getCoilCommands,
-    getConnectionState,
 } from "../connection/connection";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
 
@@ -19,9 +16,6 @@ export async function setRelativeOntime(newRelative: number) {
         const coilIPC = ipcs.sliders(coil);
         coilIPC.sendSliderSync();
         await getCoilCommands(coil).setOntime(coilIPC.ontime);
-        getConnectionState(coil).getCommandServer().setNumberOption(
-            NumberOptionCommand.relative_ontime, relativeOntime,
-        );
     });
 }
 
@@ -30,16 +24,12 @@ export class SliderState {
     public bps: number = 20;
     public burstOntime: number = 500;
     public burstOfftime: number = 0;
-    public onlyMaxOntimeSettable: boolean = true;
+    public onlyMaxOntimeSettable: boolean = false;
     public maxOntime: number = 400;
     public maxBPS: number = 1000;
-    public startAtRelativeOntime: boolean;
 
-    constructor(role: CommandRole, multicoil: boolean) {
-        const zeroAbsolute = role === 'disable' && !multicoil;
-        this.ontimeAbs = zeroAbsolute ? 0 : this.maxOntime;
-        this.onlyMaxOntimeSettable = role === "client";
-        this.startAtRelativeOntime = role === "server";
+    constructor(multicoil: boolean) {
+        this.ontimeAbs = multicoil ? this.maxOntime : 0;
     }
 
     public get ontime() {
@@ -73,11 +63,10 @@ export class SlidersIPC {
     private readonly processIPC: MultiWindowIPC;
     private readonly coil: CoilID;
     private readonly commands: CommandInterface;
-    private commandRole: CommandRole;
     private multicoil: boolean;
 
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
-        this.reinitState('disable', false);
+        this.reinitState(false);
         const channels = getToMainIPCPerCoil(coil);
         processIPC.on(channels.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
         processIPC.on(channels.sliders.setBPS, this.callSwapped(this.setBPS));
@@ -134,9 +123,7 @@ export class SlidersIPC {
     }
 
     public async resetOntimeOnConnect() {
-        if (!this.multicoil && this.commandRole === "disable") {
-            await this.setAbsoluteOntime(0);
-        }
+        await this.setAbsoluteOntime(this.multicoil ? this.state.ontimeAbs : 0);
     }
 
     public async setSliderRanges(maxOntime: number, maxBPS: number) {
@@ -160,9 +147,8 @@ export class SlidersIPC {
         }
     }
 
-    public reinitState(role: CommandRole, multicoil: boolean) {
-        this.state = new SliderState(role, multicoil);
-        this.commandRole = role;
+    public reinitState(multicoil: boolean) {
+        this.state = new SliderState(multicoil);
         this.multicoil = multicoil;
         this.sendSliderSync();
     }

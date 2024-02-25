@@ -1,6 +1,4 @@
 import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
-import {CommandRole} from "../../../common/Options";
-import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {startConf} from "../connection";
 import * as telemetry from "../telemetry";
@@ -80,17 +78,9 @@ export class Connecting implements IConnectionState {
         return this.autoTerminal;
     }
 
-    public getCommandServer(): ICommandServer {
-        return DUMMY_SERVER;
-    }
-
-    public getCommandRole(): CommandRole {
-        return this.idleState.getAdvancedOptions().commandOptions.state;
-    }
-
     private async connect() {
         this.state = State.connecting;
-        ipcs.sliders(this.connection.getCoil()).reinitState(this.getCommandRole(), this.idleState.isMulticoil());
+        ipcs.sliders(this.connection.getCoil()).reinitState(this.idleState.isMulticoil());
         await this.connection.connect();
         this.autoTerminal = this.connection.setupNewTerminal((data) =>
             telemetry.receive_main(
@@ -107,7 +97,7 @@ export class Connecting implements IConnectionState {
         }
         await this.connection.startTerminal(this.autoTerminal);
         this.state = State.initializing;
-        await startConf(this.connection.getCoil(), this.idleState.getAdvancedOptions().commandOptions.state);
+        await startConf(this.connection.getCoil());
         await ipcs.terminal(this.connection.getCoil()).onSlotsAvailable(true);
         this.doneInitializingAt = Date.now();
         this.state = State.connected;

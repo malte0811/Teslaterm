@@ -9,7 +9,7 @@ import {
     FEATURE_TIMEBASE,
     FEATURE_TIMECOUNT,
 } from "../common/constants";
-import {CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../common/Options";
+import {MidiConfig, NetSidConfig} from "../common/Options";
 import {TTConfig} from "../common/TTConfig";
 import {
     DEFAULT_SERIAL_PRODUCT,
@@ -17,11 +17,6 @@ import {
     getDefaultSerialPortForConfig
 } from "./connection/types/SerialCommon";
 import {convertArrayBufferToString} from "./helper";
-
-export const COMMAND_ROLES = new Map<string, CommandRole>();
-COMMAND_ROLES.set('disable', 'disable');
-COMMAND_ROLES.set('server', 'server');
-COMMAND_ROLES.set('client', 'client');
 
 interface ChangedFlag {
     changed: boolean;
@@ -207,19 +202,6 @@ function readSIDConfig(cfg: Config, changed: ChangedFlag): NetSidConfig {
     };
 }
 
-function readCommandConfig(cfg: Config, changed: ChangedFlag): CommandConnectionConfig {
-    // TODO document
-    const command = cfg.getOrCreateSection("command", "");
-    const stateStr = command.getOrWrite<string>(
-        "state", "disable", changed, "Possible values: disable, server, client",
-    );
-    return {
-        port: command.getOrWrite<number>("port", 13001, changed),
-        remoteName: command.getOrWrite<string>("remoteName", "localhost", changed),
-        state: COMMAND_ROLES.get(stateStr) || 'disable',
-    };
-}
-
 function readMIDIPortEnable(cfg: Config, changed: ChangedFlag) {
     const generalSection = cfg.getOrCreateSection('general');
     return generalSection.getOrWrite<boolean>(
@@ -240,7 +222,6 @@ export function loadConfig(filename: string): TTConfig {
     const changed: ChangedFlag = {changed: false};
 
     const ttConfigBase = {
-        defaultCommandOptions: readCommandConfig(config, changed),
         defaultConnectOptions: readConnectOptions(config, changed),
         defaultMidiConfig: readMIDIConfig(config, changed),
         defaultNetSIDConfig: readSIDConfig(config, changed),

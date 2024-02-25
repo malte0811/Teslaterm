@@ -1,9 +1,7 @@
 import {CoilID} from "../../../common/constants";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {PlayerActivity, SynthType} from "../../../common/MediaTypes";
-import {AdvancedOptions, CommandRole} from "../../../common/Options";
+import {SynthType} from "../../../common/MediaTypes";
 import {ipcs} from "../../ipc/IPCProvider";
-import * as media from "../../media/media_player";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {ExtraConnections} from "../ExtraConnections";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
@@ -59,7 +57,6 @@ export class Connected implements IConnectionState {
 
     public tickFast(): IConnectionState {
         this.activeConnection.tick();
-        this.extraState.tickFast();
 
         if (this.isConnectionLost()) {
             ipcs.coilMisc(this.activeConnection.getCoil()).openToast(
@@ -99,15 +96,6 @@ export class Connected implements IConnectionState {
     public async sendMIDI(data: Buffer) {
         await this.activeConnection.sendMidi(data);
         await this.activeConnection.setSynth(SynthType.MIDI, true);
-        this.getCommandServer().sendMIDI(data);
-    }
-
-    public getCommandServer() {
-        return this.extraState.getCommandServer();
-    }
-
-    public getCommandRole(): CommandRole {
-        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 
     private isConnectionLost(): boolean {

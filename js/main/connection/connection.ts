@@ -3,7 +3,6 @@ import {CoilID} from "../../common/constants";
 import {FlightEventType} from "../../common/FlightRecorderTypes";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {PlayerActivity} from "../../common/MediaTypes";
-import {CommandRole} from "../../common/Options";
 import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
@@ -56,7 +55,7 @@ export function setConnectionState(coil: CoilID, newState: IConnectionState) {
     }
 }
 
-export async function startConf(coil: CoilID, commandState: CommandRole) {
+export async function startConf(coil: CoilID) {
     const commands = getCoilCommands(coil);
     const sliderIPC = ipcs.sliders(coil);
     await commands.sendCommand('\r');

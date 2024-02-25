@@ -1,6 +1,4 @@
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {AdvancedOptions, CommandRole} from "../../../common/Options";
-import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
@@ -15,7 +13,6 @@ export class Bootloading implements IConnectionState {
     private readonly autoTerminal: TerminalHandle;
     private readonly idleState: Idle;
     private done: boolean = false;
-    private cancelled: boolean = false;
     private inBootloadMode: boolean = false;
 
     constructor(
@@ -55,7 +52,6 @@ export class Bootloading implements IConnectionState {
     }
 
     public async disconnectFromCoil(): Promise<Idle> {
-        this.cancelled = true;
         this.connection.releaseResources();
         return this.idleState;
     }
@@ -71,14 +67,6 @@ export class Bootloading implements IConnectionState {
     }
 
     public tickSlow() {
-    }
-
-    public getCommandServer(): ICommandServer {
-        return DUMMY_SERVER;
-    }
-
-    public getCommandRole(): CommandRole {
-        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 
     private async bootload(file: Uint8Array) {

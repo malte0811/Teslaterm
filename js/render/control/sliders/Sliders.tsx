@@ -1,10 +1,6 @@
 import React from 'react';
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {
-    getToRenderIPCPerCoil,
-    ISliderState,
-    IUD3State
-} from "../../../common/IPCConstantsToRenderer";
+import {getToRenderIPCPerCoil, ISliderState, IUD3State} from "../../../common/IPCConstantsToRenderer";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TabControlLevel} from "../SingleCoilTab";
@@ -37,7 +33,6 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
             onlyMaxOntimeSettable: false,
             ontimeAbs: 0,
             ontimeRel: this.props.level.level === 'central-control' ? 0 : 100,
-            startAtRelativeOntime: false,
         };
     }
 
@@ -50,9 +45,6 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                         ...sync,
                         controllingRelativeOntime: this.state.controllingRelativeOntime,
                     };
-                    if (sync.startAtRelativeOntime !== this.state.startAtRelativeOntime) {
-                        newState.controllingRelativeOntime = sync.startAtRelativeOntime;
-                    }
                     if (sync.onlyMaxOntimeSettable) {
                         newState.controllingRelativeOntime = false;
                     }
@@ -90,7 +82,6 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 relativeAllowed={!this.state.onlyMaxOntimeSettable}
                 visuallyEnabled={busOn}
                 disabled={this.props.disabled}
-                relativeIsDefault={this.state.startAtRelativeOntime}
                 controllingRelative={this.state.controllingRelativeOntime}
                 setControllingRelative={b => this.setState({controllingRelativeOntime: b})}
                 level={this.props.level}

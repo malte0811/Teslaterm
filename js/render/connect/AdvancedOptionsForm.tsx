@@ -1,7 +1,7 @@
 import React, {ReactElement} from "react";
 import {Button, Col, Form, Row} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {AdvancedOptions, CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../../common/Options";
+import {AdvancedOptions, MidiConfig, NetSidConfig} from "../../common/Options";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
 import {FormHelper} from "./FormHelper";
@@ -31,10 +31,6 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
                 <Form.Group key={'rtpmidi'}>
                     <Form.Label key={'title'} style={({fontSize: 'large'})}>RTP-MIDI settings</Form.Label>
                     {this.buildRTPMIDIConfig()}
-                </Form.Group>
-                <Form.Group key={'command'}>
-                    <Form.Label key={'title'} style={({fontSize: 'large'})}>Command server settings</Form.Label>
-                    {this.buildCommandConfig()}
                 </Form.Group>
             </>
         );
@@ -67,25 +63,6 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
             rows.push(this.helper.makeString('Local name', current.localName, localName => setOption({localName})));
             rows.push(this.helper.makeString(
                 'Bonjour name', current.bonjourName, bonjourName => setOption({bonjourName}),
-            ));
-        }
-        return rows;
-    }
-
-    private buildCommandConfig(): JSX.Element[] {
-        const current = this.props.currentOptions.commandOptions;
-        const setOption = (toSet: Partial<CommandConnectionConfig>) => {
-            this.props.setOptions({commandOptions: {...current, ...toSet}});
-        };
-        const rows: JSX.Element[] = [this.makeSelect<CommandRole>(
-            "Role", ['disable', 'client', 'server'], current.state, state => setOption({state}),
-        )];
-        if (current.state !== 'disable') {
-            rows.push(this.helper.makeIntField("Command port", current.port, port => setOption({port})));
-        }
-        if (current.state === 'client') {
-            rows.push(this.helper.makeString(
-                'Remote address', current.remoteName, remoteName => setOption({remoteName}),
             ));
         }
         return rows;

@@ -1,6 +1,4 @@
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {AdvancedOptions, CommandRole} from "../../../common/Options";
-import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connecting} from "./Connecting";
@@ -59,13 +57,5 @@ export class Reconnecting implements IConnectionState {
     }
 
     public tickSlow() {
-    }
-
-    public getCommandServer(): ICommandServer {
-        return DUMMY_SERVER;
-    }
-
-    public getCommandRole(): CommandRole {
-        return this.idleState.getAdvancedOptions().commandOptions.state;
     }
 }

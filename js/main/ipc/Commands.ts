@@ -2,11 +2,8 @@ import {CoilID} from "../../common/constants";
 import {
     getToMainIPCPerCoil,
     IPC_CONSTANTS_TO_MAIN,
-    IPCToMainKey,
-    PerCoilMainIPCs,
 } from "../../common/IPCConstantsToMain";
-import {BoolOptionCommand, setBoolOption} from "../command/CommandMessages";
-import {forEachCoil, getCoilCommands} from "../connection/connection";
+import {getCoilCommands} from "../connection/connection";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class CommandIPC {
@@ -16,15 +13,15 @@ export class CommandIPC {
         processIPC.onAsync(channels.commands.saveEEPROM, () => commands.eepromSave());
         processIPC.onAsync(
             channels.commands.setBusState,
-            ($, enable) => setBoolOption(coil, BoolOptionCommand.bus, enable),
+            ($, enable) => enable ? commands.busOn() : commands.busOff(),
         );
         processIPC.onAsync(
             channels.commands.setKillState,
-            ($, enable) => setBoolOption(coil, BoolOptionCommand.kill, enable),
+            ($, enable) => enable ? commands.setKill() : commands.resetKill(),
         );
         processIPC.onAsync(
             channels.commands.setTRState,
-            ($, enable) => setBoolOption(coil, BoolOptionCommand.transient, enable),
+            ($, enable) => commands.setTransientEnabled(enable),
         );
         processIPC.onAsync(channels.commands.setParms, async ($, parms) => {
             for (const [key, value] of parms) {

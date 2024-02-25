@@ -2,8 +2,6 @@ import {SerialPort} from "serialport";
 import {ConnectionOptions, SerialConnectionOptions} from "../../../common/ConnectionOptions";
 import {CoilID, CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
 import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
-import {CommandRole} from "../../../common/Options";
-import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
 import {ipcs} from "../../ipc/IPCProvider";
 import {setConnectionState} from "../connection";
 import {resetAlarms} from "../telemetry/Alarms";
@@ -62,14 +60,6 @@ export class Idle implements IConnectionState {
     }
 
     public tickSlow() {
-    }
-
-    public getCommandServer(): ICommandServer {
-        return DUMMY_SERVER;
-    }
-
-    public getCommandRole(): CommandRole {
-        return 'disable';
     }
 
     private async createConnection(coil: CoilID): Promise<UD3Connection | undefined> {
