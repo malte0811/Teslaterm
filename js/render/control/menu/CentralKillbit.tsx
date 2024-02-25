@@ -6,7 +6,8 @@ import {TTComponent} from "../../TTComponent";
 
 export interface CentralKillbitProps {
     totalNumCoils: number;
-    numSetKillbits: number;
+    numConnectedKilled: number;
+    numDisconnected: number;
 }
 
 function setKillbit(val: boolean) {
@@ -16,14 +17,25 @@ function setKillbit(val: boolean) {
 export class CentralKillbit extends TTComponent<CentralKillbitProps, {}> {
     public render(): React.ReactNode {
         const backgroundString = (() => {
-            const redFraction = this.props.numSetKillbits / this.props.totalNumCoils;
-            const redPercent = Math.round(redFraction * 100);
-            if (redPercent === 0) {
-                return 'green';
-            } else if (redPercent === 100) {
-                return 'red';
+            const numGoodCoils = this.props.totalNumCoils - this.props.numConnectedKilled - this.props.numDisconnected;
+            const stripes = [
+                {color: 'blue', height: this.props.numDisconnected},
+                {color: 'red', height: this.props.numConnectedKilled},
+                {color: 'green', height: numGoodCoils},
+            ].filter((color) => color.height > 0);
+            if (stripes.length === 0) {
+                return 'orange';
+            } else if (stripes.length === 1) {
+                return stripes[0].color;
             } else {
-                return `linear-gradient(0deg, green ${100 - redPercent}%, red ${redPercent}%)`;
+                let spec = 'linear-gradient(0deg';
+                let heightNow = 0;
+                for (const color of stripes) {
+                    const newHeight = heightNow + Math.floor(100 * color.height / this.props.totalNumCoils);
+                    spec += `, ${color.color} ${heightNow}% ${newHeight}%`;
+                    heightNow = newHeight;
+                }
+                return spec + ')';
             }
         })();
         return (
@@ -38,7 +50,7 @@ export class CentralKillbit extends TTComponent<CentralKillbitProps, {}> {
                     alignItems: 'center',
                     justifyContent: 'center',
                 }}>
-                    {this.props.numSetKillbits} / {this.props.totalNumCoils}
+                    {this.props.numConnectedKilled} / {this.props.totalNumCoils}
                 </div>
                 <Button onClick={() => setKillbit(false)}>KILL RESET</Button>
             </ButtonGroup>

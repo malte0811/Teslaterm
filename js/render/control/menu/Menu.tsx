@@ -13,7 +13,10 @@ import {Killbit} from "./Killbit";
 import {StartStopMenuItem} from "./StartStopItem";
 
 export interface MenuProps {
-    level: TabControlLevelBase<{ coil: CoilID, state: IUD3State }, { numCoils: number, numKill: number }>;
+    level: TabControlLevelBase<
+        { coil: CoilID, state: IUD3State },
+        { numCoils: number, numKill: number, numDisconnected: number }
+    >;
     connectionStatus: ConnectionStatus;
     ttConfig: TTConfig;
     darkMode: boolean;
@@ -46,7 +49,8 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
                 />;
             } else {
                 return <CentralKillbit
-                    numSetKillbits={this.props.level.numKill}
+                    numDisconnected={this.props.level.numDisconnected}
+                    numConnectedKilled={this.props.level.numKill}
                     totalNumCoils={this.props.level.numCoils}
                 />;
             }

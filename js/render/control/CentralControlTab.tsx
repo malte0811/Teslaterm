@@ -12,10 +12,10 @@ import {Toasts, ToastsProps} from "./Toasts";
 
 export interface ControlTabProps {
     ttConfig: TTConfig;
-    // TODO move "full" disconnect button into tab row in multi-coil settings
     darkMode: boolean;
     numCoils: number;
     numKilled: number;
+    numDisconnected: number;
     toasts: ToastsProps;
 }
 
@@ -35,8 +35,14 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                         connectionStatus={ConnectionStatus.CONNECTED}
                         ttConfig={this.props.ttConfig}
                         darkMode={this.props.darkMode}
-                        level={{level: 'central-control', numCoils: this.props.numCoils, numKill: this.props.numKilled}}
-                        returnToConnect={() => {}}
+                        level={{
+                            level: 'central-control',
+                            numCoils: this.props.numCoils,
+                            numKill: this.props.numKilled,
+                            numDisconnected: this.props.numDisconnected,
+                        }}
+                        returnToConnect={() => {
+                        }}
                     />
                 </div>
                 <div className={'tt-terminal-and-gauges'}>

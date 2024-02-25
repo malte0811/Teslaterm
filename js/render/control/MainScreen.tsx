@@ -135,6 +135,9 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                 overflow: 'hidden',
             }}>{this.renderSingleTab(coil, 'single-coil')}</Tab.Pane>;
         });
+        const connectedCoils = this.props.coils.filter(
+            (c) => this.getCoilStatus(c).connection === ConnectionStatus.CONNECTED
+        );
         return (
             <div ref={this.mainDivRef} className={'tt-main-screen'}>
                 <Tab.Container transition={false} defaultActiveKey={'control'}>
@@ -162,7 +165,8 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                         ttConfig={this.props.ttConfig}
                                         darkMode={this.props.darkMode}
                                         numCoils={this.props.coils.length}
-                                        numKilled={this.props.coils.filter(
+                                        numDisconnected={this.props.coils.length - connectedCoils.length}
+                                        numKilled={connectedCoils.filter(
                                             (c) => this.getCoilStatus(c).ud.killBitSet,
                                         ).length}
                                         toasts={this.toastsForCoil()}
