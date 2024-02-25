@@ -56,8 +56,6 @@ export class CommonMenuIPC {
         this.processIPC = processIPC;
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, (source) => media_state.startPlaying(source));
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, (source) => media_state.startPlaying(source));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
     }
 
     public setScriptName(scriptName: string) {
