@@ -32,7 +32,11 @@ class UDPMinConnection extends MinConnection {
 
     public releaseResources() {
         if (this.socket) {
-            this.socket.close();
+            try {
+                this.socket.close();
+            } catch (e) {
+                console.warn('Failed to disconnect socket:', e);
+            }
             this.socket = undefined;
         }
     }
