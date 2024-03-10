@@ -3,8 +3,8 @@ import {getToRenderIPCPerCoil, MeterConfig, PerCoilRenderIPCs} from "../../commo
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class MetersIPC {
-    private state: number[] = [];
-    private lastState: number[] = [];
+    private rawValues: number[] = [];
+    private lastScaledValues: number[] = [];
     private readonly configs: MeterConfig[] = [];
     private readonly processIPC: MultiWindowIPC;
     private readonly coil: CoilID;
@@ -18,7 +18,7 @@ export class MetersIPC {
     }
 
     public setValue(id: number, value: number) {
-        this.state[id] = value;
+        this.rawValues[id] = value;
     }
 
     public configure(meterId: number, min: number, max: number, scale: number, name: string) {
@@ -31,7 +31,7 @@ export class MetersIPC {
         for (const cfg of Object.values(this.configs)) {
             this.processIPC.sendToWindow(this.renderIPCs.meters.configure, source, cfg);
         }
-        this.processIPC.sendToWindow(this.renderIPCs.meters.setValue, source, {values: this.lastState});
+        this.processIPC.sendToWindow(this.renderIPCs.meters.setValue, source, {values: this.lastScaledValues});
     }
 
     public getCurrentConfigs() {
@@ -40,12 +40,14 @@ export class MetersIPC {
 
     private tick() {
         const update: { [id: number]: number } = {};
-        for (const [id, value] of Object.entries(this.state)) {
-            if (this.lastState[id] !== value) {
-                this.lastState[id] = value;
-                update[id] = value;
+        this.rawValues.forEach((value, id) => {
+            const scale = this.configs[id] ? this.configs[id].scale : 1;
+            const scaled = value / scale;
+            if (this.lastScaledValues[id] !== scaled) {
+                this.lastScaledValues[id] = scaled;
+                update[id] = scaled;
             }
-        }
+        });
         if (Object.keys(update).length > 0) {
             this.processIPC.sendToAll(this.renderIPCs.meters.setValue, {values: update});
         }

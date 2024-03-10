@@ -53,8 +53,7 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
                 const newGauges: GaugeProps[] = [...oldState.gauges];
                 for (const [id, value] of Object.entries(update.values)) {
                     const config = newGauges[id].config;
-                    const scale = config.scale || 1;
-                    newGauges[id] = {value: value / scale, config, darkMode: this.props.darkMode};
+                    newGauges[id] = {value, config, darkMode: this.props.darkMode};
                 }
                 return {gauges: newGauges};
             });

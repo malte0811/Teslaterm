@@ -11,8 +11,8 @@ export interface GaugeProps {
 
 const DARK_GAUGE_PROPS = {
     gaugeColor: '#575757',
-    valueFontColor: 'white',
     labelFontColor: 'white',
+    valueFontColor: 'white',
 };
 
 export class Gauge extends TTComponent<GaugeProps, {}> {
@@ -70,10 +70,10 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
         }
         this.gauge = new JustGage({
             id: this.id,
-            value: this.props.value,
-            min: this.props.config.min,
-            max: this.props.config.max,
             label: this.props.config.name,
+            max: this.props.config.max,
+            min: this.props.config.min,
+            value: this.props.value,
             ...(this.props.darkMode ? DARK_GAUGE_PROPS : {}),
         });
     }
