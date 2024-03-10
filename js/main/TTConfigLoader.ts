@@ -149,7 +149,7 @@ class Config {
 
 function readEthernetConfig(cfg: Config, changed: ChangedFlag): UDPConnectionOptions {
     const ethernet = cfg.getOrCreateSection(
-        "ethernet", "Default settings for ethernet connections to UD3 node instances",
+        "ethernet", "Default settings for MIN connections over UDP",
     );
     return {
         remoteIP: ethernet.getOrWrite("remote_ip", "localhost", changed),
@@ -185,7 +185,7 @@ function readConnectOptions(cfg: Config, changed: ChangedFlag): FullConnectionOp
 }
 
 function readMIDIConfig(cfg: Config, changed: ChangedFlag): MidiConfig {
-    const rtpmidi = cfg.getOrCreateSection("rtpmidi", "Settings for the RTP-MIDI server hosted by Teslaterm/UD3-node");
+    const rtpmidi = cfg.getOrCreateSection("rtpmidi", "Settings for the RTP-MIDI server hosted by Teslaterm");
     return {
         bonjourName: rtpmidi.getOrWrite<string>("bonjourName", "Teslaterm", changed),
         localName: rtpmidi.getOrWrite<string>("localName", "Teslaterm", changed),
@@ -195,7 +195,7 @@ function readMIDIConfig(cfg: Config, changed: ChangedFlag): MidiConfig {
 }
 
 function readSIDConfig(cfg: Config, changed: ChangedFlag): NetSidConfig {
-    const netsid = cfg.getOrCreateSection("netsid", "Settings for the NetSID server hosted by Teslaterm/UD3-node");
+    const netsid = cfg.getOrCreateSection("netsid", "Settings for the NetSID server hosted by Teslaterm");
     return {
         enabled: netsid.getOrWrite<boolean>("enabled", true, changed),
         port: netsid.getOrWrite<number>("port", 6581, changed),

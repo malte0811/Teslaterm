@@ -31,18 +31,11 @@ jobs:
         run: npm install --dev
       - name: Build Electron
         run: npm run package-electron-linux
-      - name: Build Node
-        run: npm run build-node-linux
       - name: Upload electron-linux
         uses: actions/upload-artifact@v3
         with:
           path: dist/electron/teslaterm-linux.zip
           name: teslaterm-linux.zip
-      - name: Upload node-linux
-        uses: actions/upload-artifact@v3
-        with:
-          path: dist/node/ud3-node
-          name: ud3-node-linux
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
@@ -66,18 +59,11 @@ jobs:
         run: npm install --dev
       - name: Build Electron
         run: npm run package-electron-win
-      - name: Build Node
-        run: npm run build-node-windows
       - name: Upload electron-win
         uses: actions/upload-artifact@v3
         with:
           path: dist/electron/teslaterm-win.zip
           name: teslaterm-win.zip
-      - name: Upload node-win
-        uses: actions/upload-artifact@v3
-        with:
-          path: dist/node/ud3-node.exe
-          name: ud3-node-windows.exe
   # TODO actually make this happen, grabbing binaries from uploaded artifacts of other builds
   create-release:
     name: Create release if required
@@ -86,14 +72,6 @@ jobs:
     env:
       release: ${{ github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')}}
     steps:
-      - name: Download node-linux
-        uses: actions/download-artifact@v3
-        with:
-          name: ud3-node-linux
-      - name: Download node-windows
-        uses: actions/download-artifact@v3
-        with:
-          name: ud3-node-windows.exe
       - name: Download teslaterm-windows
         uses: actions/download-artifact@v3
         with:
@@ -109,5 +87,3 @@ jobs:
           files: |
             teslaterm-linux.zip
             teslaterm-win.zip
-            ud3-node
-            ud3-node.exe
