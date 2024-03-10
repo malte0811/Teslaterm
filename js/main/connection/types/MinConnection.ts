@@ -243,7 +243,7 @@ export abstract class MinConnection extends BootloadableConnection {
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {
-                console.warn("Unexpected MIN message at " + id + ": " + convertBufferToString(data));
+                console.warn("Unexpected MIN message at " + id + ": " + data);
             }
         };
         this.min_wrapper = new MINTransceiver(() => this.toUD3Time(microtime.now()), sender, handler);

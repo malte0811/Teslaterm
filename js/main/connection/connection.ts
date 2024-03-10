@@ -132,18 +132,20 @@ export function hasUD3Connection(coil: CoilID): boolean {
 
 export async function singleConnect(args: ConnectionOptions) {
     await setRelativeOntime(100);
-    await new Idle(args, false).connect(makeNewCoilID());
+    await new Idle(args, false).connect(makeNewCoilID(false));
 }
 
 export async function multiConnect(args: ConnectionOptions[]) {
     await setRelativeOntime(0);
-    await Promise.all(args.map((coilArg) => new Idle(coilArg, true).connect(makeNewCoilID())));
+    await Promise.all(args.map(
+        (coilArg) => new Idle(coilArg, true).connect(makeNewCoilID(true))
+    ));
 }
 
 let nextCoilID = 0;
 
-function makeNewCoilID(): CoilID {
+function makeNewCoilID(multicoil: boolean): CoilID {
     const id: CoilID = nextCoilID++;
-    ipcs.initCoilIPC(id);
+    ipcs.initCoilIPC(id, multicoil);
     return id;
 }

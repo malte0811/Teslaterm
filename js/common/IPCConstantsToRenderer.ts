@@ -38,9 +38,10 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     scope: {
         redrawMedia: makeKey<MediaState>('scope-draw-media'),
     },
-    syncDarkMode: makeKey<boolean>('syncDarkMode'),
+    syncDarkMode: makeKey<boolean>('sync-dark-mode'),
+    setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
     ttConfig: makeKey<TTConfig>('tt-config'),
-    registerCoil: makeKey<CoilID>('register-coil'),
+    registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
     udName: makeKey<[CoilID, string]>('ud-name'),
     updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
@@ -81,6 +82,13 @@ export interface MeterConfig {
     readonly max: number;
     readonly scale: number;
     readonly name: string;
+}
+
+export interface CentralTelemetryValue {
+    readonly valueName: string;
+    readonly min: number;
+    readonly max: number;
+    readonly value: number;
 }
 
 export interface IUD3State {

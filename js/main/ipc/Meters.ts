@@ -1,5 +1,11 @@
 import {CoilID} from "../../common/constants";
-import {getToRenderIPCPerCoil, MeterConfig, PerCoilRenderIPCs} from "../../common/IPCConstantsToRenderer";
+import {
+    CentralTelemetryValue,
+    getToRenderIPCPerCoil, IPC_CONSTANTS_TO_RENDERER,
+    MeterConfig,
+    PerCoilRenderIPCs
+} from "../../common/IPCConstantsToRenderer";
+import {getUIConfig} from "../UIConfig";
 import {MultiWindowIPC} from "./IPCProvider";
 
 export class MetersIPC {
@@ -31,6 +37,7 @@ export class MetersIPC {
         for (const cfg of Object.values(this.configs)) {
             this.processIPC.sendToWindow(this.renderIPCs.meters.configure, source, cfg);
         }
+        this.sendCentralTelemetry();
         this.processIPC.sendToWindow(this.renderIPCs.meters.setValue, source, {values: this.lastScaledValues});
     }
 
@@ -50,6 +57,21 @@ export class MetersIPC {
         });
         if (Object.keys(update).length > 0) {
             this.processIPC.sendToAll(this.renderIPCs.meters.setValue, {values: update});
+            this.sendCentralTelemetry();
         }
+    }
+
+    private sendCentralTelemetry() {
+        const values: CentralTelemetryValue[] = [];
+        for (const nameToSend of getUIConfig().centralTelemetry) {
+            const config = this.configs.find((cfg) => cfg && cfg.name === nameToSend);
+            if (config) {
+                const value = this.lastScaledValues[config.meterId];
+                values.push({max: config.max, min: config.min, value, valueName: config.name});
+            } else {
+                values.push(undefined);
+            }
+        }
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.setCentralTelemetry, [this.coil, values]);
     }
 }

@@ -197,7 +197,7 @@ export class IPCCollection {
         return this.miscByCoil.get(coil);
     }
 
-    public initCoilIPC(coil: CoilID) {
+    public initCoilIPC(coil: CoilID, multicoil: boolean) {
         this.slidersByCoil.set(coil, new SlidersIPC(this.processIPC, coil));
         this.menuByCoil.set(coil, new PerCoilMenuIPC(this.processIPC, coil));
         this.terminalByCoil.set(coil, new TerminalIPC(this.processIPC, coil));
@@ -206,7 +206,7 @@ export class IPCCollection {
         this.scopeByCoil.set(coil, new ScopeIPC(this.processIPC, coil));
         this.miscByCoil.set(coil, new ByCoilMiscIPC(this.processIPC, coil));
         initAlarms(coil);
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.registerCoil, coil);
+        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
     }
 }
 

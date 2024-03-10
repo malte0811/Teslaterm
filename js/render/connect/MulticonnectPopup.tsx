@@ -44,7 +44,7 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
             <Modal.Footer>
                 <Button
                     onClick={() => this.connect()}
-                    disabled={this.getSelectedOptions().length < 2}
+                    disabled={this.getSelectedOptions().length < 1}
                 >Connect</Button>
                 <Button onClick={() => {
                     this.setState({selected: []});

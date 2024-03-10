@@ -16,13 +16,14 @@ import {TTConfig} from "../../common/TTConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
-import {CentralControlTab} from "./CentralControlTab";
+import {CentralControlTab} from "./central/CentralControlTab";
 import {SingleCoilTab} from "./SingleCoilTab";
 import {addToast, getToasts, makeToastRemover, ToastManager, ToastUpdater} from "./ToastManager";
 import {ToastsProps} from "./Toasts";
 
-interface CoilState {
+export interface CoilState {
     connection: ConnectionStatus;
+    id: CoilID;
     ud: IUD3State;
     name?: string;
 }
@@ -39,6 +40,7 @@ export interface MainScreenProps {
     returnToConnect: () => any;
     darkMode: boolean;
     coils: CoilID[];
+    multicoil: boolean;
 }
 
 // TODO this is a hack. I'm not 100% sure why, but Terminal does not like open/dispose cycles
@@ -53,7 +55,9 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     constructor(props: any) {
         super(props);
         this.state = {
-            coilStates: this.props.coils.map(() => ({connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE})),
+            coilStates: this.props.coils.map(
+                id => ({connection: ConnectionStatus.IDLE, id, ud: UD3State.DEFAULT_STATE})
+            ),
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
             toasts: {allToasts: [], nextIndex: 0},
@@ -86,12 +90,12 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     public render(): React.ReactNode {
-        if (this.props.coils.length === 1) {
+        if (this.props.multicoil) {
+            return this.renderMultiCoil();
+        } else {
             return <div ref={this.mainDivRef} className={'tt-main-screen'}>
                 {this.renderSingleTab(this.props.coils[0], 'combined')}
             </div>;
-        } else {
-            return this.renderMultiCoil();
         }
     }
 
@@ -135,9 +139,6 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                 overflow: 'hidden',
             }}>{this.renderSingleTab(coil, 'single-coil')}</Tab.Pane>;
         });
-        const connectedCoils = this.props.coils.filter(
-            (c) => this.getCoilStatus(c).connection === ConnectionStatus.CONNECTED
-        );
         return (
             <div ref={this.mainDivRef} className={'tt-main-screen'}>
                 <Tab.Container transition={false} defaultActiveKey={'control'}>
@@ -162,13 +163,9 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                     overflow: 'hidden',
                                 }}>
                                     <CentralControlTab
+                                        coils={this.state.coilStates}
                                         ttConfig={this.props.ttConfig}
                                         darkMode={this.props.darkMode}
-                                        numCoils={this.props.coils.length}
-                                        numDisconnected={this.props.coils.length - connectedCoils.length}
-                                        numKilled={connectedCoils.filter(
-                                            (c) => this.getCoilStatus(c).ud.killBitSet,
-                                        ).length}
                                         toasts={this.toastsForCoil()}
                                     />
                                 </Tab.Pane>
@@ -208,7 +205,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     private getCoilStatus(coil: CoilID, state?: MainScreenState) {
         const index = this.props.coils.indexOf(coil);
         return (state || this.state).coilStates[index] ||
-            {connection: ConnectionStatus.IDLE, ud: UD3State.DEFAULT_STATE};
+            {connection: ConnectionStatus.IDLE, id: coil, ud: UD3State.DEFAULT_STATE};
     }
 
     private renderSingleTab(coil: CoilID, type: 'single-coil' | 'combined'): React.ReactNode {

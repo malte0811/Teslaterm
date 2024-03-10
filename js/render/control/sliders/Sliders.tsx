@@ -1,19 +1,19 @@
 import React from 'react';
+import {CoilID} from "../../../common/constants";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {getToRenderIPCPerCoil, ISliderState, IUD3State} from "../../../common/IPCConstantsToRenderer";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
-import {TabControlLevel} from "../SingleCoilTab";
+import {TabControlLevel, TabControlLevelBase} from "../SingleCoilTab";
 import {MidiSourceSelect} from "./MidiSourceSelect";
 import {OntimeSlider} from './OntimeSlider';
 import {SimpleSlider} from './SimpleSlider';
 
 export interface SlidersProps {
-    ud3State: IUD3State;
     disabled: boolean;
     enableMIDI: boolean;
     darkMode: boolean;
-    level: TabControlLevel;
+    level: TabControlLevelBase<{ coil: CoilID, ud3State: IUD3State }, {}>;
 }
 
 interface SliderUIState extends ISliderState {
@@ -71,8 +71,15 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 this.setState({ontimeAbs: val});
             }
         };
-        const busOn = this.props.ud3State.busActive || !this.props.ud3State.busControllable;
-        const trOn = busOn && this.props.ud3State.transientActive;
+        const [busOn, trOn] = (() => {
+            if (this.props.level.level === 'central-control') {
+                return [true, true];
+            } else {
+                 const udState = this.props.level.ud3State;
+                 const busOn = udState.busActive || udState.busControllable;
+                 return [busOn, busOn && udState.transientActive];
+            }
+        })();
         return <div className={'tt-sliders-container'}>
             <OntimeSlider
                 max={this.state.maxOntime}

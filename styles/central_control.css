@@ -1,0 +1,25 @@
+.tt-vertical-gauge-label {
+    text-align: center;
+    height: 100px;
+    writing-mode: vertical-rl;
+    transform:scale(-1);
+}
+
+.tt-telemetry-overview-meters {
+    display: inline-grid;
+    /*grid specification depends on config and is done in code*/
+    padding-right: 10px;
+}
+
+.tt-telemetry-overview {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+.tt-central-telemetry-and-sliders {
+    display: grid;
+    grid-template-columns: 76% 24%;
+    grid-template-rows: 100%;
+    margin-bottom: 10px;
+    max-height: 50vh;
+}

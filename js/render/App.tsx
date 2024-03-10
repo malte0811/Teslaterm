@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import {FitAddon} from "xterm-addon-fit";
 import {CoilID} from "../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
 import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
@@ -23,6 +22,7 @@ interface TopLevelState {
     ttConfig: TTConfig;
     darkMode: boolean;
     coils: CoilID[];
+    multicoil: boolean;
 }
 
 export class App extends TTComponent<{}, TopLevelState> {
@@ -31,6 +31,7 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.state = {
             coils: [],
             darkMode: false,
+            multicoil: false,
             screen: TopScreen.connect,
             ttConfig: undefined,
         };
@@ -46,18 +47,22 @@ export class App extends TTComponent<{}, TopLevelState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.syncDarkMode, (darkMode) => this.setState({darkMode}),
         );
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, (coil) => {
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, ([coil, multicoil]) => {
             this.setState((oldState) => {
+                const result = {
+                    coils: [...oldState.coils],
+                    multicoil,
+                    // TODO this should only happen once connect is done
+                    screen: oldState.screen,
+                };
                 if (!oldState.coils.includes(coil)) {
-                    return {
-                        coils: [...oldState.coils, coil],
-                        // TODO this should only happen once connect is done
-                        screen: TopScreen.control,
-                    };
+                    result.coils.push(coil);
+                    result.screen = TopScreen.control;
                 }
+                return result;
             });
         });
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
     }
 
     public render(): React.ReactNode {
@@ -86,6 +91,7 @@ export class App extends TTComponent<{}, TopLevelState> {
                 }}
                 darkMode={this.state.darkMode}
                 coils={this.state.coils}
+                multicoil={this.state.multicoil}
             />;
         } else if (this.state.screen === TopScreen.connect) {
             return <ConnectScreen

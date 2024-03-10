@@ -51,7 +51,7 @@ export class TraceStats {
             Math.min(this.min, newValue),
             Math.max(this.max, newValue),
             this.squareSum + newValue * newValue,
-            this.samples + 1
+            this.samples + 1,
         );
     }
 }

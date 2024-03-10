@@ -53,11 +53,10 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                         <div className={'tt-scope-container'}>
                             <Oscilloscope coil={this.props.coil}/>
                             <Sliders
-                                ud3State={this.props.ud3State}
                                 disabled={!this.props.allowInteraction}
                                 enableMIDI={this.props.ttConfig.useMIDIPorts}
                                 darkMode={this.props.darkMode}
-                                level={{level: this.props.level, coil: this.props.coil}}
+                                level={{level: this.props.level, coil: this.props.coil, ud3State: this.props.ud3State}}
                             />
                         </div>
                         <Terminal

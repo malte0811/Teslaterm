@@ -5,7 +5,7 @@ import {getDefaultAdvancedOptions} from "../common/TTConfig";
 import {
     DEFAULT_SERIAL_PRODUCT,
     DEFAULT_SERIAL_VENDOR,
-    getDefaultSerialPortForConfig
+    getDefaultSerialPortForConfig,
 } from "./connection/types/SerialCommon";
 import {convertArrayBufferToString} from "./helper";
 import {config} from "./init";
@@ -13,6 +13,8 @@ import {config} from "./init";
 export interface UIConfig {
     connectionPresets: ConnectionPreset[];
     darkMode: boolean;
+    // TODO need UI to set this
+    centralTelemetry: string[];
 }
 
 let uiConfig: UIConfig | undefined;
@@ -39,6 +41,9 @@ function getFileData() {
         }
         if (object.darkMode === undefined) {
             object.darkMode = false;
+        }
+        if (object.centralTelemetry === undefined) {
+            object.centralTelemetry = [];
         }
         return object;
     } catch (x) {
