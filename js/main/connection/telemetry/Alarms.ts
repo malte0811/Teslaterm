@@ -13,7 +13,7 @@ export function resetAlarms() {
 export function initAlarms(coil: CoilID) {
     processIPC.on(
         getToMainIPCPerCoil(coil).menu.requestAlarmList,
-        (source) => processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.alarmList, source, allAlarms),
+        () => processIPC.send(IPC_CONSTANTS_TO_RENDERER.alarmList, allAlarms),
     );
 }
 

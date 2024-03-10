@@ -24,21 +24,21 @@ export class ScopeIPC {
         this.sinceLastDraw[traceId] = value;
     }
 
-    public startControlledDraw(title: string, source?: object) {
-        this.processIPC.sendToWindow(getToRenderIPCPerCoil(this.coil).scope.startControlled, source, title);
+    public startControlledDraw(title: string) {
+        this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.startControlled, title);
     }
 
-    public drawLine(x1: number, y1: number, x2: number, y2: number, traceColorIndex: number, source?: object) {
-        this.processIPC.sendToWindow(
-            getToRenderIPCPerCoil(this.coil).scope.drawLine, source, {x1, y1, x2, y2, traceColorIndex},
+    public drawLine(x1: number, y1: number, x2: number, y2: number, traceColorIndex: number) {
+        this.processIPC.send(
+            getToRenderIPCPerCoil(this.coil).scope.drawLine, {x1, y1, x2, y2, traceColorIndex},
         );
     }
 
     public drawText(
-        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean, source?: object,
+        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean,
     ) {
-        this.processIPC.sendToWindow(
-            getToRenderIPCPerCoil(this.coil).scope.drawString, source, {x, y, traceColorIndex, size, str, center},
+        this.processIPC.send(
+            getToRenderIPCPerCoil(this.coil).scope.drawString, {x, y, traceColorIndex, size, str, center},
         );
     }
 
@@ -46,13 +46,13 @@ export class ScopeIPC {
         id: number, min: number, max: number, offset: number, div: number, unit: string, name: string,
     ) {
         const config: ScopeTraceConfig = {id, min, max, offset, div, unit, name};
-        this.processIPC.sendToAll(getToRenderIPCPerCoil(this.coil).scope.configure, config);
+        this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.configure, config);
         this.configs[id] = config;
     }
 
-    public sendConfig(source: object) {
+    public sendConfig() {
         for (const cfg of Object.values(this.configs)) {
-            this.processIPC.sendToWindow(getToRenderIPCPerCoil(this.coil).scope.configure, source, cfg);
+            this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.configure, cfg);
         }
     }
 
@@ -62,7 +62,7 @@ export class ScopeIPC {
 
     private tick() {
         if (Object.keys(this.tickSummary).length > 0) {
-            this.processIPC.sendToAll(getToRenderIPCPerCoil(this.coil).scope.addValues, {values: this.tickSummary});
+            this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.addValues, {values: this.tickSummary});
             this.tickSummary = [];
         }
     }

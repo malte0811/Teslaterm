@@ -13,7 +13,6 @@ import {media_state} from "../media/media_player";
 import {playMidiData} from "../midi/midi";
 import {getUIConfig, setUIConfig} from "../UIConfig";
 import {ipcs, MultiWindowIPC} from "./IPCProvider";
-import {TermSetupResult} from "./terminal";
 
 export class ByCoilMiscIPC {
     private readonly processIPC: MultiWindowIPC;
@@ -26,17 +25,14 @@ export class ByCoilMiscIPC {
         this.coil = coil;
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async (source: object) => {
-            const terminalSuccessful = await ipcs.terminal(coil).setupTerminal(source);
-            if (terminalSuccessful === TermSetupResult.no_terminal_available) {
-                ipcs.terminal(coil).println("No free terminal slot available. Will assign one when available.", source);
-            }
-            ipcs.coilMenu(coil).sendFullState(source);
-            this.processIPC.sendToWindow(
-                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, source, [coil, this.lastConnectionState],
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
+            // TODO the whole concept of assigning terminals can go away, right?
+            ipcs.coilMenu(coil).sendFullState();
+            this.processIPC.send(
+                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [coil, this.lastConnectionState],
             );
-            ipcs.scope(coil).sendConfig(source);
-            ipcs.meters(coil).sendConfig(source);
+            ipcs.scope(coil).sendConfig();
+            ipcs.meters(coil).sendConfig();
             ipcs.sliders(coil).sendSliderSync();
             if (this.udName) {
                 this.sendUDName(this.udName);
@@ -44,26 +40,26 @@ export class ByCoilMiscIPC {
         });
         processIPC.on(
             getToMainIPCPerCoil(coil).dumpFlightRecorder,
-            async ($, coil) => getFlightRecorder(coil).exportAsFile(),
+            async (coil) => getFlightRecorder(coil).exportAsFile(),
         );
     }
 
     public setConnectionState(newState: ConnectionStatus) {
         this.lastConnectionState = newState;
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, newState]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, newState]);
     }
 
-    public openUDConfig(configToSync: UD3ConfigOption[], target: object) {
-        this.processIPC.sendToWindow(this.renderIPCs.udConfig, target, configToSync);
+    public openUDConfig(configToSync: UD3ConfigOption[]) {
+        this.processIPC.send(this.renderIPCs.udConfig, configToSync);
     }
 
-    public openToast(title: string, message: string, level: ToastSeverity, mergeKey?: string, target?: object) {
+    public openToast(title: string, message: string, level: ToastSeverity, mergeKey?: string) {
         const msg: ToastData = {level, title, message, mergeKey};
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.openToastOn, target, [msg, this.coil]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.openToastOn, [msg, this.coil]);
     }
 
     public sendUDName(name: string) {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, name]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, name]);
         this.udName = name;
     }
 
@@ -75,32 +71,32 @@ export class CommonMiscIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async (source: object) => {
-            ipcs.menu.sendFullState(source);
-            this.syncTTConfig(config, source);
-            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, source, getUIConfig().darkMode);
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
+            ipcs.menu.sendFullState();
+            this.syncTTConfig(config);
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, getUIConfig().darkMode);
         });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (source: object, msg) => {
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (msg) => {
             playMidiData(msg);
         });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (source, darkMode) => {
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (darkMode) => {
             setUIConfig({darkMode});
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
         });
     }
 
-    public syncTTConfig(configToSync: TTConfig, target: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.ttConfig, target, configToSync);
+    public syncTTConfig(configToSync: TTConfig) {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.ttConfig, configToSync);
     }
 
-    public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string, owner?: any) {
-        this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.openToastOn, owner, [{title, message, level: severity, mergeKey}, undefined],
+    public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string) {
+        this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.openToastOn, [{title, message, level: severity, mergeKey}, undefined],
         );
     }
 
     public updateMediaInfo() {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
             {
                 progress: media_state.progress,
                 state: media_state.state,

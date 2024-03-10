@@ -19,13 +19,13 @@ function getOrCreateChannel(coil: CoilID, source?: object) {
     return innerMap.get(source);
 }
 
-export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, source?: object) {
+export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, onAutoTerminal: boolean) {
     const buf = new Uint8Array(data);
     resetResponseTimeout(coil);
     let print: (s: string) => void;
 
-    if (source) {
-        print = (s) => ipcs.terminal(coil).print(s, source);
+    if (!onAutoTerminal) {
+        print = (s) => ipcs.terminal(coil).print(s);
     } else {
         print = (s) => {
             if (s === '\n' || s === '\r') {
@@ -39,9 +39,9 @@ export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, 
         };
     }
     const handleFrame = (frame) => {
-        if (!source || getUD3Connection(coil).isMultiTerminal()) {
-            sendTelemetryFrame(frame, coil, source, initializing);
+        if (onAutoTerminal || !getUD3Connection(coil).isMultiTerminal()) {
+            sendTelemetryFrame(frame, coil, initializing);
         }
     };
-    getOrCreateChannel(coil, source).processBytes(buf, print, handleFrame);
+    getOrCreateChannel(coil).processBytes(buf, print, handleFrame);
 }

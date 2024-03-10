@@ -10,16 +10,14 @@ import {Reconnecting} from "./Reconnecting";
 
 export class Bootloading implements IConnectionState {
     private readonly connection: BootloadableConnection;
-    private readonly autoTerminal: TerminalHandle;
     private readonly idleState: Idle;
     private done: boolean = false;
     private inBootloadMode: boolean = false;
 
     constructor(
-        connection: BootloadableConnection, autoTerm: TerminalHandle, idleState: Idle, file: Uint8Array,
+        connection: BootloadableConnection, idleState: Idle, file: Uint8Array,
     ) {
         this.connection = connection;
-        this.autoTerminal = autoTerm;
         this.idleState = idleState;
         this.bootload(file)
             .catch((e) => {
@@ -43,7 +41,7 @@ export class Bootloading implements IConnectionState {
         if (this.inBootloadMode) {
             return undefined;
         } else {
-            return this.autoTerminal;
+            return this.connection.getAutoTerminalID();
         }
     }
 

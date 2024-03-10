@@ -26,13 +26,11 @@ function getResponseTime(coil: CoilID) {
 
 export class Connected implements IConnectionState {
     private readonly activeConnection: UD3Connection;
-    private readonly autoTerminal: TerminalHandle;
     private readonly extraState: ExtraConnections;
     private readonly idleState: Idle;
 
-    public constructor(conn: UD3Connection, autoTerm: TerminalHandle, idleState: Idle) {
+    public constructor(conn: UD3Connection, idleState: Idle) {
         this.activeConnection = conn;
-        this.autoTerminal = autoTerm;
         this.extraState = new ExtraConnections(idleState.getAdvancedOptions());
         this.idleState = idleState;
     }
@@ -83,14 +81,14 @@ export class Connected implements IConnectionState {
     public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
         if (this.activeConnection instanceof BootloadableConnection) {
             this.extraState.close();
-            return new Bootloading(this.activeConnection, this.autoTerminal, this.idleState, cyacd);
+            return new Bootloading(this.activeConnection, this.idleState, cyacd);
         } else {
             return undefined;
         }
     }
 
     public getAutoTerminal(): TerminalHandle | undefined {
-        return this.autoTerminal;
+        return this.activeConnection.getAutoTerminalID();
     }
 
     public async sendMIDI(data: Buffer) {

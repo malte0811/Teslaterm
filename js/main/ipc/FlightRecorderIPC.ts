@@ -13,17 +13,17 @@ export class FlightRecorderIPC {
     public constructor(processIPC: MultiWindowIPC) {
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.loadFlightRecording,
-            (source, data) => this.loadRecording(source, data),
+            (data) => this.loadRecording(data),
         );
         this.processIPC = processIPC;
     }
 
-    private async loadRecording(source: object, data: number[]) {
+    private async loadRecording(data: number[]) {
         const [flightEvents, initialState] = await parseEventsFromFile(Buffer.from(data));
         const minEvents = parseMINEvents(flightEvents);
         const displayEvents = parseEventsForDisplay(minEvents, false);
-        this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, source, {events: displayEvents, initial: initialState},
+        this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, {events: displayEvents, initial: initialState},
         );
     }
 }

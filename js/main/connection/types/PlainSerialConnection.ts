@@ -4,7 +4,7 @@ import {FlightEventType} from "../../../common/FlightRecorderTypes";
 import {SynthType} from "../../../common/MediaTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {getFlightRecorder} from "../flightrecorder/FlightRecorder";
-import {toCommandID, UD3Connection} from "./UD3Connection";
+import {TerminalHandle, toCommandID, UD3Connection} from "./UD3Connection";
 
 export class PlainSerialConnection extends UD3Connection {
     private serialPort: SerialPort;
@@ -92,12 +92,12 @@ export class PlainSerialConnection extends UD3Connection {
         // NOP
     }
 
-    public getMaxTerminalID(): number {
-        throw new Error();
-    }
-
     public isMultiTerminal(): boolean {
         return false;
+    }
+
+    public getManualTerminalID(): TerminalHandle {
+        return 0;
     }
 
     private async sendAsync(rawData: Buffer): Promise<void> {

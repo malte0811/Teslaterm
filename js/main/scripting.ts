@@ -26,7 +26,6 @@ export class Script {
     private interruptFunc: (() => any) | null = null;
     private readonly queue: ScriptQueueEntry[];
     private readonly zip: JSZip;
-    private starterKey: object;
 
     private constructor(zip: JSZip, code: string) {
         this.zip = zip;
@@ -99,25 +98,23 @@ export class Script {
         return this.running;
     }
 
-    public async start(starterKey: object) {
+    public async start() {
         if (this.running) {
             ipcs.misc.openGenericToast(
                 'Script',
                 'The script is already running.',
                 ToastSeverity.info,
                 'script-info',
-                starterKey
             );
             return;
         }
-        this.starterKey = starterKey;
         forEachCoil(coil => ipcs.sliders(coil).setOnlyMaxOntimeSettable(true));
         this.running = true;
         try {
             for (const entry of this.queue) {
                 if (!this.isRunning()) {
                     ipcs.misc.openGenericToast(
-                        'Script', 'Cancelled script', ToastSeverity.info, 'script-info', starterKey
+                        'Script', 'Cancelled script', ToastSeverity.info, 'script-info',
                     );
                     break;
                 }
@@ -125,12 +122,12 @@ export class Script {
             }
             if (this.isRunning()) {
                 ipcs.misc.openGenericToast(
-                    'Script', 'Script finished normally', ToastSeverity.info, 'script-info', starterKey
+                    'Script', 'Script finished normally', ToastSeverity.info, 'script-info',
                 );
             }
         } catch (x) {
             ipcs.misc.openGenericToast(
-                'Script', 'Script finished with error: ' + x, ToastSeverity.warning, 'script-info', starterKey
+                'Script', 'Script finished with error: ' + x, ToastSeverity.warning, 'script-info',
             );
             console.error(x);
         }
@@ -207,7 +204,7 @@ export class Script {
     }
 
     private async waitForConfirmation(text, title): Promise<any> {
-        const confirmed = await ipcs.scripting.requestConfirmation(this.starterKey, text, title);
+        const confirmed = await ipcs.scripting.requestConfirmation(text, title);
         if (!confirmed) {
             throw new Error("User did not confirm");
         }

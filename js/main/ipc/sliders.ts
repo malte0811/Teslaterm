@@ -68,10 +68,10 @@ export class SlidersIPC {
     constructor(processIPC: MultiWindowIPC, coil: CoilID) {
         this.reinitState(false);
         const channels = getToMainIPCPerCoil(coil);
-        processIPC.on(channels.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
-        processIPC.on(channels.sliders.setBPS, this.callSwapped(this.setBPS));
-        processIPC.on(channels.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
-        processIPC.on(channels.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
+        processIPC.on(channels.sliders.setOntimeAbsolute, (ot) => this.setAbsoluteOntime(ot));
+        processIPC.on(channels.sliders.setBPS, (bps) => this.setBPS(bps));
+        processIPC.on(channels.sliders.setBurstOntime, (bon) => this.setBurstOntime(bon));
+        processIPC.on(channels.sliders.setBurstOfftime, (boff) => this.setBurstOfftime(boff));
         this.processIPC = processIPC;
         this.coil = coil;
         this.commands = getCoilCommands(coil);
@@ -140,7 +140,7 @@ export class SlidersIPC {
 
     public sendSliderSync() {
         if (this.processIPC) {
-            this.processIPC.sendToAll(
+            this.processIPC.send(
                 getToRenderIPCPerCoil(this.coil).sliders.syncSettings,
                 {...this.state, ontimeRel: relativeOntime},
             );
@@ -152,21 +152,11 @@ export class SlidersIPC {
         this.multicoil = multicoil;
         this.sendSliderSync();
     }
-
-    private callSwapped(f: (val: number, key: object) => Promise<any>) {
-        return async (key: object, val: number) => {
-            try {
-                await f.call(this, val, key);
-            } catch (r) {
-                console.log("Error while sending command: ", r);
-            }
-        };
-    }
 }
 
 export function registerCommonSliderIPC(processIPC: MultiWindowIPC) {
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, (c) => c.sliders.setBPS);
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, (c) => c.sliders.setBurstOfftime);
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, (c) => c.sliders.setBurstOntime);
-    processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, (c, val) => setRelativeOntime(val));
+    processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, (val) => setRelativeOntime(val));
 }

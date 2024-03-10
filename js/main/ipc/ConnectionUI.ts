@@ -17,34 +17,34 @@ export class ConnectionUIIPC {
         this.processIPC = processIPC;
         this.processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.connect.connect,
-            async (source: object, args) => await singleConnect(args),
+            async (args) => await singleConnect(args),
         );
         this.processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.connect.multiconnect,
-            async (source: object, args) => await multiConnect(args),
+            async (args) => await multiConnect(args),
         );
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, sendConnectionSuggestions);
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.getPresets, (source) => this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, source, getUIConfig().connectionPresets,
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.getPresets, () => this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, getUIConfig().connectionPresets,
         ));
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.setPresets, (source, presets) => this.setPresets(presets));
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.setPresets, (presets) => this.setPresets(presets));
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.clearCoils, clearCoils);
     }
 
-    public suggestUDP(key: object, suggestions: IUDPConnectionSuggestion[]) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.connect.setUDPSuggestions, key, suggestions);
+    public suggestUDP(suggestions: IUDPConnectionSuggestion[]) {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.setUDPSuggestions, suggestions);
     }
 
-    public suggestSerial(key: object, ports: AvailableSerialPort[]) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, key, ports);
+    public suggestSerial(ports: AvailableSerialPort[]) {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, ports);
     }
 
     public sendConnectionError(error: string) {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.connect.connectionError, error);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.connectionError, error);
     }
 
     private setPresets(presets: ConnectionPreset[]) {
         setUIConfig({...getUIConfig(), connectionPresets: presets});
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, presets);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, presets);
     }
 }

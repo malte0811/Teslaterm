@@ -1,8 +1,10 @@
+import {ipcMain} from "electron";
 import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPCToMainKey, PerCoilMainIPCs} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
 import {forEachCoil} from "../connection/connection";
 import {initAlarms} from "../connection/telemetry/Alarms";
+import {mainWindow} from "../main_electron";
 import {CommandIPC, registerCommonCommandsIPC} from "./Commands";
 import {ConnectionUIIPC} from "./ConnectionUI";
 import {FileUploadIPC} from "./FileUpload";
@@ -15,130 +17,43 @@ import {ScriptingIPC} from "./Scripting";
 import {registerCommonSliderIPC, SlidersIPC} from "./sliders";
 import {TerminalIPC} from "./terminal";
 
-export interface ISingleWindowIPC {
-    on(channel: string, callback: (data: object) => void): void;
-
-    once(channel: string, callback: (data: object) => void): void;
-
-    send(channel: string, ...data: any[]): void;
-}
-
-interface IIPCCallback {
-    cb: (source: object, ...data: any[]) => void;
-}
+type IIPCCallback = (d: any) => void;
 
 export class MultiWindowIPC {
-    private windows: Map<object, ISingleWindowIPC> = new Map();
     private callbacks: Map<string, IIPCCallback[]> = new Map();
-    private activeSingleCallbacks: Map<object, Set<string>> = new Map();
-    private disconnectCallbacks: Map<object, Array<() => void>> = new Map();
 
-    public on<T>(channel: IPCToMainKey<T>, callback: (source: object, data: T) => void) {
+    public on<T>(channel: IPCToMainKey<T>, callback: (data: T) => void) {
+        ipcMain.on(channel.channel, (ev, ...args) => callback(args[0] as T));
         if (!this.callbacks.has(channel.channel)) {
             this.callbacks.set(channel.channel, []);
-            for (const key of this.windows.keys()) {
-                this.addSingleCallback(channel.channel, key);
-            }
         }
-        this.callbacks.get(channel.channel).push({cb: callback});
+        this.callbacks.get(channel.channel).push(callback);
     }
 
-    public onAsync<T>(channel: IPCToMainKey<T>, callback: (source: object, data: T) => Promise<any>) {
-        this.on(channel, (source, data) => {
-            callback(source, data).catch((err) => {
-                console.error("While processing message on", channel.channel, "from", source, ", payload", data, ":", err);
+    public onAsync<T>(channel: IPCToMainKey<T>, callback: (data: T) => Promise<any>) {
+        this.on(channel, (data) => {
+            callback(data).catch((err) => {
+                console.error("While processing message on", channel.channel, ", payload", data, ":", err);
             });
         });
     }
 
-    public addWindow(key: object, windowIPC: ISingleWindowIPC) {
-        this.windows.set(key, windowIPC);
-        for (const channel of this.callbacks.keys()) {
-            this.addSingleCallback(channel, key);
-        }
-    }
-
-    public isValidWindow(key: object): boolean {
-        return this.windows.has(key);
-    }
-
-    public removeWindow(key: object) {
-        this.windows.delete(key);
-        this.activeSingleCallbacks.delete(key);
-        if (this.disconnectCallbacks.has(key)) {
-            for (const cb of this.disconnectCallbacks.get(key)) {
-                cb();
-            }
-            this.disconnectCallbacks.delete(key);
-        }
-    }
-
-    public sendToAll<T>(channel: IPCToRendererKey<T>, data: T) {
-        for (const ipc of this.windows.values()) {
-            ipc.send(channel.channel, data);
-        }
-    }
-
-    public sendToAllExcept<T>(channel: IPCToRendererKey<T>, key: object, data: T) {
-        if (key && !this.isValidWindow(key)) {
-            console.trace("Tried to send to all except invalid window " + key);
-        } else {
-            for (const k of this.windows.keys()) {
-                if (k !== key) {
-                    this.sendToWindow(channel, k, data);
-                }
-            }
-        }
-    }
-
-    public sendToWindow<T>(channel: IPCToRendererKey<T>, key: object, data: T) {
-        if (key) {
-            if (this.isValidWindow(key)) {
-                this.windows.get(key).send(channel.channel, data);
-            } else {
-                console.trace("Tried to send to invalid window " + key);
-            }
-        } else {
-            this.sendToAll(channel, data);
-        }
-    }
-
-    public triggerFromWindow<T>(channel: IPCToRendererKey<T>, key: object, data: T) {
-        for (const cb of this.callbacks.get(channel.channel) || []) {
-            cb.cb(key, data);
+    // TODO look at "all except" calls
+    public send<T>(channel: IPCToRendererKey<T>, data: T) {
+        if (mainWindow && mainWindow.webContents) {
+            mainWindow.webContents.send(channel.channel, data);
         }
     }
 
     public distributeTo<T>(global: IPCToMainKey<T>, perCoil: (channels: PerCoilMainIPCs) => IPCToMainKey<T>) {
-        processIPC.on(global, (source, data) => {
-            forEachCoil((coil) => processIPC.triggerFromWindow(perCoil(getToMainIPCPerCoil(coil)), source, data));
+        this.on(global, (data) => {
+            forEachCoil((coil) => this.triggerFromWindow(perCoil(getToMainIPCPerCoil(coil)), data));
         });
     }
 
-    public addDisconnectCallback(key: object, cb: () => void) {
-        if (!this.disconnectCallbacks.has(key)) {
-            this.disconnectCallbacks.set(key, [cb]);
-        } else {
-            const arr = this.disconnectCallbacks.get(key);
-            arr[arr.length] = cb;
-        }
-    }
-
-    private addSingleCallback(channel: string, key: object) {
-        if (!this.activeSingleCallbacks.has(key)) {
-            this.activeSingleCallbacks.set(key, new Set());
-        }
-        const activeSet = this.activeSingleCallbacks.get(key);
-        if (!activeSet.has(channel)) {
-            activeSet.add(channel);
-            this.windows.get(key).on(channel, (...data: any[]) => {
-                const callbacks = this.callbacks.get(channel);
-                if (callbacks) {
-                    for (let i = 0; i < callbacks.length; ++i) {
-                        callbacks[i].cb(key, ...data);
-                    }
-                }
-            });
+    private triggerFromWindow<T>(channel: IPCToRendererKey<T>, data: T) {
+        for (const cb of this.callbacks.get(channel.channel) || []) {
+            cb(data);
         }
     }
 }
@@ -206,7 +121,7 @@ export class IPCCollection {
         this.scopeByCoil.set(coil, new ScopeIPC(this.processIPC, coil));
         this.miscByCoil.set(coil, new ByCoilMiscIPC(this.processIPC, coil));
         initAlarms(coil);
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
     }
 }
 

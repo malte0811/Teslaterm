@@ -4,12 +4,12 @@ import {convertArrayBufferToString, sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {createBroadcastSocket} from "../udp_helper";
 
-export function sendConnectionSuggestions(windowKey: any) {
-    Promise.all([sendSerialConnectionSuggestions(windowKey), sendUDPConnectionSuggestions(windowKey)])
+export function sendConnectionSuggestions() {
+    Promise.all([sendSerialConnectionSuggestions(), sendUDPConnectionSuggestions()])
         .catch((err) => console.error("While sending connection suggestions: ", err));
 }
 
-async function sendUDPConnectionSuggestions(windowKey: any) {
+async function sendUDPConnectionSuggestions() {
     const suggestions: IUDPConnectionSuggestion[] = [];
     const udpSocket = await createBroadcastSocket();
     udpSocket.send("FINDReq=1;\0", 50022, "255.255.255.255");
@@ -33,7 +33,7 @@ async function sendUDPConnectionSuggestions(windowKey: any) {
             }
             if (isUD3) {
                 suggestions.push({remoteIP: rinfo.address, desc: name});
-                ipcs.connectionUI.suggestUDP(windowKey, suggestions);
+                ipcs.connectionUI.suggestUDP(suggestions);
             }
         }
     });
@@ -41,7 +41,7 @@ async function sendUDPConnectionSuggestions(windowKey: any) {
     udpSocket.close();
 }
 
-async function sendSerialConnectionSuggestions(windowKey: any) {
+async function sendSerialConnectionSuggestions() {
     const serialPorts: AvailableSerialPort[] = (await SerialPort.list())
         .filter((port) => port.productId)
         .map((port) => ({
@@ -50,5 +50,5 @@ async function sendSerialConnectionSuggestions(windowKey: any) {
             productID: port.productId,
             vendorID: port.vendorId,
         }));
-    ipcs.connectionUI.suggestSerial(windowKey, serialPorts);
+    ipcs.connectionUI.suggestSerial(serialPorts);
 }

@@ -66,10 +66,10 @@ export class PlayerState {
         });
     }
 
-    public async startPlaying(source?: object): Promise<void> {
+    public async startPlaying(): Promise<void> {
         if (this.currentFile === null) {
             ipcs.misc.openGenericToast(
-                "Media", "Please select a media file using drag&drop", ToastSeverity.info, "media", source
+                "Media", "Please select a media file using drag&drop", ToastSeverity.info, "media",
             );
             return;
         }
@@ -79,7 +79,6 @@ export class PlayerState {
                 "A media file is currently playing, stop it before starting it again",
                 ToastSeverity.info,
                 "media",
-                source
             );
             return;
         }
@@ -89,9 +88,9 @@ export class PlayerState {
         this.stateInt = PlayerActivity.playing;
     }
 
-    public stopPlaying(source?: Object): void {
+    public stopPlaying(): void {
         if (this.currentFile === null || this.state !== PlayerActivity.playing) {
-            ipcs.misc.openGenericToast("Media", "No media file is currently playing", ToastSeverity.info, "media", source);
+            ipcs.misc.openGenericToast("Media", "No media file is currently playing", ToastSeverity.info, "media");
             return;
         }
         if (this.stopCallback) {

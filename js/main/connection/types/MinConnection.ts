@@ -51,9 +51,7 @@ export abstract class MinConnection extends BootloadableConnection {
         try {
             const toDisconnect = [];
             for (const [id, handler] of this.terminalCallbacks) {
-                if (handler.active) {
-                    toDisconnect.push(id);
-                }
+                toDisconnect.push(id);
             }
             for (const id of toDisconnect) {
                 await this.closeTerminal(id).catch((e) => {
@@ -96,13 +94,13 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    async closeTerminal(handle: TerminalHandle): Promise<void> {
+    public async closeTerminal(handle: TerminalHandle): Promise<void> {
         await withTimeout(this.send_min_socket(false, handle), 500, "Close MIN socket");
         await super.closeTerminal(handle);
     }
 
-    async startTerminal(handle: TerminalHandle): Promise<void> {
-        await super.startTerminal(handle);
+    public async startTerminal(handle: TerminalHandle, dataCallback: (data: Buffer) => void): Promise<void> {
+        await super.startTerminal(handle, dataCallback);
         await this.send_min_socket(true, handle);
         if (this.getFeatureValue(FEATURE_NOTELEMETRY) !== "1") {
             this.connectionsToSetTTerm.push(handle);
@@ -261,15 +259,15 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    getMaxTerminalID(): number {
-        return 4;
-    }
-
-    isMultiTerminal(): boolean {
+    public isMultiTerminal(): boolean {
         return true;
     }
 
-    getFeatureValue(feature: string): string {
+    public getManualTerminalID(): TerminalHandle {
+        return 1;
+    }
+
+    public getFeatureValue(feature: string): string {
         return this.actualUDFeatures.get(feature);
     }
 

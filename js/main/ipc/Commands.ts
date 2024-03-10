@@ -13,17 +13,17 @@ export class CommandIPC {
         processIPC.onAsync(channels.commands.saveEEPROM, () => commands.eepromSave());
         processIPC.onAsync(
             channels.commands.setBusState,
-            ($, enable) => enable ? commands.busOn() : commands.busOff(),
+            (enable) => enable ? commands.busOn() : commands.busOff(),
         );
         processIPC.onAsync(
             channels.commands.setKillState,
-            ($, enable) => enable ? commands.setKill() : commands.resetKill(),
+            (enable) => enable ? commands.setKill() : commands.resetKill(),
         );
         processIPC.onAsync(
             channels.commands.setTRState,
-            ($, enable) => commands.setTransientEnabled(enable),
+            (enable) => commands.setTransientEnabled(enable),
         );
-        processIPC.onAsync(channels.commands.setParms, async ($, parms) => {
+        processIPC.onAsync(channels.commands.setParms, async (parms) => {
             for (const [key, value] of parms) {
                 await commands.setParam(key, value);
             }

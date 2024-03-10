@@ -17,7 +17,6 @@ enum State {
 
 export class Connecting implements IConnectionState {
     private readonly connection: UD3Connection;
-    private autoTerminal: TerminalHandle | undefined;
     private state: State = State.waiting_for_ud_connection;
     private readonly stateOnFailure: IConnectionState;
     private doneInitializingAt: number;
@@ -69,7 +68,7 @@ export class Connecting implements IConnectionState {
                 this.connection.tick();
                 return this;
             case State.connected:
-                return new Connected(this.connection, this.autoTerminal, this.idleState);
+                return new Connected(this.connection, this.idleState);
             case State.failed:
                 return this.stateOnFailure;
             default:
@@ -81,30 +80,28 @@ export class Connecting implements IConnectionState {
     }
 
     public getAutoTerminal(): TerminalHandle | undefined {
-        return this.autoTerminal;
+        return this.connection.getAutoTerminalID();
     }
 
     private async connect() {
         this.state = State.connecting;
         ipcs.sliders(this.connection.getCoil()).reinitState(this.idleState.isMulticoil());
         await this.connection.connect();
-        this.autoTerminal = this.connection.setupNewTerminal((data) =>
-            telemetry.receive_main(
+        await this.connection.startTerminal(
+            this.getAutoTerminal(),
+            (data) => telemetry.receive_main(
                 this.connection.getCoil(),
                 data,
                 // After connecting the UD3 will send one alarm per 100 ms, generally less than 20 total. We
                 // do not want to show toasts for these alarms that happened before TT connected, so
                 // consider these 2000 ms as "initializing"
                 this.state === State.initializing || (Date.now() - this.doneInitializingAt) < 2000,
-                undefined,
-            ));
-        if (this.autoTerminal === undefined) {
-            throw new Error("Failed to create a terminal for automatic commands");
-        }
-        await this.connection.startTerminal(this.autoTerminal);
+                true,
+            ),
+        );
         this.state = State.initializing;
         await startConf(this.connection.getCoil());
-        await ipcs.terminal(this.connection.getCoil()).onSlotsAvailable(true);
+        await ipcs.terminal(this.connection.getCoil()).setupManualTerminal();
         this.doneInitializingAt = Date.now();
         this.state = State.connected;
     }

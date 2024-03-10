@@ -146,7 +146,7 @@ export class TelemetryFrameParser {
     }
 }
 
-export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, source: object, initializing: boolean) {
+export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, initializing: boolean) {
     switch (frame.type) {
         case TelemetryEvent.GAUGE32:
         case TelemetryEvent.GAUGE: {
@@ -176,17 +176,17 @@ export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, source: 
             break;
         }
         case TelemetryEvent.CHART_CLEAR: {
-            ipcs.scope(coil).startControlledDraw(frame.title, source);
+            ipcs.scope(coil).startControlledDraw(frame.title);
             break;
         }
         case TelemetryEvent.CHART_LINE: {
-            ipcs.scope(coil).drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex, source);
+            ipcs.scope(coil).drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex);
             break;
         }
         case TelemetryEvent.CHART_TEXT_CENTER:
         case TelemetryEvent.CHART_TEXT: {
             const center = frame.type === TelemetryEvent.CHART_TEXT_CENTER;
-            ipcs.scope(coil).drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center, source);
+            ipcs.scope(coil).drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center);
             break;
         }
         case TelemetryEvent.STATE_SYNC: {

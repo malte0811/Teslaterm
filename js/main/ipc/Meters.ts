@@ -29,16 +29,16 @@ export class MetersIPC {
 
     public configure(meterId: number, min: number, max: number, scale: number, name: string) {
         const config: MeterConfig = {meterId, min, max, scale, name};
-        this.processIPC.sendToAll(this.renderIPCs.meters.configure, config);
+        this.processIPC.send(this.renderIPCs.meters.configure, config);
         this.configs[meterId] =  config;
     }
 
-    public sendConfig(source: object) {
+    public sendConfig() {
         for (const cfg of Object.values(this.configs)) {
-            this.processIPC.sendToWindow(this.renderIPCs.meters.configure, source, cfg);
+            this.processIPC.send(this.renderIPCs.meters.configure, cfg);
         }
         this.sendCentralTelemetry();
-        this.processIPC.sendToWindow(this.renderIPCs.meters.setValue, source, {values: this.lastScaledValues});
+        this.processIPC.send(this.renderIPCs.meters.setValue, {values: this.lastScaledValues});
     }
 
     public getCurrentConfigs() {
@@ -56,7 +56,7 @@ export class MetersIPC {
             }
         });
         if (Object.keys(update).length > 0) {
-            this.processIPC.sendToAll(this.renderIPCs.meters.setValue, {values: update});
+            this.processIPC.send(this.renderIPCs.meters.setValue, {values: update});
             this.sendCentralTelemetry();
         }
     }
@@ -72,6 +72,6 @@ export class MetersIPC {
                 values.push(undefined);
             }
         }
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.setCentralTelemetry, [this.coil, values]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.setCentralTelemetry, [this.coil, values]);
     }
 }

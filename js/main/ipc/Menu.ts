@@ -23,8 +23,8 @@ export class PerCoilMenuIPC {
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
         const mainIPCs = getToMainIPCPerCoil(coil);
-        processIPC.on(mainIPCs.menu.requestUDConfig, async (source) => {
-            requestConfig(this.coil, (cfg) => ipcs.coilMisc(coil).openUDConfig(cfg, source));
+        processIPC.on(mainIPCs.menu.requestUDConfig, async () => {
+            requestConfig(this.coil, (cfg) => ipcs.coilMisc(coil).openUDConfig(cfg));
         });
         processIPC.on(mainIPCs.menu.disconnect, (source) => disconnectFrom(coil));
         processIPC.on(mainIPCs.menu.reconnect, (source) => {
@@ -38,12 +38,12 @@ export class PerCoilMenuIPC {
     public setUD3State(newState: UD3State) {
         if (!newState.equals(this.lastUD3State)) {
             this.lastUD3State = newState;
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, [this.coil, this.lastUD3State]);
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, [this.coil, this.lastUD3State]);
         }
     }
 
-    public sendFullState(target: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, target, [this.coil, this.lastUD3State]);
+    public sendFullState() {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, [this.coil, this.lastUD3State]);
     }
 }
 
@@ -54,22 +54,22 @@ export class CommonMenuIPC {
 
     constructor(processIPC: MultiWindowIPC) {
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, (source) => media_state.startPlaying(source));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, () => media_state.startPlaying());
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());
     }
 
     public setScriptName(scriptName: string) {
         this.lastScriptName = "Script: " + scriptName;
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, this.lastScriptName);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, this.lastScriptName);
     }
 
     public setMediaName(buttonText: string) {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, buttonText);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, buttonText);
         this.lastMediaName = buttonText;
     }
 
-    public sendFullState(target: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, target, this.lastScriptName);
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, target, this.lastMediaName);
+    public sendFullState() {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.setScriptName, this.lastScriptName);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle, this.lastMediaName);
     }
 }
