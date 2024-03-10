@@ -1,8 +1,6 @@
 import React from "react";
 import {Button} from "react-bootstrap";
-import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../../common/IPCConstantsToRenderer";
-import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {Gauge} from "../gauges/Gauge";
 import {CoilState} from "../MainScreen";
@@ -39,7 +37,9 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
             IPC_CONSTANTS_TO_RENDERER.setCentralTelemetry,
             ([coil, values]) => this.setState((oldState) => {
                 const newRows: Row[] = [];
-                const coilColumn = this.props.coils.findIndex(c => c.id === coil);
+                const coilColumn = this.props.coils.findIndex(c => c?.id === coil);
+                // TODO
+                if (coilColumn < 0) { return; }
                 values.forEach((value, i) => {
                     const values: GaugeData[] = [...(oldState.rows[i]?.values || [])];
                     while (values.length < this.props.coils.length) {
@@ -60,7 +60,7 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
     public render() {
         const inRowOrder: React.JSX.Element[] = [<div/>];
         for (const coil of this.props.coils) {
-            inRowOrder.push(<div style={{textAlign: 'center'}}>{coil.name || "Unknown"}</div>);
+            inRowOrder.push(<div style={{textAlign: 'center'}}>{coil?.name || "Unknown"}</div>);
         }
         for (const row of this.state.rows) {
             inRowOrder.push(<div className={'tt-vertical-gauge-label'}>{row.name}</div>);

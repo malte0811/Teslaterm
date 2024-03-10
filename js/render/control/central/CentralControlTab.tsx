@@ -1,13 +1,11 @@
 import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {ConnectionStatus, UD3State} from "../../../common/IPCConstantsToRenderer";
+import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
-import {Gauges} from "../gauges/Gauges";
 import {CoilState} from "../MainScreen";
 import {MenuBar} from "../menu/Menu";
-import {Oscilloscope} from "../scope/Oscilloscope";
 import {Sliders} from "../sliders/Sliders";
 import {Toasts, ToastsProps} from "../Toasts";
 import {TelemetryOverview} from "./TelemetryOverview";
@@ -25,7 +23,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
     }
 
     public render() {
-        const connectedCoils = this.props.coils.filter((c) => c.connection === ConnectionStatus.CONNECTED);
+        const connectedCoils = this.props.coils.filter((c) => c?.connection === ConnectionStatus.CONNECTED);
         const numDisconnected = this.props.coils.length - connectedCoils.length;
         const numKilled = connectedCoils.filter((c) => c.ud.killBitSet).length;
         return (

@@ -14,6 +14,7 @@
 .tt-telemetry-overview {
     overflow-x: auto;
     overflow-y: auto;
+    white-space: nowrap;
 }
 
 .tt-central-telemetry-and-sliders {

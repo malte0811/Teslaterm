@@ -20,6 +20,7 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
     private readonly id: string;
     private gauge?: JustGage;
     private readonly ref: React.RefObject<HTMLDivElement>;
+    private observer?: ResizeObserver;
 
     public constructor(props: any) {
         super(props);
@@ -31,11 +32,15 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
     public componentDidMount() {
         this.reInit();
         if (this.ref.current) {
-            new ResizeObserver( () => this.reInit()).observe(this.ref.current);
+            this.observer = new ResizeObserver( () => this.reInit());
+            this.observer.observe(this.ref.current);
         }
     }
 
     public componentDidUpdate() {
+        if (!this.ref.current || this.ref.current.offsetHeight < 10 || this.ref.current.offsetWidth < 10) {
+            return;
+        }
         if (this.gauge) {
             const newConfig = this.props.config;
             const oldConfig = this.gauge.config;
@@ -57,6 +62,9 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
         if (this.gauge) {
             (this.gauge as any).destroy();
             this.gauge = undefined;
+        }
+        if (this.observer) {
+            this.observer.unobserve(this.ref.current);
         }
     }
 
