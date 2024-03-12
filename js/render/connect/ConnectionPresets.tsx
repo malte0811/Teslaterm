@@ -67,6 +67,12 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 {this.makeNewEntryField()}
                 {presetList}
                 <Button onClick={() => this.setState({inMulticonnect: true})}>Multiconnect</Button>
+                <MulticonnectPopup
+                    darkMode={this.props.darkMode}
+                    presets={this.state.presets}
+                    visible={this.state.inMulticonnect}
+                    close={() => this.setState({inMulticonnect: false})}
+                />
             </div>
         );
     }
@@ -96,12 +102,6 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 <Button disabled={this.props.connecting} onClick={connect}>Connect</Button>
                 <Button disabled={this.props.connecting} onClick={deletePreset} variant={'danger'}>Delete</Button>
             </ButtonGroup>
-            <MulticonnectPopup
-                darkMode={this.props.darkMode}
-                presets={this.state.presets}
-                visible={this.state.inMulticonnect}
-                close={() => this.setState({inMulticonnect: false})}
-            />
         </div>;
     }
 

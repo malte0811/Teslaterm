@@ -1,4 +1,4 @@
-import {Button, Form, FormCheck, Modal} from "react-bootstrap";
+import {Button, Form, Modal} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ConnectionPreset} from "../../common/IPCConstantsToRenderer";
 import {processIPC} from "../ipc/IPCProvider";
@@ -16,7 +16,6 @@ interface MulticonnectState {
     selected: boolean[];
 }
 
-// TODO need a close/abort button
 export class MulticonnectPopup extends TTComponent<MulticonnectProps, MulticonnectState> {
     constructor(props) {
         super(props);
@@ -28,6 +27,7 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
             <Form.Check
                 type={'checkbox'}
                 key={i}
+                id={i.toString()}
                 onChange={ev => this.setSelected(i, ev.target.checked)}
                 checked={this.isSelected(i)}
                 label={preset.name}
