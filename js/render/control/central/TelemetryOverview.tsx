@@ -58,10 +58,7 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
     }
 
     public render() {
-        const inRowOrder: React.JSX.Element[] = [<div/>];
-        for (const coil of this.props.coils) {
-            inRowOrder.push(<div style={{textAlign: 'center'}}>{coil?.name || "Unknown"}</div>);
-        }
+        const inRowOrder: React.JSX.Element[] = [];
         for (const row of this.state.rows) {
             inRowOrder.push(<div className={'tt-vertical-gauge-label'}>{row.name}</div>);
             for (const value of row.values) {
@@ -78,6 +75,10 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
                 }
             }
         }
+        inRowOrder.push(<div/>);
+        for (const coil of this.props.coils) {
+            inRowOrder.push(<div style={{textAlign: 'center'}}>{coil?.name || "Unknown"}</div>);
+        }
         const columnSpec = `min-content repeat(${this.props.coils.length}, 120px)`;
         const rowSpec = `repeat(${this.state.rows.length}, min-content)`;
         return (
@@ -90,7 +91,7 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
                 }}>
                     {...inRowOrder}
                 </div>
-                <Button>Configure</Button>
+                <Button style={{verticalAlign: 'bottom'}}>Configure</Button>
             </div>
         );
     }

@@ -23,4 +23,14 @@
     grid-template-rows: 100%;
     margin-bottom: 10px;
     max-height: 50vh;
+    border-bottom-style: solid;
+    border-width: 1px;
+    padding-bottom: 5px;
+}
+
+.tt-dot {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    display: inline-block;
 }

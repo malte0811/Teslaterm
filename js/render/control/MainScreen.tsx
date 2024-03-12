@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import React from "react";
-import {Button, ButtonToolbar, Col, Modal, Nav, Row, Tab} from "react-bootstrap";
+import {Button, ButtonToolbar, Col, Modal, Nav, OverlayTrigger, Row, Tab, Tooltip} from "react-bootstrap";
 import * as xterm from "xterm";
 import {FitAddon} from "xterm-addon-fit";
 import {CoilID, coilSuffix} from "../../common/constants";
@@ -56,7 +56,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         super(props);
         this.state = {
             coilStates: this.props.coils.map(
-                id => ({connection: ConnectionStatus.IDLE, id, ud: UD3State.DEFAULT_STATE})
+                id => ({connection: ConnectionStatus.IDLE, id, ud: UD3State.DEFAULT_STATE}),
             ),
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
@@ -124,12 +124,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     private renderMultiCoil() {
-        const tabs = this.props.coils.map((coil) => {
-            const coilTitle = this.getTabTitle(coil);
-            return <Nav.Item>
-                <Nav.Link eventKey={"coil" + coilSuffix(coil)}>{coilTitle}</Nav.Link>
-            </Nav.Item>;
-        });
+        const tabs = this.props.coils.map((coil) => this.renderTabTitle(coil));
         tabs.unshift(<Nav.Item>
             <Nav.Link eventKey="control">Control</Nav.Link>
         </Nav.Item>);
@@ -177,6 +172,28 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                 </Tab.Container>
             </div>
         );
+    }
+
+    private renderTabTitle(coil: CoilID) {
+        const coilState = this.getCoilStatus(coil);
+        const coilTitle = coilState?.name || 'Unknown UD3';
+        const [color, tooltip] = (() => {
+            if (coilState.connection === ConnectionStatus.IDLE) {
+                return ['blue', 'Connection lost'];
+            } else if (coilState?.ud.killBitSet) {
+                return ['red', 'Killbit set'];
+            } else {
+                return ['green', 'Operational'];
+            }
+        })();
+        const renderTooltip = (props) => <Tooltip {...props}>{tooltip}</Tooltip>;
+        return <Nav.Item>
+            <Nav.Link eventKey={"coil" + coilSuffix(coil)}>
+                <OverlayTrigger placement={'right'} overlay={renderTooltip}>
+                    <div className={'tt-dot'} style={{background: color}}/>
+                </OverlayTrigger> {coilTitle}
+            </Nav.Link>
+        </Nav.Item>;
     }
 
     private onConnectionChange(coil: CoilID, newState: Partial<CoilState>) {
@@ -250,15 +267,6 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                 <Button variant={'secondary'} onClick={() => confirm(false)}>Abort script</Button>
             </Modal.Footer>
         </Modal>;
-    }
-
-    private getTabTitle(coil: CoilID) {
-        const coilProps = this.getCoilStatus(coil);
-        if (coilProps.name) {
-            return coilProps.name;
-        } else {
-            return 'Unknown UD3';
-        }
     }
 
     private toastUpdater(): ToastUpdater {
