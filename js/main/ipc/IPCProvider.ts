@@ -12,7 +12,7 @@ import {FileUploadIPC} from "./FileUpload";
 import {FlightRecorderIPC} from "./FlightRecorderIPC";
 import {CommonMenuIPC, PerCoilMenuIPC} from "./Menu";
 import {MetersIPC} from "./Meters";
-import {ByCoilMiscIPC, CommonMiscIPC} from "./Misc";
+import {ByCoilMiscIPC, CommonMiscIPC, sendCoilSync} from "./Misc";
 import {ScopeIPC} from "./Scope";
 import {ScriptingIPC} from "./Scripting";
 import {registerCommonSliderIPC, SlidersIPC} from "./sliders";
@@ -141,6 +141,7 @@ export class IPCCollection {
         this.miscByCoil.set(coil, new ByCoilMiscIPC(tempIPC, coil));
         initAlarms(coil);
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
+        sendCoilSync(coil);
     }
 
     public clearCoils() {

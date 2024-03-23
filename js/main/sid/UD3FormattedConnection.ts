@@ -11,7 +11,7 @@ export enum FormatVersion {
 }
 
 export class UD3FormattedConnection implements ISidConnection {
-    public sendToUD: (data: Buffer) => Promise<void>;
+    public sendToUD: (data: Buffer) => any;
     private readonly flushCallback: () => Promise<void>;
     private lastQueuedFrameTime: number | undefined = 0;
     private lastSentFrameTime: number | undefined = 0;
@@ -20,7 +20,7 @@ export class UD3FormattedConnection implements ISidConnection {
     private needsZeroSuffix: boolean = true;
     private readonly coil: CoilID;
 
-    constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => Promise<void>, coil: CoilID) {
+    constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => any, coil: CoilID) {
         this.flushCallback = flushCallback;
         this.sendToUD = sendToUD;
         this.coil = coil;
@@ -35,12 +35,12 @@ export class UD3FormattedConnection implements ISidConnection {
         this.busy = false;
     }
 
-    public async tick() {
+    public tick() {
         let i = 0;
         while (!this.isBusyImpl(this.lastSentFrameTime) && i < 4) {
             const nextFrame = getFirstQueuedFrameAfter(this.lastSentFrameTime);
             if (nextFrame) {
-                await this.sendAbsoluteFrame(nextFrame);
+                this.sendAbsoluteFrame(nextFrame);
             } else {
                 break;
             }
@@ -61,7 +61,7 @@ export class UD3FormattedConnection implements ISidConnection {
         }
     }
 
-    public async sendAbsoluteFrame(frame: AbsoluteSIDFrame): Promise<void> {
+    public sendAbsoluteFrame(frame: AbsoluteSIDFrame) {
         const connection = getOptionalUD3Connection(this.coil);
         if (!connection) {
             return;
@@ -87,7 +87,7 @@ export class UD3FormattedConnection implements ISidConnection {
         // TODO rework command server/client system for multicoil TT
         //  commandServer.sendSIDFrame(frameData, absoluteTime);
         this.lastSentFrameTime = frame.time;
-        await this.sendToUD(data);
+        this.sendToUD(data);
     }
 
     public setBusy(busy: boolean): void {

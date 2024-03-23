@@ -16,6 +16,14 @@ import {getUIConfig, setUIConfig} from "../UIConfig";
 import {ipcs, MainIPC} from "./IPCProvider";
 import {TemporaryIPC} from "./TemporaryIPC";
 
+export function sendCoilSync(coil: CoilID) {
+    ipcs.coilMenu(coil).sendFullState();
+    ipcs.coilMisc(coil).sendSync();
+    ipcs.scope(coil).sendConfig();
+    ipcs.meters(coil).sendConfig();
+    ipcs.sliders(coil).sendSliderSync();
+}
+
 export class ByCoilMiscIPC {
     private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
@@ -89,13 +97,7 @@ export class CommonMiscIPC {
             IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
             () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),
         );
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => forEachCoil((coil) => {
-            ipcs.coilMenu(coil).sendFullState();
-            ipcs.coilMisc(coil).sendSync();
-            ipcs.scope(coil).sendConfig();
-            ipcs.meters(coil).sendConfig();
-            ipcs.sliders(coil).sendSliderSync();
-        }));
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => forEachCoil(sendCoilSync));
     }
 
     public syncTTConfig(configToSync: TTConfig) {

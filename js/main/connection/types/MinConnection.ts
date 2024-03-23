@@ -169,11 +169,11 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    public async tick(): Promise<void> {
+    public tick() {
         if (this.min_wrapper) {
             const maxPerFrame = 200;
 
-            await this.sidConnection.tick();
+            this.sidConnection.tick();
             this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, UD3MinIDs.MEDIA);
             this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, UD3MinIDs.SID);
             if (this.counter > 20) {
@@ -200,7 +200,7 @@ export abstract class MinConnection extends BootloadableConnection {
     }
 
     private async init_min_wrapper(): Promise<void> {
-        const sender = (data) => {
+        const sender = (data: number[]) => {
             if (this.isBootloading()) {
                 return;
             }
