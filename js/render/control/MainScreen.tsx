@@ -207,7 +207,9 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     private makeCloseButton() {
-        const anyConnected = !this.state.coilStates.every((v) => v.connection === ConnectionStatus.IDLE);
+        const anyConnected = !this.props.coils.every(
+            (coil) => this.getCoilStatus(coil).connection === ConnectionStatus.IDLE,
+        );
         if (anyConnected) {
             const disconnectCoil = (id: CoilID) => processIPC.send(getToMainIPCPerCoil(id).menu.disconnect, undefined);
             return <Button

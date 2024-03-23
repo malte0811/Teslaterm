@@ -5,12 +5,12 @@ import {
     parseEventsFromFile,
     parseMINEvents,
 } from "../connection/flightrecorder/FlightRecordingParser";
-import {MultiWindowIPC} from "./IPCProvider";
+import {MainIPC} from "./IPCProvider";
 
 export class FlightRecorderIPC {
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    public constructor(processIPC: MultiWindowIPC) {
+    public constructor(processIPC: MainIPC) {
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.loadFlightRecording,
             (data) => this.loadRecording(data),

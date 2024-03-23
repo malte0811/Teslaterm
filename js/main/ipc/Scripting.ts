@@ -1,16 +1,16 @@
 import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
 
 export class ScriptingIPC {
     private currentScript: Script | null = null;
     private activeConfirmationID = 0;
     private confirmationResolve: (confirmed: boolean) => void;
     private confirmationReject: () => void;
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
         processIPC.on(IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny, (msg) => {
             if (msg.requestID === this.activeConfirmationID && this.confirmationResolve) {

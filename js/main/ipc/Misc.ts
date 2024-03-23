@@ -13,16 +13,17 @@ import {config} from "../init";
 import {media_state} from "../media/media_player";
 import {playMidiData} from "../midi/midi";
 import {getUIConfig, setUIConfig} from "../UIConfig";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class ByCoilMiscIPC {
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
     private lastConnectionState: ConnectionStatus = ConnectionStatus.IDLE;
     private renderIPCs: PerCoilRenderIPCs;
     private udName: string;
 
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
@@ -64,9 +65,9 @@ export class ByCoilMiscIPC {
     }
 }
 export class CommonMiscIPC {
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
             ipcs.menu.sendFullState();

@@ -10,15 +10,16 @@ import {disconnectFrom, getConnectionState} from "../connection/connection";
 import {Idle} from "../connection/state/Idle";
 import {requestConfig} from "../connection/telemetry/TelemetryFrame";
 import {media_state} from "../media/media_player";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class PerCoilMenuIPC {
     private lastUD3State: UD3State = UD3State.DEFAULT_STATE;
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
     private readonly renderIPCs: PerCoilRenderIPCs;
 
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
@@ -50,9 +51,9 @@ export class PerCoilMenuIPC {
 export class CommonMenuIPC {
     private lastScriptName: string = "Script: none";
     private lastMediaName: string = "MIDI-File: none";
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.startMedia, () => media_state.startPlaying());
         processIPC.on(IPC_CONSTANTS_TO_MAIN.menu.stopMedia, () => media_state.stopPlaying());

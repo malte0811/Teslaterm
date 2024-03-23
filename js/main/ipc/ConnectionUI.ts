@@ -8,12 +8,12 @@ import {
 import {clearCoils, multiConnect, singleConnect} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
 import {getUIConfig, setUIConfig} from "../UIConfig";
-import {MultiWindowIPC} from "./IPCProvider";
+import {MainIPC} from "./IPCProvider";
 
 export class ConnectionUIIPC {
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
         this.processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.connect.connect,

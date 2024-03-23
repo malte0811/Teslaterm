@@ -4,20 +4,20 @@ import {
     CentralTelemetryValue,
     getToRenderIPCPerCoil, IPC_CONSTANTS_TO_RENDERER,
     MeterConfig,
-    PerCoilRenderIPCs
+    PerCoilRenderIPCs,
 } from "../../common/IPCConstantsToRenderer";
 import {getUIConfig} from "../UIConfig";
-import {MultiWindowIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class MetersIPC {
     private rawValues: number[] = [];
     private lastScaledValues: number[] = [];
     private readonly configs: MeterConfig[] = [];
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
     private readonly renderIPCs: PerCoilRenderIPCs;
 
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.processIPC = processIPC;
         this.coil = coil;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
@@ -25,12 +25,6 @@ export class MetersIPC {
             IPC_CONSTANTS_TO_RENDERER.centralTab.informTelemetryNames,
             this.configs.map((cfg) => cfg.name),
         ));
-    }
-
-    public clear() {
-        this.configs.length = 0;
-        this.rawValues.length = 0;
-        this.lastScaledValues.length = 0;
     }
 
     public setValue(id: number, value: number) {

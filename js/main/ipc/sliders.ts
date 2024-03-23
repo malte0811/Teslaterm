@@ -6,7 +6,8 @@ import {
     forEachCoilAsync,
     getCoilCommands,
 } from "../connection/connection";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 let relativeOntime: number = 0;
 
@@ -60,12 +61,12 @@ export class SliderState {
 
 export class SlidersIPC {
     private state: SliderState;
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
     private readonly commands: CommandInterface;
     private multicoil: boolean;
 
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.reinitState(false);
         const channels = getToMainIPCPerCoil(coil);
         processIPC.on(channels.sliders.setOntimeAbsolute, (ot) => this.setAbsoluteOntime(ot));
@@ -154,7 +155,7 @@ export class SlidersIPC {
     }
 }
 
-export function registerCommonSliderIPC(processIPC: MultiWindowIPC) {
+export function registerCommonSliderIPC(processIPC: MainIPC) {
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, (c) => c.sliders.setBPS);
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, (c) => c.sliders.setBurstOfftime);
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, (c) => c.sliders.setBurstOntime);

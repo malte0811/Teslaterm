@@ -4,7 +4,7 @@ import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {startBootloading} from "../connection/connection";
 import * as media_player from "../media/media_player";
 import {BlockSender} from "./block";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
 
 export class FileUploadIPC {
     private static async loadFile(name: string, data: number[], coil?: CoilID) {
@@ -30,9 +30,9 @@ export class FileUploadIPC {
         }
     }
 
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MainIPC) {
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.loadFile,
             (file) => FileUploadIPC.loadFile(file.name, file.bytes, file.coil),

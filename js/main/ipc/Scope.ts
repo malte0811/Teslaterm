@@ -1,15 +1,16 @@
 import {CoilID} from "../../common/constants";
 import {getToRenderIPCPerCoil, ScopeTraceConfig} from "../../common/IPCConstantsToRenderer";
-import {MultiWindowIPC} from "./IPCProvider";
+import {MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class ScopeIPC {
     private tickSummary: number[][] = [];
     private sinceLastDraw: number[] = [];
     private configs: ScopeTraceConfig[] = [];
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: TemporaryIPC;
     private coil: CoilID;
 
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.processIPC = processIPC;
         this.coil = coil;
         setInterval(() => this.tick(), 50);

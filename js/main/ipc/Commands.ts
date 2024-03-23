@@ -4,10 +4,11 @@ import {
     IPC_CONSTANTS_TO_MAIN,
 } from "../../common/IPCConstantsToMain";
 import {getCoilCommands} from "../connection/connection";
-import {MultiWindowIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
+import {MainIPC} from "./IPCProvider";
 
 export class CommandIPC {
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         const commands = getCoilCommands(coil);
         const channels = getToMainIPCPerCoil(coil);
         processIPC.onAsync(channels.commands.saveEEPROM, () => commands.eepromSave());
@@ -31,7 +32,7 @@ export class CommandIPC {
     }
 }
 
-export function registerCommonCommandsIPC(processIPC: MultiWindowIPC) {
+export function registerCommonCommandsIPC(processIPC: MainIPC) {
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.commands.setAllKillState, (c) => c.commands.setKillState);
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.commands.setBusState, (c) => c.commands.setBusState);
     processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.commands.setTRState, (c) => c.commands.setTRState);

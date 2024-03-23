@@ -1,4 +1,5 @@
 import {ipcMain} from "electron";
+import {Simulate} from "react-dom/test-utils";
 import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPCToMainKey, PerCoilMainIPCs} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
@@ -15,27 +16,43 @@ import {ByCoilMiscIPC, CommonMiscIPC} from "./Misc";
 import {ScopeIPC} from "./Scope";
 import {ScriptingIPC} from "./Scripting";
 import {registerCommonSliderIPC, SlidersIPC} from "./sliders";
+import {TemporaryIPC} from "./TemporaryIPC";
 import {TerminalIPC} from "./terminal";
+import change = Simulate.change;
 
 type IIPCCallback = (d: any) => void;
 
-export class MultiWindowIPC {
+export interface IPCListenerRegistration {
+    channel: IPCToMainKey<any>;
+    directCallback: IIPCCallback;
+    electronCallback: any;
+}
+
+export class MainIPC {
     private callbacks: Map<string, IIPCCallback[]> = new Map();
 
-    public on<T>(channel: IPCToMainKey<T>, callback: (data: T) => void) {
-        ipcMain.on(channel.channel, (ev, ...args) => callback(args[0] as T));
+    public on<T>(channel: IPCToMainKey<T>, callback: (data: T) => void): IPCListenerRegistration {
+        const electronCallback = (ev, ...args) => callback(args[0] as T);
+        ipcMain.on(channel.channel, electronCallback);
         if (!this.callbacks.has(channel.channel)) {
             this.callbacks.set(channel.channel, []);
         }
         this.callbacks.get(channel.channel).push(callback);
+        return {channel, directCallback: callback, electronCallback};
     }
 
     public onAsync<T>(channel: IPCToMainKey<T>, callback: (data: T) => Promise<any>) {
-        this.on(channel, (data) => {
+        return this.on(channel, (data) => {
             callback(data).catch((err) => {
                 console.error("While processing message on", channel.channel, ", payload", data, ":", err);
             });
         });
+    }
+
+    public unregister(listener: IPCListenerRegistration) {
+        ipcMain.off(listener.channel.channel, listener.electronCallback);
+        const listeners = this.callbacks.get(listener.channel.channel);
+        delete listeners[listeners.indexOf(listener.directCallback)];
     }
 
     // TODO look at "all except" calls
@@ -47,14 +64,13 @@ export class MultiWindowIPC {
 
     public distributeTo<T>(global: IPCToMainKey<T>, perCoil: (channels: PerCoilMainIPCs) => IPCToMainKey<T>) {
         this.on(global, (data) => {
-            forEachCoil((coil) => this.triggerFromWindow(perCoil(getToMainIPCPerCoil(coil)), data));
+            forEachCoil((coil) => {
+                const channel = perCoil(getToMainIPCPerCoil(coil));
+                for (const cb of this.callbacks.get(channel.channel) || []) {
+                    cb(data);
+                }
+            });
         });
-    }
-
-    private triggerFromWindow<T>(channel: IPCToRendererKey<T>, data: T) {
-        for (const cb of this.callbacks.get(channel.channel) || []) {
-            cb(data);
-        }
     }
 }
 
@@ -72,9 +88,10 @@ export class IPCCollection {
     private readonly metersByCoil: Map<CoilID, MetersIPC> = new Map<CoilID, MetersIPC>();
     private readonly scopeByCoil: Map<CoilID, ScopeIPC> = new Map<CoilID, ScopeIPC>();
     private readonly miscByCoil: Map<CoilID, ByCoilMiscIPC> = new Map<CoilID, ByCoilMiscIPC>();
-    private readonly processIPC: MultiWindowIPC;
+    private readonly ipcScopeByCoil: Map<CoilID, TemporaryIPC> = new Map<CoilID, TemporaryIPC>();
+    private readonly processIPC: MainIPC;
 
-    constructor(process: MultiWindowIPC) {
+    constructor(process: MainIPC) {
         this.connectionUI = new ConnectionUIIPC(process);
         this.fileUpload = new FileUploadIPC(process);
         this.flightRecorder = new FlightRecorderIPC(process);
@@ -113,19 +130,22 @@ export class IPCCollection {
     }
 
     public initCoilIPC(coil: CoilID, multicoil: boolean) {
-        this.slidersByCoil.set(coil, new SlidersIPC(this.processIPC, coil));
-        this.menuByCoil.set(coil, new PerCoilMenuIPC(this.processIPC, coil));
-        this.terminalByCoil.set(coil, new TerminalIPC(this.processIPC, coil));
-        this.commandsByCoil.set(coil, new CommandIPC(this.processIPC, coil));
-        this.metersByCoil.set(coil, new MetersIPC(this.processIPC, coil));
-        this.scopeByCoil.set(coil, new ScopeIPC(this.processIPC, coil));
-        this.miscByCoil.set(coil, new ByCoilMiscIPC(this.processIPC, coil));
+        const tempIPC = new TemporaryIPC();
+        this.ipcScopeByCoil.set(coil, tempIPC);
+        this.slidersByCoil.set(coil, new SlidersIPC(tempIPC, coil));
+        this.menuByCoil.set(coil, new PerCoilMenuIPC(tempIPC, coil));
+        this.terminalByCoil.set(coil, new TerminalIPC(tempIPC, coil));
+        this.commandsByCoil.set(coil, new CommandIPC(tempIPC, coil));
+        this.metersByCoil.set(coil, new MetersIPC(tempIPC, coil));
+        this.scopeByCoil.set(coil, new ScopeIPC(tempIPC, coil));
+        this.miscByCoil.set(coil, new ByCoilMiscIPC(tempIPC, coil));
         initAlarms(coil);
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
     }
 
     public clearCoils() {
-        this.metersByCoil.forEach((ipc) => ipc.clear());
+        this.ipcScopeByCoil.forEach((ipc) => ipc.clear());
+        this.ipcScopeByCoil.clear();
         this.slidersByCoil.clear();
         this.menuByCoil.clear();
         this.terminalByCoil.clear();
@@ -140,11 +160,11 @@ export class IPCCollection {
     }
 }
 
-export let processIPC: MultiWindowIPC;
+export let processIPC: MainIPC;
 export let ipcs: IPCCollection;
 
 export function init() {
-    processIPC = new MultiWindowIPC();
+    processIPC = new MainIPC();
     ipcs = new IPCCollection(processIPC);
     registerCommonCommandsIPC(processIPC);
     registerCommonSliderIPC(processIPC);

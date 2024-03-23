@@ -3,15 +3,16 @@ import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
 import {getToRenderIPCPerCoil, PerCoilRenderIPCs} from "../../common/IPCConstantsToRenderer";
 import {getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {receive_main} from "../connection/telemetry";
-import {MultiWindowIPC} from "./IPCProvider";
+import {MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class TerminalIPC {
     private buffer: string = '';
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
     private readonly renderIPCs: PerCoilRenderIPCs;
 
-    constructor(processIPC: MultiWindowIPC, coil: CoilID) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
