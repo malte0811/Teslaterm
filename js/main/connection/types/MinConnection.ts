@@ -44,6 +44,9 @@ export abstract class MinConnection extends BootloadableConnection {
             }
         });
         await this.init_min_wrapper();
+        for (const handle of this.terminalCallbacks.keys()) {
+            await this.sendTerminal(handle);
+        }
         await this.repeatedlySendFrame(UD3MinIDs.EVENT, [EVENT_GET_INFO]);
     }
 
@@ -101,16 +104,8 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public async startTerminal(handle: TerminalHandle, dataCallback: (data: Buffer) => void): Promise<void> {
         await super.startTerminal(handle, dataCallback);
-        await this.send_min_socket(true, handle);
-        if (this.getFeatureValue(FEATURE_NOTELEMETRY) !== "1") {
-            this.connectionsToSetTTerm.push(handle);
-        }
-        if (this.getFeatureValue(FEATURE_MINSID) === "1") {
-            this.sidConnection.switch_format(FormatVersion.v2);
-            this.sidConnection.sendToUD = (data) => this.sendMediaSID(data);
-        } else {
-            this.sidConnection.switch_format(FormatVersion.v1);
-            this.sidConnection.sendToUD = (data) => this.sendMedia(data);
+        if (this.min_wrapper) {
+            await this.sendTerminal(handle);
         }
     }
 
@@ -287,5 +282,19 @@ export abstract class MinConnection extends BootloadableConnection {
             ++tries;
         }
         throw new Error('Failed to send frame in 16 tries');
+    }
+
+    private async sendTerminal(handle: TerminalHandle) {
+        await this.send_min_socket(true, handle);
+        if (this.getFeatureValue(FEATURE_NOTELEMETRY) !== "1") {
+            this.connectionsToSetTTerm.push(handle);
+        }
+        if (this.getFeatureValue(FEATURE_MINSID) === "1") {
+            this.sidConnection.switch_format(FormatVersion.v2);
+            this.sidConnection.sendToUD = (data) => this.sendMediaSID(data);
+        } else {
+            this.sidConnection.switch_format(FormatVersion.v1);
+            this.sidConnection.sendToUD = (data) => this.sendMedia(data);
+        }
     }
 }
