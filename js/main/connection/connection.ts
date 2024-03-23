@@ -3,6 +3,7 @@ import {CoilID} from "../../common/constants";
 import {FlightEventType} from "../../common/FlightRecorderTypes";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {PlayerActivity} from "../../common/MediaTypes";
+import {sleep} from "../helper";
 import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
@@ -139,7 +140,10 @@ export async function singleConnect(args: ConnectionOptions) {
 export async function multiConnect(args: ConnectionOptions[]) {
     await setRelativeOntime(0);
     await Promise.all(args.map(
-        (coilArg) => new Idle(coilArg, true).connect(makeNewCoilID(true)),
+        async (coilArg, i) => {
+            await sleep(100 * i);
+            await new Idle(coilArg, true).connect(makeNewCoilID(true));
+        },
     ));
 }
 
