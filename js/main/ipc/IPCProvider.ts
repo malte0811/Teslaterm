@@ -123,6 +123,21 @@ export class IPCCollection {
         initAlarms(coil);
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
     }
+
+    public clearCoils() {
+        this.metersByCoil.forEach((ipc) => ipc.clear());
+        this.slidersByCoil.clear();
+        this.menuByCoil.clear();
+        this.terminalByCoil.clear();
+        this.commandsByCoil.clear();
+        this.metersByCoil.clear();
+        this.scopeByCoil.clear();
+        this.miscByCoil.clear();
+    }
+
+    public tick100() {
+        this.metersByCoil.forEach((ipc) => ipc.tick());
+    }
 }
 
 export let processIPC: MultiWindowIPC;

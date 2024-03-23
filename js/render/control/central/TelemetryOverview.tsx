@@ -1,9 +1,12 @@
 import React from "react";
 import {Button} from "react-bootstrap";
+import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../../../common/IPCConstantsToRenderer";
+import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {Gauge} from "../gauges/Gauge";
 import {CoilState} from "../MainScreen";
+import {TelemetrySelector} from "./TelemetrySelector";
 
 export interface CentralTelemetryProps {
     coils: CoilState[];
@@ -23,23 +26,30 @@ interface Row {
 
 interface CentralTelemetryState {
     rows: Row[];
+    showingSelector: boolean;
+    allAvailableTelemetry: string[];
 }
 
 export class TelemetryOverview extends TTComponent<CentralTelemetryProps, CentralTelemetryState> {
     constructor(props) {
         super(props);
-        this.state = {rows: []};
+        this.state = {
+            allAvailableTelemetry: [],
+            rows: [],
+            showingSelector: false,
+        };
     }
 
     public componentDidMount() {
-        // TODO explicitly request initial sync, this can race
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.setCentralTelemetry,
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setCentralTelemetry,
             ([coil, values]) => this.setState((oldState) => {
                 const newRows: Row[] = [];
                 const coilColumn = this.props.coils.findIndex(c => c?.id === coil);
                 // TODO
-                if (coilColumn < 0) { return; }
+                if (coilColumn < 0) {
+                    return;
+                }
                 values.forEach((value, i) => {
                     const values: GaugeData[] = [...(oldState.rows[i]?.values || [])];
                     while (values.length < this.props.coils.length) {
@@ -55,6 +65,19 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
                 return {rows: newRows};
             }),
         );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.informTelemetryNames,
+            (names) => this.setState((oldState) => {
+                const allNames = [...oldState.allAvailableTelemetry];
+                for (const name of names) {
+                    if (!allNames.includes(name)) {
+                        allNames.push(name);
+                    }
+                }
+                return {allAvailableTelemetry: allNames};
+            }),
+        );
+        this.requestSync();
     }
 
     public render() {
@@ -91,8 +114,39 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
                 }}>
                     {...inRowOrder}
                 </div>
-                <Button style={{verticalAlign: 'bottom'}}>Configure</Button>
+                <Button
+                    style={{verticalAlign: 'bottom'}}
+                    onClick={() => this.openSelector()}
+                >Configure</Button>
+                <TelemetrySelector
+                    availableNames={this.state.allAvailableTelemetry}
+                    close={() => this.closeSelector()}
+                    shown={this.state.showingSelector}
+                    darkMode={this.props.darkMode}
+                />
             </div>
+        );
+    }
+
+    private openSelector() {
+        this.setState(
+            {
+                allAvailableTelemetry: [],
+                showingSelector: true,
+            },
+            () => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.requestTelemetryNames, undefined),
+        );
+    }
+
+    private closeSelector() {
+        this.setState({showingSelector: false});
+        this.requestSync();
+    }
+
+    private requestSync() {
+        this.setState(
+            {rows: []},
+            () => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync, undefined),
         );
     }
 }

@@ -17,6 +17,10 @@ function makeKey<Type>(channel: string): IPCToRendererKey<Type> {
 // TODO make coil-dependent
 export const IPC_CONSTANTS_TO_RENDERER = {
     alarmList: makeKey<UD3Alarm[]>('alarms'),
+    centralTab: {
+        informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
+        setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
+    },
     connect: {
         connectionError: makeKey<string>('connection-error'),
         setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
@@ -39,7 +43,6 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         redrawMedia: makeKey<MediaState>('scope-draw-media'),
     },
     syncDarkMode: makeKey<boolean>('sync-dark-mode'),
-    setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
     ttConfig: makeKey<TTConfig>('tt-config'),
     registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
     udName: makeKey<[CoilID, string]>('ud-name'),

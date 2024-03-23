@@ -1,4 +1,5 @@
 import {CoilID} from "../../common/constants";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     CentralTelemetryValue,
     getToRenderIPCPerCoil, IPC_CONSTANTS_TO_RENDERER,
@@ -20,7 +21,16 @@ export class MetersIPC {
         this.processIPC = processIPC;
         this.coil = coil;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
-        setInterval(() => this.tick(), 100);
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.centralTab.requestTelemetryNames, () => this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.informTelemetryNames,
+            this.configs.map((cfg) => cfg.name),
+        ));
+    }
+
+    public clear() {
+        this.configs.length = 0;
+        this.rawValues.length = 0;
+        this.lastScaledValues.length = 0;
     }
 
     public setValue(id: number, value: number) {
@@ -45,7 +55,7 @@ export class MetersIPC {
         return this.configs;
     }
 
-    private tick() {
+    public tick() {
         const update: { [id: number]: number } = {};
         this.rawValues.forEach((value, id) => {
             const scale = this.configs[id] ? this.configs[id].scale : 1;
@@ -61,7 +71,7 @@ export class MetersIPC {
         }
     }
 
-    private sendCentralTelemetry() {
+    public sendCentralTelemetry() {
         const values: CentralTelemetryValue[] = [];
         for (const nameToSend of getUIConfig().centralTelemetry) {
             const config = this.configs.find((cfg) => cfg && cfg.name === nameToSend);
@@ -72,6 +82,6 @@ export class MetersIPC {
                 values.push(undefined);
             }
         }
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.setCentralTelemetry, [this.coil, values]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setCentralTelemetry, [this.coil, values]);
     }
 }

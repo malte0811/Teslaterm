@@ -13,6 +13,11 @@ function makeKey<Type>(channel: string): IPCToMainKey<Type> {
 }
 
 export const IPC_CONSTANTS_TO_MAIN = {
+    centralTab: {
+        requestCentralTelemetrySync: makeKey<undefined>('central-telemetry-sync'),
+        requestTelemetryNames: makeKey<undefined>('request-telemetry-names'),
+        setCentralTelemetry: makeKey<string[]>('set-central-telemetry'),
+    },
     clearCoils: makeKey<undefined>('clear-coils'),
     commands: {
         setAllKillState: makeKey<boolean>('set-kill-state'),
@@ -46,7 +51,6 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setBurstOntime: makeKey<number>('slider-set-burst-ontime'),
         setOntimeRelative: makeKey<number>('slider-set-ontime-rel'),
     },
-
 };
 
 export function getToMainIPCPerCoil(coil: CoilID) {

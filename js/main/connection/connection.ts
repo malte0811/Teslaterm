@@ -31,6 +31,7 @@ export function getCoils() {
 
 export function clearCoils() {
     connectionState.clear();
+    ipcs.clearCoils();
     // TODO clear e.g. SID caches
 }
 

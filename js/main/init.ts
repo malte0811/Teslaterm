@@ -1,6 +1,6 @@
 import {TTConfig} from "../common/TTConfig";
 import * as connection from "./connection/connection";
-import {initAlarms} from "./connection/telemetry/Alarms";
+import {ipcs} from "./ipc/IPCProvider";
 import * as IPC from "./ipc/IPCProvider";
 import * as midi from "./midi/midi";
 import * as sid from "./sid/sid";
@@ -12,12 +12,17 @@ export function init() {
     config = loadConfig("config.ini");
     IPC.init();
     setInterval(tick200, 200);
+    setInterval(tick100, 100);
     setInterval(tick20, 20);
     setInterval(tick10, 10);
 }
 
 function tick200() {
     connection.updateSlow();
+}
+
+function tick100() {
+    ipcs.tick100();
 }
 
 function tick20() {

@@ -7,6 +7,7 @@ import {
     UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
+import {forEachCoil} from "../connection/connection";
 import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
 import {media_state} from "../media/media_player";
@@ -25,8 +26,7 @@ export class ByCoilMiscIPC {
         this.coil = coil;
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
-            // TODO the whole concept of assigning terminals can go away, right?
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
             ipcs.coilMenu(coil).sendFullState();
             this.processIPC.send(
                 IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [coil, this.lastConnectionState],
@@ -40,7 +40,7 @@ export class ByCoilMiscIPC {
         });
         processIPC.on(
             getToMainIPCPerCoil(coil).dumpFlightRecorder,
-            async (coil) => getFlightRecorder(coil).exportAsFile(),
+            (coil) => getFlightRecorder(coil).exportAsFile(),
         );
     }
 
@@ -83,6 +83,14 @@ export class CommonMiscIPC {
             setUIConfig({darkMode});
             this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
         });
+        this.processIPC.on(
+            IPC_CONSTANTS_TO_MAIN.centralTab.setCentralTelemetry,
+            (newTelemetryNames) => setUIConfig({centralTelemetry: newTelemetryNames})
+        );
+        this.processIPC.on(
+            IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
+            () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),
+        );
     }
 
     public syncTTConfig(configToSync: TTConfig) {
