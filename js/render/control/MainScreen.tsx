@@ -31,7 +31,7 @@ export interface CoilState {
 interface MainScreenState {
     scriptPopup: ConfirmationRequest;
     scriptPopupShown: boolean;
-    coilStates: CoilState[];
+    coilStates: Map<CoilID, CoilState>;
     toasts: ToastManager;
 }
 
@@ -55,9 +55,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     constructor(props: any) {
         super(props);
         this.state = {
-            coilStates: this.props.coils.map(
-                id => ({connection: ConnectionStatus.IDLE, id, ud: UD3State.DEFAULT_STATE}),
-            ),
+            coilStates: new Map<CoilID, CoilState>(),
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
             toasts: {allToasts: [], nextIndex: 0},
@@ -158,7 +156,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                     overflow: 'hidden',
                                 }}>
                                     <CentralControlTab
-                                        coils={this.state.coilStates}
+                                        coils={this.props.coils.map((c) => this.getCoilStatus(c))}
                                         ttConfig={this.props.ttConfig}
                                         darkMode={this.props.darkMode}
                                         toasts={this.toastsForCoil()}
@@ -199,9 +197,8 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     private onConnectionChange(coil: CoilID, newState: Partial<CoilState>) {
         this.setState((oldState) => {
             const oldCoilState = this.getCoilStatus(coil, oldState);
-            const index = this.props.coils.indexOf(coil);
-            const newStates = [...oldState.coilStates];
-            newStates[index] = {...oldCoilState, ...newState};
+            const newStates = new Map<CoilID, CoilState>(oldState.coilStates);
+            newStates.set(coil, {...oldCoilState, ...newState});
             return {coilStates: newStates};
         });
     }
@@ -222,8 +219,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     private getCoilStatus(coil: CoilID, state?: MainScreenState) {
-        const index = this.props.coils.indexOf(coil);
-        return (state || this.state).coilStates[index] ||
+        return (state || this.state).coilStates.get(coil) ||
             {connection: ConnectionStatus.IDLE, id: coil, ud: UD3State.DEFAULT_STATE};
     }
 
