@@ -139,7 +139,7 @@ export async function singleConnect(args: ConnectionOptions) {
 export async function multiConnect(args: ConnectionOptions[]) {
     await setRelativeOntime(0);
     await Promise.all(args.map(
-        (coilArg) => new Idle(coilArg, true).connect(makeNewCoilID(true))
+        (coilArg) => new Idle(coilArg, true).connect(makeNewCoilID(true)),
     ));
 }
 

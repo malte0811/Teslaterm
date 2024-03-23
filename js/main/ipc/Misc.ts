@@ -26,18 +26,6 @@ export class ByCoilMiscIPC {
         this.coil = coil;
         this.processIPC = processIPC;
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
-            ipcs.coilMenu(coil).sendFullState();
-            this.processIPC.send(
-                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [coil, this.lastConnectionState],
-            );
-            ipcs.scope(coil).sendConfig();
-            ipcs.meters(coil).sendConfig();
-            ipcs.sliders(coil).sendSliderSync();
-            if (this.udName) {
-                this.sendUDName(this.udName);
-            }
-        });
         processIPC.on(
             getToMainIPCPerCoil(coil).dumpFlightRecorder,
             (coil) => getFlightRecorder(coil).exportAsFile(),
@@ -59,8 +47,17 @@ export class ByCoilMiscIPC {
     }
 
     public sendUDName(name: string) {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, name]);
         this.udName = name;
+        this.sendSync();
+    }
+
+    public sendSync() {
+        if (this.udName) {
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, this.udName]);
+        }
+        this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, this.lastConnectionState],
+        );
     }
 
     public init() {
@@ -85,12 +82,19 @@ export class CommonMiscIPC {
         });
         this.processIPC.on(
             IPC_CONSTANTS_TO_MAIN.centralTab.setCentralTelemetry,
-            (newTelemetryNames) => setUIConfig({centralTelemetry: newTelemetryNames})
+            (newTelemetryNames) => setUIConfig({centralTelemetry: newTelemetryNames}),
         );
         this.processIPC.on(
             IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
             () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),
         );
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => forEachCoil((coil) => {
+            ipcs.coilMenu(coil).sendFullState();
+            ipcs.coilMisc(coil).sendSync();
+            ipcs.scope(coil).sendConfig();
+            ipcs.meters(coil).sendConfig();
+            ipcs.sliders(coil).sendSliderSync();
+        }));
     }
 
     public syncTTConfig(configToSync: TTConfig) {
