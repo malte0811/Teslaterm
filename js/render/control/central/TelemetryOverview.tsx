@@ -84,19 +84,24 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
         const inRowOrder: React.JSX.Element[] = [];
         for (const row of this.state.rows) {
             inRowOrder.push(<div className={'tt-vertical-gauge-label'}>{row.name}</div>);
-            for (const value of row.values) {
+            inRowOrder.push(...this.props.coils.map((coil, i) => {
+                const value = row.values[i];
                 if (value) {
-                    inRowOrder.push(<Gauge value={value.value} config={{
-                        max: value.max,
-                        meterId: 0,
-                        min: value.min,
-                        name: "",
-                        scale: 1,
-                    }} darkMode={this.props.darkMode}/>);
+                    return <Gauge
+                        value={value.value}
+                        config={{
+                            max: value.max,
+                            meterId: 0,
+                            min: value.min,
+                            name: "",
+                            scale: 1,
+                        }}
+                        darkMode={this.props.darkMode}
+                    />;
                 } else {
-                    inRowOrder.push(<div/>);
+                    return <div/>;
                 }
-            }
+            }));
         }
         inRowOrder.push(<div/>);
         for (const coil of this.props.coils) {
