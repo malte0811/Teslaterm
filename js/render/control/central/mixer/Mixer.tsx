@@ -1,3 +1,4 @@
+import React from "react";
 import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {TTComponent} from "../../../TTComponent";
@@ -12,12 +13,15 @@ export interface MixerProps {
 // TODO probably move to IPC
 export type VoiceID = number;
 
+type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
+
 interface MixerState {
     // All volumes in percent (0-100)
     masterVolume: number;
     coilVolume: Map<CoilID, number>;
     voiceVolume: Map<VoiceID, number>;
-    selectingByCoil: boolean;
+    specificVolumes: Map<CoilID, Map<VoiceID, number>>;
+    currentLayer: MixerLayer;
 }
 
 export class Mixer extends TTComponent<MixerProps, MixerState> {
@@ -25,26 +29,33 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         super(props);
         this.state = {
             coilVolume: new Map<CoilID, number>(),
+            currentLayer: 'coilMaster',
             masterVolume: 100,
-            selectingByCoil: true,
+            specificVolumes: new Map<CoilID, Map<VoiceID, number>>(),
             voiceVolume: new Map<CoilID, number>(),
         };
     }
 
     public render() {
-        let sliders: JSX.Element[];
-        if (this.state.selectingByCoil) {
+        // TODO highlight button for current layer
+        let sliders: React.JSX.Element[];
+        const layer = this.state.currentLayer;
+        if (layer === 'coilMaster') {
             sliders = this.props.coils.map(state => <MixerSlider
                 title={state.name || 'Unknown'}
                 setValue={(volume) => this.setCoilVolume(state.id, volume)}
                 value={this.getCoilVolume(state.id)}
             />);
+        } else if (layer === 'voiceMaster') {
+            sliders = this.makeVoiceSliders(
+                (id) => this.getVoiceVolume(id),
+                (id, vol) => this.setVoiceVolume(id, vol),
+            );
         } else {
-            sliders = new Array(8).fill(undefined).map((_, i) => <MixerSlider
-                title={`Voice ${i + 1}`}
-                setValue={(volume) => this.setVoiceVolume(i, volume)}
-                value={this.getVoiceVolume(i)}
-            />);
+            sliders = this.makeVoiceSliders(
+                (id) => this.getSpecificVolume(layer, id),
+                (id, vol) => this.setSpecificVolume(layer, id, vol),
+            );
         }
         return <div className={'tt-mixer'}>
             <div className={'tt-mixer-border-box'}>
@@ -59,14 +70,9 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 />
             </div>
             <div className={'tt-mixer-selector'}>
-                <Button
-                    onClick={() => this.setState({selectingByCoil: true})}
-                    style={{width: '100%'}}
-                >By Coil</Button><br/>
-                <Button
-                    onClick={() => this.setState({selectingByCoil: false})}
-                    style={{width: '100%'}}
-                >By Voice</Button>
+                {this.makeLayerButton('coilMaster', "By Coil")}
+                {this.makeLayerButton('voiceMaster', "By Voice")}
+                {...this.props.coils.map((coil) => this.makeLayerButton(coil.id, coil.name || 'Unknown'))}
             </div>
         </div>;
     }
@@ -87,19 +93,55 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         });
     }
 
-    private getVoiceVolume(coil: VoiceID) {
-        if (this.state.coilVolume.has(coil)) {
-            return this.state.coilVolume.get(coil);
+    private getVoiceVolume(voice: VoiceID) {
+        if (this.state.voiceVolume.has(voice)) {
+            return this.state.voiceVolume.get(voice);
         } else {
             return 100;
         }
     }
 
-    private setVoiceVolume(coil: VoiceID, volume: number) {
+    private setVoiceVolume(voice: VoiceID, volume: number) {
         this.setState((oldState) => {
-            const newVoiceVolumes = new Map<VoiceID, number>(oldState.coilVolume);
-            newVoiceVolumes.set(coil, volume);
-            return {coilVolume: newVoiceVolumes};
+            const newVoiceVolumes = new Map<VoiceID, number>(oldState.voiceVolume);
+            newVoiceVolumes.set(voice, volume);
+            return {voiceVolume: newVoiceVolumes};
         });
+    }
+
+    private getSpecificVolume(coil: CoilID, voice: VoiceID) {
+        if (this.state.specificVolumes.has(coil)) {
+            const submap = this.state.specificVolumes.get(coil);
+            if (submap.has(voice)) {
+                return submap.get(voice);
+            }
+        }
+        return 100;
+    }
+
+    private setSpecificVolume(coil: CoilID, voice: VoiceID, volume: number) {
+        this.setState((oldState) => {
+            const newMap = new Map<CoilID, Map<VoiceID, number>>(oldState.specificVolumes);
+            const newSubmap = new Map<VoiceID, number>(newMap.get(coil));
+            newSubmap.set(voice, volume);
+            newMap.set(coil, newSubmap);
+            return {specificVolumes: newMap};
+        });
+    }
+
+    private makeVoiceSliders(getVolume: (id: VoiceID) => number, setVolume: (id: VoiceID, volume: number) => any) {
+        return new Array(8).fill(undefined).map((_, i) => <MixerSlider
+            title={`Voice ${i + 1}`}
+            setValue={(volume) => setVolume(i, volume)}
+            value={getVolume(i)}
+        />);
+    }
+
+    private makeLayerButton(layer: MixerLayer, text: string) {
+        return <Button
+            onClick={() => this.setState({currentLayer: layer})}
+            style={{width: '100%'}}
+            disabled={this.state.currentLayer === layer}
+        >{text}</Button>;
     }
 }
