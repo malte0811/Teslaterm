@@ -38,6 +38,7 @@ export class PlayerState {
     private stopCallback: (() => void) | undefined = undefined;
     private titleInt: string | undefined;
     private stateInt: PlayerActivity = PlayerActivity.idle;
+    private voices: number[] = [0, 1, 2];
 
     public constructor() {
         this.currentFileInt = undefined;
@@ -50,6 +51,7 @@ export class PlayerState {
         file: TransmittedFile,
         type: MediaFileType,
         title: string,
+        voices: number[],
         startCallback?: () => Promise<void>,
         stopCallback?: () => void,
     ) {
@@ -59,6 +61,10 @@ export class PlayerState {
         this.startCallback = startCallback;
         this.stopCallback = stopCallback;
         this.progress = 0;
+        this.voices = voices;
+        const prefix = type === MediaFileType.midi ? 'MIDI file: ' : "SID file: ";
+        ipcs.menu.setMediaName(prefix + title);
+        ipcs.mixer.setVoices(this.voices);
         await forEachCoilAsync(async (coil) => {
             if (hasUD3Connection(coil)) {
                 await getUD3Connection(coil).setSynthByFiletype(type, false);

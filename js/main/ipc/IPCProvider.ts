@@ -13,12 +13,12 @@ import {FlightRecorderIPC} from "./FlightRecorderIPC";
 import {CommonMenuIPC, PerCoilMenuIPC} from "./Menu";
 import {MetersIPC} from "./Meters";
 import {ByCoilMiscIPC, CommonMiscIPC, sendCoilSync} from "./Misc";
+import {MixerIPC} from "./MixerIPC";
 import {ScopeIPC} from "./Scope";
 import {ScriptingIPC} from "./Scripting";
 import {registerCommonSliderIPC, SlidersIPC} from "./sliders";
 import {TemporaryIPC} from "./TemporaryIPC";
 import {TerminalIPC} from "./terminal";
-import change = Simulate.change;
 
 type IIPCCallback = (d: any) => void;
 
@@ -81,6 +81,7 @@ export class IPCCollection {
     public readonly misc: CommonMiscIPC;
     public readonly scripting: ScriptingIPC;
     public readonly menu: CommonMenuIPC;
+    public readonly mixer: MixerIPC;
     private readonly commandsByCoil: Map<CoilID, CommandIPC> = new Map<CoilID, CommandIPC>();
     private readonly terminalByCoil: Map<CoilID, TerminalIPC> = new Map<CoilID, TerminalIPC>();
     private readonly menuByCoil: Map<CoilID, PerCoilMenuIPC> = new Map<CoilID, PerCoilMenuIPC>();
@@ -98,6 +99,7 @@ export class IPCCollection {
         this.misc = new CommonMiscIPC(process);
         this.scripting = new ScriptingIPC(process);
         this.menu = new CommonMenuIPC(process);
+        this.mixer = new MixerIPC(process);
         this.processIPC = process;
     }
 

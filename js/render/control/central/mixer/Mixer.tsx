@@ -1,6 +1,7 @@
 import React from "react";
 import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
+import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
 import {MixerSlider} from "./MixerSlider";
@@ -9,9 +10,6 @@ export interface MixerProps {
     darkMode: boolean;
     coils: CoilState[];
 }
-
-// TODO probably move to IPC
-export type VoiceID = number;
 
 type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
 
@@ -22,6 +20,7 @@ interface MixerState {
     voiceVolume: Map<VoiceID, number>;
     specificVolumes: Map<CoilID, Map<VoiceID, number>>;
     currentLayer: MixerLayer;
+    voices: VoiceID[];
 }
 
 export class Mixer extends TTComponent<MixerProps, MixerState> {
@@ -33,7 +32,15 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             masterVolume: 100,
             specificVolumes: new Map<CoilID, Map<VoiceID, number>>(),
             voiceVolume: new Map<CoilID, number>(),
+            voices: [],
         };
+    }
+
+    public componentDidMount() {
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels,
+            (voices) => this.setState({voices})
+        );
     }
 
     public render() {
@@ -130,8 +137,8 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
     }
 
     private makeVoiceSliders(getVolume: (id: VoiceID) => number, setVolume: (id: VoiceID, volume: number) => any) {
-        return new Array(8).fill(undefined).map((_, i) => <MixerSlider
-            title={`Voice ${i + 1}`}
+        return this.state.voices.map((i) => <MixerSlider
+            title={`Voice ${i}`}
             setValue={(volume) => setVolume(i, volume)}
             value={getVolume(i)}
         />);

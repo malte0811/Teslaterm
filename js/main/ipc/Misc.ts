@@ -97,7 +97,10 @@ export class CommonMiscIPC {
             IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
             () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),
         );
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => forEachCoil(sendCoilSync));
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
+            forEachCoil(sendCoilSync);
+            ipcs.mixer.sendFullState();
+        });
     }
 
     public syncTTConfig(configToSync: TTConfig) {

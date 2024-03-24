@@ -14,12 +14,12 @@ function makeKey<Type>(channel: string): IPCToRendererKey<Type> {
     return {channel};
 }
 
-// TODO make coil-dependent
 export const IPC_CONSTANTS_TO_RENDERER = {
     alarmList: makeKey<UD3Alarm[]>('alarms'),
     centralTab: {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
+        setMediaChannels: makeKey<VoiceID[]>('media-channels'),
     },
     connect: {
         connectionError: makeKey<string>('connection-error'),
@@ -240,3 +240,4 @@ export interface ConnectionPreset {
     options: ConnectionOptions;
 }
 
+export type VoiceID = number;

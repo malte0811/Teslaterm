@@ -58,12 +58,11 @@ async function stopPlayingSID() {
 }
 
 export async function loadSidFile(file: TransmittedFile) {
-    const extension = path.extname(file.name).substr(1).toLowerCase();
+    const extension = path.extname(file.name).substring(1).toLowerCase();
     const name = path.basename(file.name);
-    ipcs.menu.setMediaName("SID-File: " + name);
     if (extension === "dmp") {
         current_sid_source = new DumpSidSource(file.contents);
-        await media_state.loadFile(file, MediaFileType.sid_dmp, name, startPlayingSID, stopPlayingSID);
+        await media_state.loadFile(file, MediaFileType.sid_dmp, name, [0, 1, 2], startPlayingSID, stopPlayingSID);
     } else if (extension === "sid") {
         const source_emulated = new EmulationSidSource(file.contents);
         current_sid_source = source_emulated;
@@ -71,6 +70,7 @@ export async function loadSidFile(file: TransmittedFile) {
             file,
             MediaFileType.sid_emulated,
             source_emulated.sid_info.title,
+            [0, 1, 2],
             startPlayingSID,
             stopPlayingSID,
         );
