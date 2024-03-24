@@ -20,7 +20,6 @@
     transition: opacity .2s;
 }
 
-/*TODO why doesn't electron load this if I put both webkit and moz in the same block?*/
 .tt-slider::-webkit-slider-thumb, .tt-slider-gray::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -35,22 +34,5 @@
 }
 
 .tt-slider-gray::-webkit-slider-thumb {
-    background-color: #a0a0a0;
-}
-
-.tt-slider::-moz-range-thumb, .tt-slider-gray::-moz-range-thumb {
-    -moz-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.tt-slider::-moz-range-thumb {
-    background-color: #0d6efd;
-}
-
-.tt-slider-gray::-moz-range-thumb {
     background-color: #a0a0a0;
 }

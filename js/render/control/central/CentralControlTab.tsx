@@ -8,6 +8,7 @@ import {CoilState} from "../MainScreen";
 import {MenuBar} from "../menu/Menu";
 import {Sliders} from "../sliders/Sliders";
 import {Toasts, ToastsProps} from "../Toasts";
+import {Mixer} from "./mixer/Mixer";
 import {TelemetryOverview} from "./TelemetryOverview";
 
 export interface ControlTabProps {
@@ -52,7 +53,10 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                         level={{level: 'central-control'}}
                     />
                 </div>
-                TODO: "Mixing desk" sliders go here
+                <Mixer
+                    darkMode={this.props.darkMode}
+                    coils={this.props.coils}
+                />
                 <Toasts {...this.props.toasts}/>
             </div>
         );

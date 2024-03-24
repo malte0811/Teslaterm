@@ -1,5 +1,5 @@
+import 'justgage/dist/justgage';
 import React from "react";
-import 'justgage/dist/justgage'
 import {MeterConfig} from "../../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../../TTComponent";
 
@@ -81,6 +81,8 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
             label: this.props.config.name,
             max: this.props.config.max,
             min: this.props.config.min,
+            refreshAnimationTime: 0,
+            startAnimationTime: 0,
             value: this.props.value,
             ...(this.props.darkMode ? DARK_GAUGE_PROPS : {}),
         });
