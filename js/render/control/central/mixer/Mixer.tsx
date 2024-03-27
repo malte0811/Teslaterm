@@ -4,7 +4,7 @@ import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
-import {MixerSlider} from "./MixerSlider";
+import {InstrumentChoice, MixerColumn} from "./MixerColumn";
 
 export interface MixerProps {
     darkMode: boolean;
@@ -18,19 +18,24 @@ interface MixerState {
     masterVolume: number;
     coilVolume: Map<CoilID, number>;
     voiceVolume: Map<VoiceID, number>;
+    voiceProgram: Map<VoiceID, number>;
     specificVolumes: Map<CoilID, Map<VoiceID, number>>;
     currentLayer: MixerLayer;
     voices: VoiceID[];
+    // TODO set based on MIDI file on load?
+    availablePrograms: string[];
 }
 
 export class Mixer extends TTComponent<MixerProps, MixerState> {
     public constructor(props: MixerProps) {
         super(props);
         this.state = {
+            availablePrograms: [],
             coilVolume: new Map<CoilID, number>(),
             currentLayer: 'coilMaster',
             masterVolume: 100,
             specificVolumes: new Map<CoilID, Map<VoiceID, number>>(),
+            voiceProgram: new Map<CoilID, number>(),
             voiceVolume: new Map<CoilID, number>(),
             voices: [],
         };
@@ -39,16 +44,19 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
     public componentDidMount() {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels,
-            (voices) => this.setState({voices})
+            (voices) => this.setState({voices}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIPrograms,
+            (availablePrograms) => this.setState({availablePrograms}),
         );
     }
 
     public render() {
-        // TODO highlight button for current layer
         let sliders: React.JSX.Element[];
         const layer = this.state.currentLayer;
         if (layer === 'coilMaster') {
-            sliders = this.props.coils.map(state => <MixerSlider
+            sliders = this.props.coils.map(state => <MixerColumn
                 title={state.name || 'Unknown'}
                 setValue={(volume) => this.setCoilVolume(state.id, volume)}
                 value={this.getCoilVolume(state.id)}
@@ -70,7 +78,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             </div>
             <div style={{flex: '1 0 auto'}}/>
             <div className={'tt-mixer-border-box'}>
-                <MixerSlider
+                <MixerColumn
                     title={'Master'}
                     setValue={(val) => this.setState({masterVolume: val})}
                     value={this.state.masterVolume}
@@ -136,12 +144,28 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         });
     }
 
+    private setProgram(voice: VoiceID, program: number) {
+        this.setState((oldState) => {
+            const newPrograms = new Map<VoiceID, number>(oldState.voiceProgram);
+            newPrograms.set(voice, program);
+            return {voiceProgram: newPrograms};
+        });
+    }
+
     private makeVoiceSliders(getVolume: (id: VoiceID) => number, setVolume: (id: VoiceID, volume: number) => any) {
-        return this.state.voices.map((i) => <MixerSlider
-            title={`Voice ${i}`}
-            setValue={(volume) => setVolume(i, volume)}
-            value={getVolume(i)}
-        />);
+        return this.state.voices.map((i) => {
+            const program: InstrumentChoice = {
+                available: this.state.availablePrograms,
+                currentChoice: this.state.voiceProgram.get(i) || 0,
+                setValue: (val) => this.setProgram(i, val),
+            };
+            return <MixerColumn
+                title={`Voice ${i}`}
+                setValue={(volume) => setVolume(i, volume)}
+                value={getVolume(i)}
+                program={program}
+            />;
+        });
     }
 
     private makeLayerButton(layer: MixerLayer, text: string) {

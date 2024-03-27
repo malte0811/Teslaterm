@@ -19,6 +19,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     centralTab: {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
+        setMIDIPrograms: makeKey<string[]>('midi-programs'),
         setMediaChannels: makeKey<VoiceID[]>('media-channels'),
     },
     connect: {

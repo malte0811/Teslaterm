@@ -13,8 +13,9 @@ import {config} from "./init";
 export interface UIConfig {
     connectionPresets: ConnectionPreset[];
     darkMode: boolean;
-    // TODO need UI to set this
     centralTelemetry: string[];
+    // TODO get from UD3, or at least set from VMS file?
+    midiPrograms: string[];
 }
 
 let uiConfig: UIConfig | undefined;
@@ -44,6 +45,13 @@ function getFileData() {
         }
         if (object.centralTelemetry === undefined) {
             object.centralTelemetry = [];
+        }
+        if (object.midiPrograms === undefined) {
+            // Matches VMS.example.mcf
+            object.midiPrograms = [
+                "default", "Synthkeyboard", "SynthTrump", "piano", "Trumpo", "Seashore", "Synth Drum", "reverse cymbal",
+                "Bells", "wannabe Guitar", "Drum Map", "SortOf Organ", "80s Synth",
+            ];
         }
         return object;
     } catch (x) {

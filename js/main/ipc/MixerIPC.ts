@@ -1,4 +1,5 @@
 import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {getUIConfig} from "../UIConfig";
 import {MainIPC} from "./IPCProvider";
 
 export class MixerIPC {
@@ -12,10 +13,11 @@ export class MixerIPC {
 
     public setVoices(voices: number[]) {
         this.voices = voices;
-        this.sendFullState();
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels, this.voices);
     }
 
     public sendFullState() {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels, this.voices);
+        this.setVoices(this.voices);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIPrograms, getUIConfig().midiPrograms);
     }
 }
