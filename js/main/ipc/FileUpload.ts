@@ -3,7 +3,7 @@ import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsT
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {startBootloading} from "../connection/connection";
 import * as media_player from "../media/media_player";
-import {BlockSender} from "./block";
+import {loadVMS} from "./block";
 import {ipcs, MainIPC} from "./IPCProvider";
 
 export class FileUploadIPC {
@@ -24,7 +24,7 @@ export class FileUploadIPC {
                 );
             }
         } else if (extension === "mcf") {
-            await BlockSender.loadBlocks(file);
+            loadVMS(file);
         } else {
             await media_player.loadMediaFile(file);
         }
