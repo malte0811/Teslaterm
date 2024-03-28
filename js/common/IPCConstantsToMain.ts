@@ -1,6 +1,6 @@
 import {ConnectionOptions} from './ConnectionOptions';
 import {CoilID, coilSuffix} from "./constants";
-import {ConnectionPreset} from "./IPCConstantsToRenderer";
+import {ConnectionPreset, VoiceID} from "./IPCConstantsToRenderer";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -17,6 +17,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         requestCentralTelemetrySync: makeKey<undefined>('central-telemetry-sync'),
         requestTelemetryNames: makeKey<undefined>('request-telemetry-names'),
         setCentralTelemetry: makeKey<string[]>('set-central-telemetry'),
+        setMIDIProgramOverride: makeKey<[VoiceID, number]>('set-program-override'),
     },
     clearCoils: makeKey<undefined>('clear-coils'),
     commands: {

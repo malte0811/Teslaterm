@@ -1,21 +1,39 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {VoiceID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {player, startCurrentMidiFile, stopMidiFile} from "./midi";
 
+// TODO for some reason MidiPlayer::getEvents() is a 2-dim array despite the signature?
+function fixBrokenArray<T>(reallyTwoDimArray: T[]): T[] {
+    const result: T[] = [];
+    for (const subarray of reallyTwoDimArray) {
+        result.push(...(subarray as unknown as T[]));
+    }
+    return result;
+}
+
 export async function loadMidiFile(file: TransmittedFile) {
     player.loadArrayBuffer(file.contents);
-    // TODO for some reason getEvents() is a 2-dim array despite the signature?
-    const events = player.getEvents()[0] as unknown as Array<{channel?: number}>;
-    const uniqueChannels = [];
-    let last = -1234;
-    for (const channel of events.map((ev) => ev.channel).sort((i, j) => i - j)) {
-        if (channel !== last && channel !== undefined) {
-            last = channel;
-            uniqueChannels.push(channel);
+    const events = fixBrokenArray(player.getEvents());
+    const uniqueChannels: number[] = [];
+    const programByChannel = new Map<VoiceID, number>();
+    const multiProgramChannels = new Set<VoiceID>();
+    for (const event of events) {
+        if (event.channel !== undefined && !uniqueChannels.includes(event.channel)) {
+            uniqueChannels.push(event.channel);
+        }
+        if (event.name === 'Program Change' && !multiProgramChannels.has(event.channel)) {
+            if (programByChannel.has(event.channel) && programByChannel.get(event.channel) !== event.value) {
+                console.warn(`Channel ${event.channel} has multiple program change events!`);
+                multiProgramChannels.add(event.channel);
+                programByChannel.delete(event.channel);
+            }
+            programByChannel.set(event.channel, event.value);
         }
     }
+    uniqueChannels.sort((a, b) => a - b);
     await media_state.loadFile(
         file,
         MediaFileType.midi,
@@ -24,6 +42,6 @@ export async function loadMidiFile(file: TransmittedFile) {
         startCurrentMidiFile,
         stopMidiFile,
     );
-    console.log(`Used channels: ${uniqueChannels}`);
+    ipcs.mixer.setProgramsByVoice(programByChannel);
     ipcs.misc.updateMediaInfo();
 }

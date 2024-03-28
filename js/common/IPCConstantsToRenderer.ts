@@ -18,8 +18,9 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     alarmList: makeKey<UD3Alarm[]>('alarms'),
     centralTab: {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
+        setAvailableMIDIPrograms: makeKey<string[]>('midi-programs'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
-        setMIDIPrograms: makeKey<string[]>('midi-programs'),
+        setMIDIProgramsByChannel: makeKey<Map<VoiceID, number>>('media-programs-by-channel'),
         setMediaChannels: makeKey<VoiceID[]>('media-channels'),
     },
     connect: {

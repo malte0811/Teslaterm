@@ -1,10 +1,12 @@
 import * as MidiPlayer from "midi-player-js";
+import {VoiceID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {forEachCoil, forEachCoilAsync, getConnectionState, hasUD3Connection} from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
+import {maybeRedirectEvent} from "./MidiRedirector";
 
 export const kill_msg = Buffer.of(0xB0, 0x77, 0x00);
 
@@ -61,8 +63,15 @@ function getVarIntLength(byteArray, base) {
 
 let received_event = false;
 
+export function sendProgramChange(voice: VoiceID, program: number) {
+    return playMidiData([0xc0 | (voice - 1), program]);
+}
+
 export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     received_event = true;
+    if (await maybeRedirectEvent(event)) {
+        return true;
+    }
     const trackObj = player.tracks[event.track - 1];
     // tslint:disable-next-line:no-string-literal
     const track: number[] = trackObj["data"];

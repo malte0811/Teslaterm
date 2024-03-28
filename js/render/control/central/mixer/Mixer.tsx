@@ -1,7 +1,9 @@
 import React from "react";
 import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
+import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../../../common/IPCConstantsToRenderer";
+import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
 import {InstrumentChoice, MixerColumn} from "./MixerColumn";
@@ -22,7 +24,6 @@ interface MixerState {
     specificVolumes: Map<CoilID, Map<VoiceID, number>>;
     currentLayer: MixerLayer;
     voices: VoiceID[];
-    // TODO set based on MIDI file on load?
     availablePrograms: string[];
 }
 
@@ -47,8 +48,12 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             (voices) => this.setState({voices}),
         );
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIPrograms,
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms,
             (availablePrograms) => this.setState({availablePrograms}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel,
+            (voiceProgram) => this.setState({voiceProgram}),
         );
     }
 
@@ -150,6 +155,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             newPrograms.set(voice, program);
             return {voiceProgram: newPrograms};
         });
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, [voice, program]);
     }
 
     private makeVoiceSliders(getVolume: (id: VoiceID) => number, setVolume: (id: VoiceID, volume: number) => any) {
