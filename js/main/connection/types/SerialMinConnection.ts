@@ -41,6 +41,7 @@ class MinSerialConnection extends MinConnection {
     }
 
     public releaseResources() {
+        super.releaseResources();
         if (this.serialPort) {
             if (this.serialPort.isOpen) {
                 this.serialPort.close();

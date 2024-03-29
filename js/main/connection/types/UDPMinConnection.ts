@@ -31,6 +31,7 @@ class UDPMinConnection extends MinConnection {
     }
 
     public releaseResources() {
+        super.releaseResources();
         if (this.socket) {
             try {
                 this.socket.close();

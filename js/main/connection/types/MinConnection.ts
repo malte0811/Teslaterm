@@ -50,6 +50,10 @@ export abstract class MinConnection extends BootloadableConnection {
         await this.repeatedlySendFrame(UD3MinIDs.EVENT, [EVENT_GET_INFO]);
     }
 
+    public releaseResources() {
+        this.min_wrapper = undefined;
+    }
+
     public async sendDisconnectData() {
         try {
             const toDisconnect = [];
