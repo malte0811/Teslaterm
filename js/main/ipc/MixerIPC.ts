@@ -31,9 +31,13 @@ export class MixerIPC {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel, this.programByVoice);
     }
 
+    public sendAvailablePrograms() {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms, getUIConfig().midiPrograms);
+    }
+
     public sendFullState() {
         this.setVoices(this.voices);
         this.setProgramsByVoice(this.programByVoice);
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms, getUIConfig().midiPrograms);
+        this.sendAvailablePrograms();
     }
 }

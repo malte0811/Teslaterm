@@ -1,6 +1,7 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {ToastSeverity, VoiceID} from "../../common/IPCConstantsToRenderer";
 import {forEachCoil, getConnectionState} from "../connection/connection";
+import {setUIConfig} from "../UIConfig";
 import {ipcs} from "./IPCProvider";
 
 class VMSDataMap {
@@ -73,13 +74,15 @@ export function loadVMS(file: TransmittedFile) {
     try {
         ipcs.misc.openGenericToast('VMS', "Load VMS file: " + file.name, ToastSeverity.info);
         const data = parseVMSToStructuredMap(file.contents);
-        const blocks = parseProgramsFromStructure(data.getAsMap('MidiPrograms'));
-        const totalBlocks = blocks.map(
+        const programs = parseProgramsFromStructure(data.getAsMap('MidiPrograms'));
+        const totalBlocks = programs.map(
             p => p.maps.map(map => map.blocks.length).reduce((a, b) => a + b),
         ).reduce((a, b) => a + b);
         ipcs.misc.openGenericToast('VMS', "Found " + totalBlocks + " blocks", ToastSeverity.info);
-        sendBlocks(blocks);
-
+        sendBlocks(programs);
+        ipcs.mixer.setProgramsByVoice(new Map<VoiceID, number>());
+        setUIConfig({midiPrograms: programs.map((p) => p.name)});
+        ipcs.mixer.sendAvailablePrograms();
     } catch (e) {
         ipcs.misc.openGenericToast('VMS', "Failed to load blocks: " + e, ToastSeverity.error);
         console.error(e);
