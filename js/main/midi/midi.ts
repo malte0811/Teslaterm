@@ -1,4 +1,5 @@
 import * as MidiPlayer from "midi-player-js";
+import {CoilID} from "../../common/constants";
 import {VoiceID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {forEachCoil, forEachCoilAsync, getConnectionState, hasUD3Connection} from "../connection/connection";
@@ -67,6 +68,20 @@ export function sendProgramChange(voice: VoiceID, program: number) {
     return playMidiData([0xc0 | (voice - 1), program]);
 }
 
+export function sendVolume(coil: CoilID, voice: VoiceID, volumePercent: number) {
+    return playMidiDataOn(
+        coil,
+        [
+            // Controller change command
+            0xb0 | (voice - 1),
+            // Volume change
+            7,
+            // Actual volume (0-127)
+            volumePercent * 127 / 100,
+        ],
+    );
+}
+
 export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     received_event = true;
     if (await maybeRedirectEvent(event)) {
@@ -87,15 +102,17 @@ export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     return playMidiData(data);
 }
 
+async function playMidiDataOn(coil: CoilID, data: number[] | Uint8Array) {
+    await checkTransientDisabled(coil);
+    const connectionState = getConnectionState(coil);
+    if (connectionState instanceof Connected) {
+        await connectionState.sendMIDI(Buffer.from(data));
+    }
+}
+
 export async function playMidiData(data: number[] | Uint8Array): Promise<boolean> {
     if (data[0] !== 0x00) {
-        await checkTransientDisabled();
-        await forEachCoilAsync(async (coil) => {
-            const connectionState = getConnectionState(coil);
-            if (connectionState instanceof Connected) {
-                await connectionState.sendMIDI(Buffer.from(data));
-            }
-        });
+        await forEachCoilAsync(async (coil) => playMidiDataOn(coil, data));
         return true;
     } else {
         return false;

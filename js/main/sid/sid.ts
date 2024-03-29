@@ -3,7 +3,7 @@ import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {forEachCoil, forEachCoilAsync} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
-import {checkTransientDisabled, isSID, media_state} from "../media/media_player";
+import {checkAllTransientDisabled, checkTransientDisabled, isSID, media_state} from "../media/media_player";
 import * as microtime from "../microtime";
 import {getActiveSIDConnection} from "./ISidConnection";
 import {AbsoluteSIDFrame, ISidSource, SidFrame} from "./sid_api";
@@ -86,7 +86,7 @@ export function update() {
 
 async function updateAsync() {
     if (current_sid_source && media_state.state === PlayerActivity.playing && isSID(media_state.type)) {
-        await checkTransientDisabled();
+        await checkAllTransientDisabled();
         const now = microtime.now();
         while (queuedFutureFrames.length > 0 && queuedFutureFrames[0].time < now) {
             queuedFutureFrames.shift();

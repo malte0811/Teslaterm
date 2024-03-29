@@ -113,16 +113,18 @@ export let media_state = new PlayerState();
 
 const lastTimeoutReset: Map<CoilID, number> = new Map<CoilID, number>();
 
-export async function checkTransientDisabled() {
-    await forEachCoilAsync(async (coil) => {
-        if (getUD3State(coil).transientActive) {
-            const currTime = new Date().getTime();
-            if (!lastTimeoutReset.has(coil) || currTime - lastTimeoutReset.get(coil) > 500) {
-                await getCoilCommands(coil).setTransientEnabled(false);
-                lastTimeoutReset.set(coil, currTime);
-            }
+export async function checkTransientDisabled(coil: CoilID) {
+    if (getUD3State(coil).transientActive) {
+        const currTime = new Date().getTime();
+        if (!lastTimeoutReset.has(coil) || currTime - lastTimeoutReset.get(coil) > 500) {
+            await getCoilCommands(coil).setTransientEnabled(false);
+            lastTimeoutReset.set(coil, currTime);
         }
-    });
+    }
+}
+
+export async function checkAllTransientDisabled() {
+    await forEachCoilAsync(checkTransientDisabled);
 }
 
 export function isMediaFile(filename: string): boolean {
@@ -131,13 +133,6 @@ export function isMediaFile(filename: string): boolean {
 }
 
 export async function loadMediaFile(file: TransmittedFile): Promise<void> {
-    /*TODO
-    if (connectionState.getCommandRole() === "client") {
-        ipcs.misc.openGenericToast(
-            'Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client'
-        );
-        return;
-    }*/
     if (media_state.state === PlayerActivity.playing) {
         media_state.stopPlaying();
     }

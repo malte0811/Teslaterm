@@ -3,6 +3,7 @@ import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../../../common/IPCConstantsToRenderer";
+import {VolumeKey, VolumeMap} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
@@ -16,12 +17,8 @@ export interface MixerProps {
 type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
 
 interface MixerState {
-    // All volumes in percent (0-100)
-    masterVolume: number;
-    coilVolume: Map<CoilID, number>;
-    voiceVolume: Map<VoiceID, number>;
+    volumes: VolumeMap;
     voiceProgram: Map<VoiceID, number>;
-    specificVolumes: Map<CoilID, Map<VoiceID, number>>;
     currentLayer: MixerLayer;
     voices: VoiceID[];
     availablePrograms: string[];
@@ -32,13 +29,10 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         super(props);
         this.state = {
             availablePrograms: [],
-            coilVolume: new Map<CoilID, number>(),
             currentLayer: 'coilMaster',
-            masterVolume: 100,
-            specificVolumes: new Map<CoilID, Map<VoiceID, number>>(),
             voiceProgram: new Map<CoilID, number>(),
-            voiceVolume: new Map<CoilID, number>(),
             voices: [],
+            volumes: new VolumeMap(),
         };
     }
 
@@ -63,19 +57,13 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         if (layer === 'coilMaster') {
             sliders = this.props.coils.map(state => <MixerColumn
                 title={state.name || 'Unknown'}
-                setValue={(volume) => this.setCoilVolume(state.id, volume)}
-                value={this.getCoilVolume(state.id)}
+                setValue={(volume) => this.setVolume({coil: state.id}, volume)}
+                value={this.getVolume({coil: state.id})}
             />);
         } else if (layer === 'voiceMaster') {
-            sliders = this.makeVoiceSliders(
-                (id) => this.getVoiceVolume(id),
-                (id, vol) => this.setVoiceVolume(id, vol),
-            );
+            sliders = this.makeVoiceSliders(undefined);
         } else {
-            sliders = this.makeVoiceSliders(
-                (id) => this.getSpecificVolume(layer, id),
-                (id, vol) => this.setSpecificVolume(layer, id, vol),
-            );
+            sliders = this.makeVoiceSliders(layer);
         }
         return <div className={'tt-mixer'}>
             <div className={'tt-mixer-border-box'}>
@@ -85,8 +73,8 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             <div className={'tt-mixer-border-box'}>
                 <MixerColumn
                     title={'Master'}
-                    setValue={(val) => this.setState({masterVolume: val})}
-                    value={this.state.masterVolume}
+                    setValue={(val) => this.setVolume({}, val)}
+                    value={this.getVolume({})}
                 />
             </div>
             <div className={'tt-mixer-selector'}>
@@ -97,56 +85,13 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         </div>;
     }
 
-    private getCoilVolume(coil: CoilID) {
-        if (this.state.coilVolume.has(coil)) {
-            return this.state.coilVolume.get(coil);
-        } else {
-            return 100;
-        }
+    private getVolume(key: VolumeKey) {
+        return this.state.volumes.getIndividualVolume(key);
     }
 
-    private setCoilVolume(coil: CoilID, volume: number) {
-        this.setState((oldState) => {
-            const newCoilVolumes = new Map<CoilID, number>(oldState.coilVolume);
-            newCoilVolumes.set(coil, volume);
-            return {coilVolume: newCoilVolumes};
-        });
-    }
-
-    private getVoiceVolume(voice: VoiceID) {
-        if (this.state.voiceVolume.has(voice)) {
-            return this.state.voiceVolume.get(voice);
-        } else {
-            return 100;
-        }
-    }
-
-    private setVoiceVolume(voice: VoiceID, volume: number) {
-        this.setState((oldState) => {
-            const newVoiceVolumes = new Map<VoiceID, number>(oldState.voiceVolume);
-            newVoiceVolumes.set(voice, volume);
-            return {voiceVolume: newVoiceVolumes};
-        });
-    }
-
-    private getSpecificVolume(coil: CoilID, voice: VoiceID) {
-        if (this.state.specificVolumes.has(coil)) {
-            const submap = this.state.specificVolumes.get(coil);
-            if (submap.has(voice)) {
-                return submap.get(voice);
-            }
-        }
-        return 100;
-    }
-
-    private setSpecificVolume(coil: CoilID, voice: VoiceID, volume: number) {
-        this.setState((oldState) => {
-            const newMap = new Map<CoilID, Map<VoiceID, number>>(oldState.specificVolumes);
-            const newSubmap = new Map<VoiceID, number>(newMap.get(coil));
-            newSubmap.set(voice, volume);
-            newMap.set(coil, newSubmap);
-            return {specificVolumes: newMap};
-        });
+    private setVolume(key: VolumeKey, volume: number) {
+        this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)}));
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, [key, volume]);
     }
 
     private setProgram(voice: VoiceID, program: number) {
@@ -158,7 +103,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, [voice, program]);
     }
 
-    private makeVoiceSliders(getVolume: (id: VoiceID) => number, setVolume: (id: VoiceID, volume: number) => any) {
+    private makeVoiceSliders(coil?: CoilID) {
         return this.state.voices.map((i) => {
             const program: InstrumentChoice = {
                 available: this.state.availablePrograms,
@@ -167,8 +112,8 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             };
             return <MixerColumn
                 title={`Voice ${i}`}
-                setValue={(volume) => setVolume(i, volume)}
-                value={getVolume(i)}
+                setValue={(volume) => this.setVolume({voice: i, coil}, volume)}
+                value={this.getVolume({voice: i, coil})}
                 program={program}
             />;
         });
