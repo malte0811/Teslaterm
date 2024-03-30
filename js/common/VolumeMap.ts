@@ -41,12 +41,10 @@ export class VolumeMap {
     }
 
     public getTotalVolume(coil: CoilID, voice: VoiceID) {
-        const result = this.getIndividualVolume({coil, voice}) / 100 *
+        return this.getIndividualVolume({coil, voice}) / 100 *
             this.getIndividualVolume({coil}) / 100 *
             this.getIndividualVolume({voice}) / 100 *
             this.getIndividualVolume({});
-        console.log(result);
-        return result;
     }
 
     public with(key: VolumeKey, newValue: number) {
