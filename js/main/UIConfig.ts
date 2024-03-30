@@ -22,46 +22,52 @@ let uiConfig: UIConfig | undefined;
 const FILENAME = 'tt-ui-config.json';
 
 function getFileData() {
-    try {
-        const json = convertArrayBufferToString(fs.readFileSync(FILENAME));
-        const object: UIConfig = JSON.parse(json);
-        for (const preset of object.connectionPresets) {
-            if (!preset.options.advanced) {
-                preset.options.advanced = getDefaultAdvancedOptions(config);
-            }
-            const type = preset.options.connectionType;
-            if (type === UD3ConnectionType.serial_min || type === UD3ConnectionType.serial_plain) {
-                const options = preset.options.options;
-                if (options.autoconnect === undefined) {
-                    options.autoconnect = options.serialPort && options.serialPort !== "";
-                }
-                options.serialPort = options.serialPort || getDefaultSerialPortForConfig();
-                options.autoProductID = options.autoProductID || DEFAULT_SERIAL_PRODUCT;
-                options.autoVendorID = options.autoVendorID || DEFAULT_SERIAL_VENDOR;
-            }
+    const object: Partial<UIConfig> = (() => {
+        try {
+            const json = convertArrayBufferToString(fs.readFileSync(FILENAME));
+            return JSON.parse(json);
+        } catch (x) {
+            console.warn("Failed to read UI config:", x);
+            return {};
         }
-        if (object.darkMode === undefined) {
-            object.darkMode = false;
-        }
-        if (object.centralTelemetry === undefined) {
-            object.centralTelemetry = [];
-        }
-        if (object.midiPrograms === undefined) {
-            // Matches VMS.example.mcf
-            object.midiPrograms = [
-                "default", "Synthkeyboard", "SynthTrump", "piano", "Trumpo", "Seashore", "Synth Drum", "reverse cymbal",
-                "Bells", "wannabe Guitar", "Drum Map", "SortOf Organ", "80s Synth",
-            ];
-        }
-        return object;
-    } catch (x) {
-        console.log("Failed to read UI config:", x);
+    })();
+    if (object.connectionPresets === undefined) {
+        object.connectionPresets = [];
     }
+    for (const preset of object.connectionPresets) {
+        if (!preset.options.advanced) {
+            preset.options.advanced = getDefaultAdvancedOptions(config);
+        }
+        const type = preset.options.connectionType;
+        if (type === UD3ConnectionType.serial_min || type === UD3ConnectionType.serial_plain) {
+            const options = preset.options.options;
+            if (options.autoconnect === undefined) {
+                options.autoconnect = options.serialPort && options.serialPort !== "";
+            }
+            options.serialPort = options.serialPort || getDefaultSerialPortForConfig();
+            options.autoProductID = options.autoProductID || DEFAULT_SERIAL_PRODUCT;
+            options.autoVendorID = options.autoVendorID || DEFAULT_SERIAL_VENDOR;
+        }
+    }
+    if (object.darkMode === undefined) {
+        object.darkMode = false;
+    }
+    if (object.centralTelemetry === undefined) {
+        object.centralTelemetry = [];
+    }
+    if (object.midiPrograms === undefined) {
+        // Matches VMS.example.mcf
+        object.midiPrograms = [
+            "default", "Synthkeyboard", "SynthTrump", "piano", "Trumpo", "Seashore", "Synth Drum", "reverse cymbal",
+            "Bells", "wannabe Guitar", "Drum Map", "SortOf Organ", "80s Synth",
+        ];
+    }
+    return object as UIConfig;
 }
 
 export function getUIConfig() {
     if (!uiConfig) {
-        uiConfig = {connectionPresets: [], ...getFileData()};
+        uiConfig = getFileData();
     }
     return uiConfig;
 }
