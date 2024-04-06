@@ -30,7 +30,6 @@ export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, 
         print = (s) => {
             if (s === '\n' || s === '\r') {
                 if (consoleLine !== "") {
-                    //console.log(consoleLine);
                     consoleLine = "";
                 }
             } else if (s !== '\u0000') {
@@ -38,10 +37,6 @@ export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, 
             }
         };
     }
-    const handleFrame = (frame) => {
-        if (onAutoTerminal || !getUD3Connection(coil).isMultiTerminal()) {
-            sendTelemetryFrame(frame, coil, initializing);
-        }
-    };
+    const handleFrame = (frame) => sendTelemetryFrame(frame, coil, initializing);
     getOrCreateChannel(coil).processBytes(buf, print, handleFrame);
 }
