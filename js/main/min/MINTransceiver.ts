@@ -1,7 +1,7 @@
 import {
     ACK_BYTE,
     get4ByteBigEndian, injectErrors,
-    MIN_DEBUG, MIN_INJECT_ERRORS,
+    MIN_DEBUG, MIN_INJECT_ERRORS, MINDataBuffer,
     RESET,
     toBigEndianBytes,
     TRANSPORT_MAX_WINDOW_SIZE,
@@ -57,7 +57,7 @@ export class MINTransceiver {
         return this.transport_fifo.frames.length / TRANSPORT_MAX_WINDOW_SIZE;
     }
 
-    public onReceived(buf: Buffer) {
+    public onReceived(buf: MINDataBuffer) {
         if (MIN_INJECT_ERRORS) {
             injectErrors(buf);
         }

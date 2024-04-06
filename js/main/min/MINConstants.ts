@@ -10,6 +10,12 @@ export const MAX_PAYLOAD = 255;
 export const MIN_DEBUG = false;
 export const MIN_INJECT_ERRORS = false;
 
+export interface MINDataBuffer {
+    length: number;
+    [n: number]: number;
+    [Symbol.iterator](): Iterator<number>;
+}
+
 export function get4ByteBigEndian(data: number[], firstByteIndex: number) {
     return (data[firstByteIndex] << 24)
         | (data[firstByteIndex + 1] << 16)
@@ -26,7 +32,7 @@ export function toBigEndianBytes(value: number) {
     ];
 }
 
-export function injectErrors(data: Buffer | number[]) {
+export function injectErrors(data: MINDataBuffer) {
     for (let i = 0; i < data.length; ++i) {
         const bitToModify = Math.floor(1000 * 8 * Math.random());
         if (bitToModify < 8) {
