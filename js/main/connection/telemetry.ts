@@ -1,12 +1,11 @@
 import {CoilID} from "../../common/constants";
+import {TelemetryFrame} from "../../common/TelemetryTypes";
 import {ipcs} from "../ipc/IPCProvider";
-import {getUD3Connection} from "./connection";
 import {resetResponseTimeout} from "./state/Connected";
 import {TelemetryChannel} from "./telemetry/TelemetryChannel";
 import {sendTelemetryFrame} from "./telemetry/TelemetryFrame";
 
 const channels: Map<CoilID, Map<object, TelemetryChannel>> = new Map();
-let consoleLine: string = "";
 
 function getOrCreateChannel(coil: CoilID, source?: object) {
     if (!channels.has(coil)) {
@@ -20,23 +19,15 @@ function getOrCreateChannel(coil: CoilID, source?: object) {
 }
 
 export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, onAutoTerminal: boolean) {
-    const buf = new Uint8Array(data);
     resetResponseTimeout(coil);
-    let print: (s: string) => void;
 
-    if (!onAutoTerminal) {
-        print = (s) => ipcs.terminal(coil).print(s);
-    } else {
-        print = (s) => {
-            if (s === '\n' || s === '\r') {
-                if (consoleLine !== "") {
-                    consoleLine = "";
-                }
-            } else if (s !== '\u0000') {
-                consoleLine += s;
-            }
-        };
-    }
-    const handleFrame = (frame) => sendTelemetryFrame(frame, coil, initializing);
+    const print = (s: string) => {
+        if (!onAutoTerminal) {
+            ipcs.terminal(coil).print(s);
+        }
+    };
+    const handleFrame = (frame: TelemetryFrame) => sendTelemetryFrame(frame, coil, initializing);
+
+    const buf = new Uint8Array(data);
     getOrCreateChannel(coil).processBytes(buf, print, handleFrame);
 }
