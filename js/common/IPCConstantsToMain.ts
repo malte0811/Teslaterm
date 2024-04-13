@@ -110,5 +110,4 @@ export class ConfirmReply {
 export interface DroppedFile {
     name: string;
     bytes: number[];
-    coil?: CoilID;
 }
