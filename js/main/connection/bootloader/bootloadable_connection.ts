@@ -1,3 +1,4 @@
+import {MINDataBuffer} from "../../min/MINConstants";
 import {UD3Connection} from "../types/UD3Connection";
 
 export abstract class BootloadableConnection extends UD3Connection {
@@ -15,5 +16,7 @@ export abstract class BootloadableConnection extends UD3Connection {
         return this.bootloaderCallback !== undefined;
     }
 
-    public abstract sendBootloaderData(data: Buffer): Promise<void>;
+    public abstract sendBootloaderData(data: MINDataBuffer): Promise<void>;
+
+    public abstract getFTPAddress(): string | undefined;
 }

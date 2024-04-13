@@ -1,4 +1,5 @@
 import {CoilID} from "../../../common/constants";
+import {MINDataBuffer} from "../../min/MINConstants";
 import {createUDPSocket} from "../udp_helper";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
@@ -46,9 +47,9 @@ class UDPMinConnection extends MinConnection {
         this.socket.addListener("message", listener);
     }
 
-    public send(data: Buffer | number[], onError: (err) => void): void {
+    public send(data: MINDataBuffer, onError: (err) => void): void {
         try {
-            this.socket.send(Buffer.from(data), e => {
+            this.socket.send(Buffer.of(...data), e => {
                 if (e) {
                     onError(e);
                 }
@@ -56,6 +57,10 @@ class UDPMinConnection extends MinConnection {
         } catch (e) {
             onError(e);
         }
+    }
+
+    public getFTPAddress(): string | undefined {
+        return this.remoteAddress;
     }
 }
 

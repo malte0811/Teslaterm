@@ -1,5 +1,6 @@
 import {SerialPort} from "serialport";
 import {CoilID} from "../../../common/constants";
+import {MINDataBuffer} from "../../min/MINConstants";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
 
@@ -60,10 +61,14 @@ class MinSerialConnection extends MinConnection {
         this.serialPort.addListener("data", listener);
     }
 
-    public send(data: Buffer | number[], onError: (err) => void): void {
+    public send(data: MINDataBuffer, onError: (err) => void): void {
         if (this.serialPort) {
             this.serialPort.write(data, onError);
         }
+    }
+
+    public getFTPAddress(): string | undefined {
+        return undefined;
     }
 }
 

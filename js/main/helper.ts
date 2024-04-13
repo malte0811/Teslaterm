@@ -69,13 +69,11 @@ function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array | ArrayBu
 export async function withTimeout<T>(base: Promise<T>, timeout: number, name?: string): Promise<T> {
     const message = "Timeout expired" + (name ? ": " + name : "");
     return new Promise<T>((res, rej) => {
-        setTimeout(() => rej("Reached timeout"), timeout, message);
+        setTimeout(() => rej(message), timeout);
         base.then(res);
     });
 }
 
 export async function sleep(delay: number): Promise<void> {
-    return new Promise<void>((res, rej) => {
-        setTimeout(res, delay);
-    });
+    return new Promise<void>((res) => setTimeout(res, delay));
 }

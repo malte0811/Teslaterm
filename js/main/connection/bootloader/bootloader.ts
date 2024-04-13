@@ -77,15 +77,15 @@ export class Bootloader {
     }
 
 
-    public set_progress_cb(cb_func) {
+    public set_progress_cb(cb_func: (progress: number) => any) {
         this.progress_cb = cb_func;
     }
 
-    public set_write_cb(cb_func) {
+    public set_write_cb(cb_func: (data: Uint8Array) => Promise<void>) {
         this.write_cb = cb_func;
     }
 
-    public set_info_cb(cb_func) {
+    public set_info_cb(cb_func: (info: string) => void) {
         this.info_cb = cb_func;
     }
 

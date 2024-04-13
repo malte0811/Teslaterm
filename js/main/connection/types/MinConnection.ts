@@ -6,6 +6,7 @@ import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
+import {MINDataBuffer} from "../../min/MINConstants";
 import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
@@ -113,7 +114,7 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    public sendBootloaderData(data: Buffer): Promise<void> {
+    public sendBootloaderData(data: MINDataBuffer): Promise<void> {
         return new Promise<void>((res, rej) => {
             getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
@@ -270,7 +271,7 @@ export abstract class MinConnection extends BootloadableConnection {
         return this.actualUDFeatures.get(feature);
     }
 
-    abstract send(data: Buffer | number[], onError: (err) => void): void;
+    abstract send(data: MINDataBuffer, onError: (err) => void): void;
 
     abstract registerListener(listener: (data: Buffer) => void): void;
 

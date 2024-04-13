@@ -6,12 +6,12 @@
     "build-dev": "npm run tsc && webpack --mode=development",
     "build": "npm run tsc && webpack --mode=production",
     "start-electron": "npm run tsc && electron .",
-
     "package-electron-win": "npm run tsc && electron-builder --windows zip",
     "package-electron-linux": "npm run tsc && electron-builder --linux zip"
   },
   "main": "js/main/main_electron.js",
   "dependencies": {
+    "basic-ftp": "^5.0.5",
     "bootstrap": "^5.3.3",
     "ini": "^4.1.2",
     "jspack": "0.0.4",
