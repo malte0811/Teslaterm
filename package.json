@@ -5,9 +5,9 @@
     "tsc": "tsc --build --incremental",
     "build-dev": "npm run tsc && webpack --mode=development",
     "build": "npm run tsc && webpack --mode=production",
-    "start-electron": "npm run tsc && electron .",
-    "package-electron-win": "npm run tsc && electron-builder --windows zip",
-    "package-electron-linux": "npm run tsc && electron-builder --linux zip"
+    "start": "npm run tsc && electron .",
+    "package-windows": "npm run tsc && electron-builder --windows --dir",
+    "package-linux": "npm run tsc && electron-builder --linux --dir"
   },
   "main": "js/main/main_electron.js",
   "dependencies": {
@@ -49,7 +49,7 @@
   "build": {
     "appId": "teslaterm",
     "win": {
-      "artifactName": "electron/${productName}-win.${ext}"
+      "artifactName": "electron/${productName}-windows.${ext}"
     },
     "linux": {
       "artifactName": "electron/${productName}-linux.${ext}"

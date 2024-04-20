@@ -30,11 +30,11 @@ jobs:
       - name: NPM install
         run: npm install --dev
       - name: Build Electron
-        run: npm run package-electron-linux
+        run: npm run package-linux
       - name: Upload electron-linux
         uses: actions/upload-artifact@v4
         with:
-          path: dist/electron/teslaterm-linux.zip
+          path: dist/linux-unpacked
           name: teslaterm-linux.zip
   build-windows:
     name: Build on Windows
@@ -58,13 +58,12 @@ jobs:
       - name: NPM install
         run: npm install --dev
       - name: Build Electron
-        run: npm run package-electron-win
-      - name: Upload electron-win
+        run: npm run package-windows
+      - name: Upload electron-windows
         uses: actions/upload-artifact@v4
         with:
-          path: dist/electron/teslaterm-win.zip
-          name: teslaterm-win.zip
-  # TODO actually make this happen, grabbing binaries from uploaded artifacts of other builds
+          path: dist/win-unpacked
+          name: teslaterm-windows.zip
   create-release:
     name: Create release if required
     runs-on: ubuntu-20.04
@@ -75,11 +74,19 @@ jobs:
       - name: Download teslaterm-windows
         uses: actions/download-artifact@v4
         with:
-          name: teslaterm-win.zip
+          name: teslaterm-windows.zip
+          path: windows
+      - name: Re-zip Windows artifact
+        working-directory: windows
+        run: zip -r ../teslaterm-windows.zip *
       - name: Download teslaterm-linux
         uses: actions/download-artifact@v4
         with:
           name: teslaterm-linux.zip
+          path: linux
+      - name: Re-zip Linux artifact
+        working-directory: linux
+        run: zip -r ../teslaterm-linux.zip *
       - name: Create and upload release builds
         uses: softprops/action-gh-release@v1
         if: env.release == 'true'

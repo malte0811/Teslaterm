@@ -7,3 +7,4 @@ node_modules/**
 dist/**
 config.ini
 tt-ui-config.json
+Teslaterm.wiki/**
