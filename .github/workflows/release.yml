@@ -45,16 +45,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Cache node modules
-        uses: actions/cache@v4
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: pwsh
+        run: echo "dir=$(npm config get cache)" >> ${env:GITHUB_OUTPUT}
+      - uses: actions/cache@v3
         with:
-          path: ~\AppData\npm-cache
-          key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json')
-            }}
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-build-cache-node-modules-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            ${{ runner.os }}-node-
       - name: NPM install
         run: npm install --dev
       - name: Build Electron
