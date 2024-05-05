@@ -30,7 +30,7 @@ export interface MultiConnectionOptions {
 }
 
 export interface FullConnectionOptions {
-    defaultConnectionType?: UD3ConnectionType;
+    type?: UD3ConnectionType;
     serialOptions: SerialConnectionOptions;
     udpOptions: UDPConnectionOptions;
 }

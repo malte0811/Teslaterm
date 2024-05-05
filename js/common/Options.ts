@@ -13,5 +13,6 @@ export interface NetSidConfig {
 export interface AdvancedOptions {
     midiOptions: MidiConfig;
     netSidOptions: NetSidConfig;
+    enableMIDIInput: boolean;
 }
 

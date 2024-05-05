@@ -1,7 +1,7 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ToastSeverity, VoiceID} from "../../common/IPCConstantsToRenderer";
 import {forEachCoil, getConnectionState} from "../connection/connection";
-import {setUIConfig} from "../UIConfig";
+import {setUIConfig} from "../UIConfigHandler";
 import {ipcs} from "./IPCProvider";
 
 class VMSDataMap {

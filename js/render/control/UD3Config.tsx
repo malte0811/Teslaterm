@@ -35,7 +35,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         this.state = {current: this.props.original};
     }
 
-    render() {
+    public render() {
         return (
             <div>
                 {this.makeTabs()}

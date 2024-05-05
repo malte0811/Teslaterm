@@ -6,7 +6,7 @@ import {
     MeterConfig,
     PerCoilRenderIPCs,
 } from "../../common/IPCConstantsToRenderer";
-import {getUIConfig} from "../UIConfig";
+import {getUIConfig} from "../UIConfigHandler";
 import {TemporaryIPC} from "./TemporaryIPC";
 
 export class MetersIPC {

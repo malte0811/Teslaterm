@@ -4,7 +4,7 @@ import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../common/IPCConstantsToRen
 import {VolumeKey, VolumeMap} from "../../common/VolumeMap";
 import {forEachCoilAsync} from "../connection/connection";
 import {sendProgramChange, sendVolume} from "../midi/midi";
-import {getUIConfig} from "../UIConfig";
+import {getUIConfig} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
 
 export class MixerIPC {

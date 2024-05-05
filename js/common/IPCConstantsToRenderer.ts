@@ -3,6 +3,7 @@ import {CoilID, coilSuffix, UD3AlarmLevel} from "./constants";
 import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
 import {TTConfig} from "./TTConfig";
+import {UIConfig} from "./UIConfig";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -44,10 +45,10 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     scope: {
         redrawMedia: makeKey<MediaState>('scope-draw-media'),
     },
-    syncDarkMode: makeKey<boolean>('sync-dark-mode'),
     ttConfig: makeKey<TTConfig>('tt-config'),
     registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
     udName: makeKey<[CoilID, string]>('ud-name'),
+    uiConfig: makeKey<UIConfig>('uiConfig'),
     updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
 

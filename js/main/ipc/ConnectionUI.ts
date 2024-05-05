@@ -7,7 +7,7 @@ import {
 } from "../../common/IPCConstantsToRenderer";
 import {clearCoils, multiConnect, singleConnect} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
-import {getUIConfig, setUIConfig} from "../UIConfig";
+import {getUIConfig, setUIConfig} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
 
 export class ConnectionUIIPC {

@@ -1,6 +1,7 @@
 import React, {ReactElement} from "react";
-import {Button, Col, Form, Row} from "react-bootstrap";
+import {Button, Col, Form, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
+import {OverlayInjectedProps} from "react-bootstrap/Overlay";
 import {AdvancedOptions, MidiConfig, NetSidConfig} from "../../common/Options";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
@@ -25,6 +26,9 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
     public render() {
         return (
             <>
+                <Form.Group key={'direct-midi'}>
+                    {this.buildDirectMIDIConfig()}
+                </Form.Group>
                 <Form.Group key={'netsid'}>
                     <Form.Label key={'title'} style={({fontSize: 'large'})}>NetSID settings</Form.Label>
                     {this.buildNetSIDConfig()}
@@ -100,5 +104,24 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
                 </Col>
             </Form.Group>
         );
+    }
+
+    private buildDirectMIDIConfig() {
+        const renderTooltip = (props: OverlayInjectedProps) => <Tooltip {...props}>
+            Due to a Chromium issue enabling this causes Teslaterm to acquire all MIDI ports. This can cause issues with
+            external interrupters.
+        </Tooltip>;
+        // Hack: without the width=100% div the tooltip only shows on the checkbox, not its label
+        return <OverlayTrigger placement={'top'} overlay={renderTooltip}>
+            <div style={{width: '100%'}}>
+                {this.helper.makeCheckbox(
+                    "Allow direct MIDI input",
+                    this.props.currentOptions.enableMIDIInput,
+                    (enableMIDIInput) => this.props.setOptions({enableMIDIInput}),
+                    undefined,
+                    this.props.keyPrefix,
+                )}
+            </div>
+        </OverlayTrigger>;
     }
 }

@@ -6,13 +6,12 @@ import {
     ToastSeverity,
     UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
-import {TTConfig} from "../../common/TTConfig";
 import {forEachCoil} from "../connection/connection";
 import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
 import {media_state} from "../media/media_player";
 import {playMidiData} from "../midi/midi";
-import {getUIConfig, setUIConfig} from "../UIConfig";
+import {getUIConfig, setUIConfig} from "../UIConfigHandler";
 import {ipcs, MainIPC} from "./IPCProvider";
 import {TemporaryIPC} from "./TemporaryIPC";
 
@@ -79,15 +78,14 @@ export class CommonMiscIPC {
         this.processIPC = processIPC;
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
             ipcs.menu.sendFullState();
-            this.syncTTConfig(config);
-            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, getUIConfig().darkMode);
+            this.syncUIConfig();
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.ttConfig, config);
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (msg) => {
             playMidiData(msg);
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (darkMode) => {
             setUIConfig({darkMode});
-            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
         });
         this.processIPC.on(
             IPC_CONSTANTS_TO_MAIN.centralTab.setCentralTelemetry,
@@ -103,14 +101,14 @@ export class CommonMiscIPC {
         });
     }
 
-    public syncTTConfig(configToSync: TTConfig) {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.ttConfig, configToSync);
-    }
-
     public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string) {
         this.processIPC.send(
             IPC_CONSTANTS_TO_RENDERER.openToastOn, [{title, message, level: severity, mergeKey}, undefined],
         );
+    }
+
+    public syncUIConfig() {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.uiConfig, getUIConfig());
     }
 
     public updateMediaInfo() {

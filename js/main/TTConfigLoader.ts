@@ -1,9 +1,7 @@
 import * as fs from "fs";
 import * as ini from "ini";
 import * as os from "os";
-import {FullConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../common/SingleConnectionOptions";
 import {
-    CONNECTION_TYPES_BY_NAME,
     FEATURE_MINSID,
     FEATURE_NOTELEMETRY,
     FEATURE_TIMEBASE,
@@ -11,11 +9,6 @@ import {
 } from "../common/constants";
 import {MidiConfig, NetSidConfig} from "../common/Options";
 import {TTConfig} from "../common/TTConfig";
-import {
-    DEFAULT_SERIAL_PRODUCT,
-    DEFAULT_SERIAL_VENDOR,
-    getDefaultSerialPortForConfig
-} from "./connection/types/SerialCommon";
 import {convertArrayBufferToString} from "./helper";
 
 interface ChangedFlag {
@@ -147,72 +140,6 @@ class Config {
     }
 }
 
-function readEthernetConfig(cfg: Config, changed: ChangedFlag): UDPConnectionOptions {
-    const ethernet = cfg.getOrCreateSection(
-        "ethernet", "Default settings for MIN connections over UDP",
-    );
-    return {
-        remoteIP: ethernet.getOrWrite("remote_ip", "localhost", changed),
-        udpMinPort: ethernet.getOrWrite<number>(
-            "udpMinPort", 1337, changed, "Default remote port for MIN connections over UDP",
-        ),
-    };
-}
-
-function readSerialConfig(cfg: Config, changed: ChangedFlag): SerialConnectionOptions {
-    const serial = cfg.getOrCreateSection("serial", "Default settings for serial connections (plain or MIN)");
-    const serialPort = serial.getOrWrite<string>("port", getDefaultSerialPortForConfig(), changed);
-    return {
-        autoProductID: serial.getOrWrite<string>("product_id", DEFAULT_SERIAL_PRODUCT, changed),
-        autoVendorID: serial.getOrWrite<string>("vendor_id", DEFAULT_SERIAL_VENDOR, changed),
-        autoconnect: serialPort !== undefined,
-        baudrate: serial.getOrWrite<number>("baudrate", 460_800, changed),
-        serialPort,
-    };
-}
-
-function readConnectOptions(cfg: Config, changed: ChangedFlag): FullConnectionOptions {
-    const general = cfg.getOrCreateSection("general");
-    const types = Array.from(CONNECTION_TYPES_BY_NAME.keys());
-    const asString = general.getOrWrite(
-        "autoconnect", "none", changed, "One of \"" + types.join("\", \"") + "\" or \"none\"",
-    );
-    return {
-        defaultConnectionType: CONNECTION_TYPES_BY_NAME.get(asString),
-        serialOptions: readSerialConfig(cfg, changed),
-        udpOptions: readEthernetConfig(cfg, changed),
-    };
-}
-
-function readMIDIConfig(cfg: Config, changed: ChangedFlag): MidiConfig {
-    const rtpmidi = cfg.getOrCreateSection("rtpmidi", "Settings for the RTP-MIDI server hosted by Teslaterm");
-    return {
-        bonjourName: rtpmidi.getOrWrite<string>("bonjourName", "Teslaterm", changed),
-        localName: rtpmidi.getOrWrite<string>("localName", "Teslaterm", changed),
-        port: rtpmidi.getOrWrite<number>("port", 12001, changed),
-        runMidiServer: rtpmidi.getOrWrite<boolean>("enabled", true, changed),
-    };
-}
-
-function readSIDConfig(cfg: Config, changed: ChangedFlag): NetSidConfig {
-    const netsid = cfg.getOrCreateSection("netsid", "Settings for the NetSID server hosted by Teslaterm");
-    return {
-        enabled: netsid.getOrWrite<boolean>("enabled", true, changed),
-        port: netsid.getOrWrite<number>("port", 6581, changed),
-    };
-}
-
-function readMIDIPortEnable(cfg: Config, changed: ChangedFlag) {
-    const generalSection = cfg.getOrCreateSection('general');
-    return generalSection.getOrWrite<boolean>(
-        'useMIDIPorts',
-        true,
-        changed,
-        'Allow MIDI ports to be passed to the UD3 by TT. Disable this to work around a Chromium issue where' +
-        ' it opens (and blocks) all ports as soon as MIDI support is enabled',
-    );
-}
-
 export function loadConfig(filename: string): TTConfig {
     let contents: string = "";
     if (fs.existsSync(filename)) {
@@ -221,11 +148,6 @@ export function loadConfig(filename: string): TTConfig {
     const config = configFromString(contents);
     const changed: ChangedFlag = {changed: false};
 
-    const ttConfigBase = {
-        defaultConnectOptions: readConnectOptions(config, changed),
-        defaultMidiConfig: readMIDIConfig(config, changed),
-        defaultNetSIDConfig: readSIDConfig(config, changed),
-    };
     const udconfig = config.getOrCreateSection(
         "udconfig",
         "Each entry indicates which page the corresponding UD3 option should be shown on in the UD3 config GUI",
@@ -236,10 +158,8 @@ export function loadConfig(filename: string): TTConfig {
         "the correct values to use.",
     );
     const ttConfig: TTConfig = {
-        ...ttConfigBase,
         defaultUDFeatures: readSectionFromMap<string>(defaultUDFeatures, udFeaturesInConfig, changed),
         udConfigPages: readSectionFromMap<number>(defaultUDConfigPages, udconfig, changed),
-        useMIDIPorts: readMIDIPortEnable(config, changed),
     };
     if (changed.changed) {
         fs.writeFile(filename, configToString(config), (err) => {

@@ -16,7 +16,6 @@ export interface PresetsProps {
     setMainAdvanced: (opts: Partial<AdvancedOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
-    ttConfig: TTConfig;
 }
 
 interface PresetsState {
@@ -80,7 +79,8 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                     presets={this.state.presets}
                     visible={this.state.inMulticonnect}
                     close={() => this.setState({inMulticonnect: false})}
-                    ttConfig={this.props.ttConfig}
+                    advanced={this.props.mainAdvanced}
+                    setAdvanced={this.props.setMainAdvanced}
                 />
             </div>
         );

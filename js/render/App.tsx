@@ -2,8 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import {CoilID} from "../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
-import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
 import {TTConfig} from "../common/TTConfig";
+import {UIConfig} from "../common/UIConfig";
 import {ConnectScreen, FRDisplayData} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
@@ -20,7 +21,7 @@ interface TopLevelState {
     screen: TopScreen;
     flightEvents?: FRDisplayData;
     ttConfig: TTConfig;
-    darkMode: boolean;
+    config: UIConfig;
     coils: CoilID[];
     multicoil: boolean;
 }
@@ -30,7 +31,7 @@ export class App extends TTComponent<{}, TopLevelState> {
         super(props);
         this.state = {
             coils: [],
-            darkMode: false,
+            config: undefined,
             multicoil: false,
             screen: TopScreen.connect,
             ttConfig: undefined,
@@ -42,10 +43,7 @@ export class App extends TTComponent<{}, TopLevelState> {
             IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
         );
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.syncDarkMode, (darkMode) => this.setState({darkMode}),
+            IPC_CONSTANTS_TO_RENDERER.uiConfig, (cfg) => this.setState({config: cfg}),
         );
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, ([coil, multicoil]) => {
             this.setState((oldState) => {
@@ -66,19 +64,20 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     public render(): React.ReactNode {
+        const darkMode = this.state.config && this.state.config.darkMode;
         return <>
-            <div className={this.state.darkMode ? 'tt-dark-root' : 'tt-light-root'}>
+            <div className={darkMode ? 'tt-dark-root' : 'tt-light-root'}>
                 {this.getMainElement()}
             </div>
         </>;
     }
 
     private getMainElement(): React.JSX.Element {
-        if (!this.state.ttConfig) {
+        if (!this.state.ttConfig || !this.state.config) {
             return <>Initializing...</>;
         } else if (this.state.screen === TopScreen.flight_recording) {
             return <FlightRecordingScreen
-                darkMode={this.state.darkMode}
+                darkMode={this.state.config.darkMode}
                 events={this.state.flightEvents}
                 close={() => this.setState({screen: TopScreen.connect})}
             />;
@@ -89,15 +88,14 @@ export class App extends TTComponent<{}, TopLevelState> {
                     processIPC.send(IPC_CONSTANTS_TO_MAIN.clearCoils, undefined);
                     this.setState({screen: TopScreen.connect, coils: []});
                 }}
-                darkMode={this.state.darkMode}
+                config={this.state.config}
                 coils={this.state.coils}
                 multicoil={this.state.multicoil}
             />;
         } else if (this.state.screen === TopScreen.connect) {
             return <ConnectScreen
-                ttConfig={this.state.ttConfig}
+                config={this.state.config}
                 connecting={false/*TODO*/}
-                darkMode={this.state.darkMode}
                 setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setDarkMode, newVal)}
                 openFlightRecording={(data) => this.setState({
                     flightEvents: data,

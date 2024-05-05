@@ -10,7 +10,7 @@ import {
     UD3ConnectionOptions,
     UDPConnectionOptions,
 } from "../../common/SingleConnectionOptions";
-import {getDefaultAdvancedOptions, TTConfig} from "../../common/TTConfig";
+import {UIConfig} from "../../common/UIConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
 import {ConnectedSerialDevices} from "./ConnectedSerialDevices";
@@ -78,9 +78,8 @@ export interface FRDisplayData {
 }
 
 export interface ConnectScreenProps {
-    ttConfig: TTConfig;
+    config: UIConfig;
     connecting: boolean;
-    darkMode: boolean;
     setDarkMode: (newVal: boolean) => void;
     openFlightRecording: (data: FRDisplayData) => any;
 }
@@ -88,12 +87,12 @@ export interface ConnectScreenProps {
 export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScreenState> {
     constructor(props: ConnectScreenProps) {
         super(props);
-        const connectOptions = this.props.ttConfig.defaultConnectOptions;
+        const connectOptions = this.props.config.lastConnectOptions;
         this.state = {
             autoPorts: [],
-            currentAdvancedOptions: getDefaultAdvancedOptions(this.props.ttConfig),
+            currentAdvancedOptions: this.props.config.advancedOptions,
             currentOptions: {
-                currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
+                currentType: connectOptions.type || UD3ConnectionType.serial_min,
                 ...connectOptions.udpOptions,
                 ...connectOptions.serialOptions,
             },
@@ -124,7 +123,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 setOptions={setOptions}
                 setAdvancedOptions={setAdvancedOptions}
                 connecting={this.props.connecting}
-                darkMode={this.props.darkMode}
+                darkMode={this.props.config.darkMode}
                 openSerialOptionsScreen={autoPorts => this.setState({autoPorts, showingAutoPorts: true})}
             />
             <ConnectionPresets
@@ -133,14 +132,13 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 mainOptions={this.state.currentOptions}
                 setMainOptions={setOptions}
                 connecting={this.props.connecting}
-                darkMode={this.props.darkMode}
-                ttConfig={this.props.ttConfig}
+                darkMode={this.props.config.darkMode}
             />
             {this.makeDarkmodeToggle()}
             {this.makeToast()}
             <ConnectedSerialDevices
                 autoPorts={this.state.autoPorts}
-                darkMode={this.props.darkMode}
+                darkMode={this.props.config.darkMode}
                 shown={this.state.showingAutoPorts}
                 close={() => this.setState({showingAutoPorts: false})}
                 setOption={setOptions}
@@ -161,7 +159,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
     }
 
     private makeToast() {
-        const style = this.props.darkMode ? 'dark' : 'light';
+        const style = this.props.config.darkMode ? 'dark' : 'light';
         return <ToastContainer position={'bottom-end'}>
             <Toast
                 show={this.state.showingError}
@@ -176,10 +174,10 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
     }
 
     private makeDarkmodeToggle() {
-        const otherMode = this.props.darkMode ? 'light' : 'dark';
+        const otherMode = this.props.config.darkMode ? 'light' : 'dark';
         return <Button
             className={'tt-darkmode-toggle'}
-            onClick={() => this.props.setDarkMode(!this.props.darkMode)}
+            onClick={() => this.props.setDarkMode(!this.props.config.darkMode)}
             variant={otherMode}
         >
             Switch to {otherMode} mode

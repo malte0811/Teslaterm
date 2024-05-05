@@ -9,6 +9,7 @@ import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
 import {media_state} from "../media/media_player";
+import {setLastConnectionOptions, setUIConfig} from "../UIConfigHandler";
 import {CommandInterface} from "./commands";
 import {ExtraConnections} from "./ExtraConnections";
 import {getFlightRecorder} from "./flightrecorder/FlightRecorder";
@@ -144,12 +145,15 @@ export function hasUD3Connection(coil: CoilID): boolean {
 }
 
 export async function singleConnect(args: SingleConnectionOptions) {
+    setUIConfig({advancedOptions: args.advanced});
+    setLastConnectionOptions(args);
     await setRelativeOntime(100);
     initializeExtraConnections(args.advanced);
     await new Idle(args, false).connect(makeNewCoilID(false));
 }
 
 export async function multiConnect(args: MultiConnectionOptions) {
+    setUIConfig({advancedOptions: args.advanced});
     await setRelativeOntime(0);
     initializeExtraConnections(args.advanced);
     await Promise.all(args.ud3Options.map(

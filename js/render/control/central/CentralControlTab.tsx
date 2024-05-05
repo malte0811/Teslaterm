@@ -2,6 +2,7 @@ import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
+import {UIConfig} from "../../../common/UIConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {CoilState} from "../MainScreen";
@@ -13,7 +14,7 @@ import {TelemetryOverview} from "./TelemetryOverview";
 
 export interface ControlTabProps {
     ttConfig: TTConfig;
-    darkMode: boolean;
+    config: UIConfig;
     coils: CoilState[];
     toasts: ToastsProps;
 }
@@ -33,7 +34,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                     <MenuBar
                         connectionStatus={ConnectionStatus.CONNECTED}
                         ttConfig={this.props.ttConfig}
-                        darkMode={this.props.darkMode}
+                        darkMode={this.props.config.darkMode}
                         level={{
                             level: 'central-control',
                             numCoils: this.props.coils.length,
@@ -45,16 +46,16 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                     />
                 </div>
                 <div className={'tt-central-telemetry-and-sliders'}>
-                    <TelemetryOverview coils={this.props.coils} darkMode={this.props.darkMode}/>
+                    <TelemetryOverview coils={this.props.coils} darkMode={this.props.config.darkMode}/>
                     <Sliders
                         disabled={false}
-                        enableMIDI={this.props.ttConfig.useMIDIPorts}
-                        darkMode={this.props.darkMode}
+                        enableMIDI={this.props.config.advancedOptions.enableMIDIInput}
+                        darkMode={this.props.config.darkMode}
                         level={{level: 'central-control'}}
                     />
                 </div>
                 <Mixer
-                    darkMode={this.props.darkMode}
+                    darkMode={this.props.config.darkMode}
                     coils={this.props.coils}
                 />
                 <Toasts {...this.props.toasts}/>

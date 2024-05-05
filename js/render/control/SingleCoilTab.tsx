@@ -2,6 +2,7 @@ import React from "react";
 import {CoilID} from "../../common/constants";
 import {ConnectionStatus, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
+import {UIConfig} from "../../common/UIConfig";
 import {TTComponent} from "../TTComponent";
 import {Gauges} from "./gauges/Gauges";
 import {TerminalRef} from "./MainScreen";
@@ -22,12 +23,12 @@ export interface SingleCoilTabProps {
     allowInteraction: boolean;
     ttConfig: TTConfig;
     connectionStatus: ConnectionStatus;
-    darkMode: boolean;
     coil: CoilID;
     ud3State: IUD3State;
     toasts: ToastsProps;
     level: 'single-coil' | 'combined';
     returnToConnect: () => any;
+    config: UIConfig;
 }
 
 export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
@@ -43,7 +44,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                     <MenuBar
                         connectionStatus={this.props.connectionStatus}
                         ttConfig={this.props.ttConfig}
-                        darkMode={this.props.darkMode}
+                        darkMode={this.props.config.darkMode}
                         level={{level: this.props.level, coil: this.props.coil, state: this.props.ud3State}}
                         returnToConnect={this.props.returnToConnect}
                     />
@@ -54,8 +55,8 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                             <Oscilloscope coil={this.props.coil}/>
                             <Sliders
                                 disabled={!this.props.allowInteraction}
-                                enableMIDI={this.props.ttConfig.useMIDIPorts}
-                                darkMode={this.props.darkMode}
+                                enableMIDI={this.props.config.advancedOptions.enableMIDIInput}
+                                darkMode={this.props.config.darkMode}
                                 level={{level: this.props.level, coil: this.props.coil, ud3State: this.props.ud3State}}
                             />
                         </div>
@@ -65,7 +66,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                             coil={this.props.coil}
                         />
                     </div>
-                    <Gauges darkMode={this.props.darkMode} coil={this.props.coil}/>
+                    <Gauges darkMode={this.props.config.darkMode} coil={this.props.coil}/>
                 </div>
                 <Toasts {...this.props.toasts}/>
             </div>

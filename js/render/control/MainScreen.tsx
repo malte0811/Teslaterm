@@ -13,6 +13,7 @@ import {
     UD3State,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
+import {UIConfig} from "../../common/UIConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
@@ -38,9 +39,9 @@ interface MainScreenState {
 export interface MainScreenProps {
     ttConfig: TTConfig;
     returnToConnect: () => any;
-    darkMode: boolean;
     coils: CoilID[];
     multicoil: boolean;
+    config: UIConfig;
 }
 
 // TODO this is a hack. I'm not 100% sure why, but Terminal does not like open/dispose cycles
@@ -158,7 +159,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                     <CentralControlTab
                                         coils={this.props.coils.map((c) => this.getCoilStatus(c))}
                                         ttConfig={this.props.ttConfig}
-                                        darkMode={this.props.darkMode}
+                                        config={this.props.config}
                                         toasts={this.toastsForCoil()}
                                     />
                                 </Tab.Pane>
@@ -236,7 +237,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             allowInteraction={coilStatus.connection === ConnectionStatus.CONNECTED}
             ttConfig={this.props.ttConfig}
             connectionStatus={coilStatus.connection}
-            darkMode={this.props.darkMode}
+            config={this.props.config}
             coil={coil}
             ud3State={coilStatus.ud}
             toasts={this.toastsForCoil(coil)}
@@ -255,7 +256,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         };
         return <Modal
             show={this.state.scriptPopupShown}
-            className={this.props.darkMode && 'tt-dark-modal-root'}
+            className={this.props.config.darkMode && 'tt-dark-modal-root'}
             onHide={() => confirm(false)}
         >
             {this.state.scriptPopup.title && <Modal.Title>{this.state.scriptPopup.title}</Modal.Title>}
@@ -274,7 +275,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     private toastsForCoil(coil?: CoilID): ToastsProps {
         return {
             closeToast: makeToastRemover(this.toastUpdater()),
-            darkMode: this.props.darkMode,
+            darkMode: this.props.config.darkMode,
             toasts: getToasts(this.state.toasts, (coil) => this.getCoilStatus(coil).name, coil),
         };
     }
