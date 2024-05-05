@@ -26,12 +26,10 @@ function getResponseTime(coil: CoilID) {
 
 export class Connected implements IConnectionState {
     private readonly activeConnection: UD3Connection;
-    private readonly extraState: ExtraConnections;
     private readonly idleState: Idle;
 
     public constructor(conn: UD3Connection, idleState: Idle) {
         this.activeConnection = conn;
-        this.extraState = new ExtraConnections(idleState.getAdvancedOptions());
         this.idleState = idleState;
     }
 
@@ -65,7 +63,6 @@ export class Connected implements IConnectionState {
                 'will-reconnect',
             );
             this.activeConnection.disconnect();
-            this.extraState.close();
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
             return new Reconnecting(this.activeConnection, this.idleState);
         }
@@ -75,12 +72,10 @@ export class Connected implements IConnectionState {
 
     public tickSlow() {
         this.activeConnection.resetWatchdog();
-        this.extraState.tickSlow();
     }
 
     public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
         if (this.activeConnection instanceof BootloadableConnection) {
-            this.extraState.close();
             return new Bootloading(this.activeConnection, this.idleState, cyacd);
         } else {
             return undefined;
@@ -110,7 +105,6 @@ export class Connected implements IConnectionState {
 
     private async disconnectInternal() {
         try {
-            this.extraState.close();
             await this.activeConnection.commands().stop();
         } catch (e) {
             console.error("Failed to send stop command:", e);

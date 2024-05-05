@@ -1,5 +1,5 @@
 import {Button, Modal, Table} from "react-bootstrap";
-import {SerialConnectionOptions} from "../../common/ConnectionOptions";
+import {SerialConnectionOptions} from "../../common/SingleConnectionOptions";
 import {AvailableSerialPort} from "../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../TTComponent";
 

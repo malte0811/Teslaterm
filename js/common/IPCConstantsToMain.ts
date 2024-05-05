@@ -1,4 +1,4 @@
-import {ConnectionOptions} from './ConnectionOptions';
+import {MultiConnectionOptions, SingleConnectionOptions} from './SingleConnectionOptions';
 import {CoilID, coilSuffix} from "./constants";
 import {ConnectionPreset, VoiceID} from "./IPCConstantsToRenderer";
 import {VolumeKey} from "./VolumeMap";
@@ -28,9 +28,9 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setTRState: makeKey<boolean>('set-tr-state'),
     },
     connect: {
-        connect: makeKey<ConnectionOptions>('connect-to-ud3'),
+        connect: makeKey<SingleConnectionOptions>('connect-to-ud3'),
         getPresets: makeKey<undefined>('get-connect-presets'),
-        multiconnect: makeKey<ConnectionOptions[]>('connect-to-multiple-ud3'),
+        multiconnect: makeKey<MultiConnectionOptions>('connect-to-multiple-ud3'),
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
         setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),
     },

@@ -14,7 +14,7 @@ export interface UDPConnectionOptions {
     udpMinPort: number;
 }
 
-export type ConnectionOptionsBase = {
+export type UD3ConnectionOptions = {
     connectionType: UD3ConnectionType.serial_min | UD3ConnectionType.serial_plain;
     options: SerialConnectionOptions;
 } | {
@@ -22,7 +22,12 @@ export type ConnectionOptionsBase = {
     options: UDPConnectionOptions;
 };
 
-export type ConnectionOptions = ConnectionOptionsBase & { advanced: AdvancedOptions };
+export type SingleConnectionOptions = UD3ConnectionOptions & { advanced: AdvancedOptions };
+
+export interface MultiConnectionOptions {
+    ud3Options: UD3ConnectionOptions[];
+    advanced: AdvancedOptions;
+}
 
 export interface FullConnectionOptions {
     defaultConnectionType?: UD3ConnectionType;

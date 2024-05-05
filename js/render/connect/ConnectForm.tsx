@@ -8,6 +8,7 @@ import {
     IPC_CONSTANTS_TO_RENDERER,
     IUDPConnectionSuggestion,
 } from "../../common/IPCConstantsToRenderer";
+import {AdvancedOptions} from "../../common/Options";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
@@ -17,7 +18,9 @@ import {FormHelper} from "./FormHelper";
 
 export interface ConnectFormProps {
     currentOptions: MergedConnectionOptions;
+    currentAdvancedOptions: AdvancedOptions;
     setOptions: (newOptions: Partial<MergedConnectionOptions>) => any;
+    setAdvancedOptions: (newOptions: Partial<AdvancedOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
     openSerialOptionsScreen: (options: AvailableSerialPort[]) => any;
@@ -97,17 +100,15 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                     className={this.props.darkMode && 'dark-accordion'}
                 >
                     <Accordion.Item eventKey={'0'}>
-                        <Accordion.Header>Advanced settings</Accordion.Header>
+                        <Accordion.Header>Advanced Settings</Accordion.Header>
                         <Accordion.Body style={({
                             // TODO sort of a hack, but works well enough
                             height: '50vh',
                             overflowY: 'auto',
                         })}>
                             <AdvancedOptionsForm
-                                currentOptions={this.props.currentOptions.advanced}
-                                setOptions={opts => {
-                                    this.props.setOptions({advanced: {...this.props.currentOptions.advanced, ...opts}});
-                                }}
+                                currentOptions={this.props.currentAdvancedOptions}
+                                setOptions={this.props.setAdvancedOptions}
                                 darkMode={this.props.darkMode}
                                 connecting={this.props.connecting}
                             />
@@ -183,6 +184,9 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
     }
 
     private connect() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, toSingleOptions(this.props.currentOptions));
+        processIPC.send(
+            IPC_CONSTANTS_TO_MAIN.connect.connect,
+            {...toSingleOptions(this.props.currentOptions), advanced: this.props.currentAdvancedOptions},
+        );
     }
 }

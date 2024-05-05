@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as ini from "ini";
 import * as os from "os";
-import {FullConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../common/ConnectionOptions";
+import {FullConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../common/SingleConnectionOptions";
 import {
     CONNECTION_TYPES_BY_NAME,
     FEATURE_MINSID,

@@ -17,18 +17,22 @@ export class FormHelper {
     }
 
     public makeCheckbox(
-        label: string, enabled: boolean, set: (val: boolean) => any, ref?: React.RefObject<HTMLInputElement>,
+        label: string,
+        enabled: boolean,
+        set: (val: boolean) => any,
+        ref?: React.RefObject<HTMLInputElement>,
+        keyPrefix?: string,
     ) {
         return (
             <Form.Check
                 type={'checkbox'}
-                id={label}
+                id={(keyPrefix || '') + label}
                 label={label}
                 checked={enabled}
                 onChange={ev => set(ev.target.checked)}
                 disabled={this.component.props.connecting}
                 className={'tt-connect-form-row'}
-                key={label}
+                key={(keyPrefix || '') + label}
                 ref={ref}
             />
         );

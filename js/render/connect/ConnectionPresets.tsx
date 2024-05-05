@@ -2,16 +2,21 @@ import {Button, ButtonGroup, Form} from "react-bootstrap";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ConnectionPreset, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {AdvancedOptions} from "../../common/Options";
+import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {areOptionsValid, MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
 import {MulticonnectPopup} from "./MulticonnectPopup";
 
 export interface PresetsProps {
-    mainFormProps: MergedConnectionOptions;
-    setMainFormProps: (opts: Partial<MergedConnectionOptions>) => any;
+    mainOptions: MergedConnectionOptions;
+    setMainOptions: (opts: Partial<MergedConnectionOptions>) => any;
+    mainAdvanced: AdvancedOptions;
+    setMainAdvanced: (opts: Partial<AdvancedOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
+    ttConfig: TTConfig;
 }
 
 interface PresetsState {
@@ -75,17 +80,20 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                     presets={this.state.presets}
                     visible={this.state.inMulticonnect}
                     close={() => this.setState({inMulticonnect: false})}
+                    ttConfig={this.props.ttConfig}
                 />
             </div>
         );
     }
 
     private makePresetEntry(preset: ConnectionPreset) {
-        const load = () => this.props.setMainFormProps({
-            currentType: preset.options.connectionType,
-            ...preset.options.options,
-            advanced: preset.options.advanced,
-        });
+        const load = () => {
+            this.props.setMainOptions({
+                currentType: preset.options.connectionType,
+                ...preset.options.options,
+            });
+            this.props.setMainAdvanced(preset.options.advanced);
+        };
         const connect = () => {
             load();
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, preset.options);
@@ -112,7 +120,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
         const realName = this.state.newEntryName.trim();
         const canAdd = realName.length > 0 &&
             this.state.presets.filter(preset => preset.name === realName).length === 0 &&
-            areOptionsValid(this.props.mainFormProps);
+            areOptionsValid(this.props.mainOptions);
         return <Form className={'tt-side-aligned'} onSubmit={e => e.preventDefault()}>
             <Form.Control
                 style={({width: '50%'})}
@@ -131,7 +139,11 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
 
     private addNewPreset() {
         const newPreset: ConnectionPreset = {
-            name: this.state.newEntryName.trim(), options: toSingleOptions(this.props.mainFormProps),
+            name: this.state.newEntryName.trim(),
+            options: {
+                ...toSingleOptions(this.props.mainOptions),
+                advanced: this.props.mainAdvanced,
+            },
         };
         processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, [...this.state.presets, newPreset]);
         this.setState({newEntryName: ''});

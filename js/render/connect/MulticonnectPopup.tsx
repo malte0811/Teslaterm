@@ -1,8 +1,11 @@
 import {Button, Form, Modal} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ConnectionPreset} from "../../common/IPCConstantsToRenderer";
+import {AdvancedOptions} from "../../common/Options";
+import {getDefaultAdvancedOptions, TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
+import {AdvancedOptionsForm} from "./AdvancedOptionsForm";
 import {ConnectionPresets} from "./ConnectionPresets";
 
 export interface MulticonnectProps {
@@ -10,16 +13,21 @@ export interface MulticonnectProps {
     presets: ConnectionPreset[];
     visible: boolean;
     close: () => any;
+    ttConfig: TTConfig;
 }
 
 interface MulticonnectState {
     selected: boolean[];
+    advanced: AdvancedOptions;
 }
 
 export class MulticonnectPopup extends TTComponent<MulticonnectProps, MulticonnectState> {
     constructor(props) {
         super(props);
-        this.state = {selected: []};
+        this.state = {
+            advanced: getDefaultAdvancedOptions(this.props.ttConfig),
+            selected: [],
+        };
     }
 
     public render() {
@@ -34,13 +42,25 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
                 title={ConnectionPresets.makeTooltip(preset)}
             />
         ));
+        const setAdvanced = (newData: Partial<AdvancedOptions>) => this.setState((oldState) => ({
+            advanced: {...oldState.advanced, ...newData},
+        }));
         return <Modal
             show={this.props.visible}
             size={"lg"}
             className={this.props.darkMode && 'tt-dark-modal-root'}
         >
             <Modal.Header>Connect to multiple coils</Modal.Header>
-            <Modal.Body>{...checkboxes}</Modal.Body>
+            <Modal.Body>
+                {...checkboxes}
+                <AdvancedOptionsForm
+                    currentOptions={this.state.advanced}
+                    setOptions={setAdvanced}
+                    darkMode={this.props.darkMode}
+                    connecting={false}
+                    keyPrefix={'multiconnect-advanced'}
+                />
+            </Modal.Body>
             <Modal.Footer>
                 <Button
                     onClick={() => this.connect()}
@@ -70,7 +90,10 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
     }
 
     private connect() {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.multiconnect, this.getSelectedOptions());
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.multiconnect, {
+            advanced: this.state.advanced,
+            ud3Options: this.getSelectedOptions(),
+        });
     }
 
     private getSelectedOptions() {

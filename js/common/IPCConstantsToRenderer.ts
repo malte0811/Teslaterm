@@ -1,4 +1,4 @@
-import {ConnectionOptions} from "./ConnectionOptions";
+import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {CoilID, coilSuffix, UD3AlarmLevel} from "./constants";
 import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
@@ -239,7 +239,7 @@ export interface UD3Alarm {
 
 export interface ConnectionPreset {
     name: string;
-    options: ConnectionOptions;
+    options: SingleConnectionOptions;
 }
 
 export type VoiceID = number;

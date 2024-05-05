@@ -1,4 +1,5 @@
-import {ConnectionOptions} from "../../common/ConnectionOptions";
+import {AdvancedOptions} from "../../common/Options";
+import {MultiConnectionOptions, SingleConnectionOptions} from "../../common/SingleConnectionOptions";
 import {CoilID} from "../../common/constants";
 import {FlightEventType} from "../../common/FlightRecorderTypes";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
@@ -9,6 +10,7 @@ import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
 import {media_state} from "../media/media_player";
 import {CommandInterface} from "./commands";
+import {ExtraConnections} from "./ExtraConnections";
 import {getFlightRecorder} from "./flightrecorder/FlightRecorder";
 import {Connected} from "./state/Connected";
 import {IConnectionState} from "./state/IConnectionState";
@@ -16,6 +18,7 @@ import {Idle} from "./state/Idle";
 import {TerminalHandle, UD3Connection} from "./types/UD3Connection";
 
 const connectionState: Map<CoilID, IConnectionState> = new Map<CoilID, IConnectionState>();
+let extraConnections: ExtraConnections;
 
 export function getCoilCommands(coil: CoilID) {
     return new CommandInterface(coil);
@@ -30,9 +33,17 @@ export function getCoils() {
     return connectionState.keys();
 }
 
+export function initializeExtraConnections(options: AdvancedOptions) {
+    extraConnections = new ExtraConnections(options);
+}
+
 export function clearCoils() {
     connectionState.clear();
     ipcs.clearCoils();
+    if (extraConnections) {
+        extraConnections.close();
+        extraConnections = undefined;
+    }
     // TODO clear e.g. SID caches
 }
 
@@ -132,14 +143,16 @@ export function hasUD3Connection(coil: CoilID): boolean {
     return connectionState && connectionState.getActiveConnection() !== undefined;
 }
 
-export async function singleConnect(args: ConnectionOptions) {
+export async function singleConnect(args: SingleConnectionOptions) {
     await setRelativeOntime(100);
+    initializeExtraConnections(args.advanced);
     await new Idle(args, false).connect(makeNewCoilID(false));
 }
 
-export async function multiConnect(args: ConnectionOptions[]) {
+export async function multiConnect(args: MultiConnectionOptions) {
     await setRelativeOntime(0);
-    await Promise.all(args.map(
+    initializeExtraConnections(args.advanced);
+    await Promise.all(args.ud3Options.map(
         async (coilArg, i) => {
             await sleep(100 * i);
             await new Idle(coilArg, true).connect(makeNewCoilID(true));

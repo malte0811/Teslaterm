@@ -1,11 +1,15 @@
 import React from "react";
 import {Button, Toast, ToastContainer} from "react-bootstrap";
-import {ConnectionOptions, SerialConnectionOptions, UDPConnectionOptions} from "../../common/ConnectionOptions";
 import {UD3ConnectionType} from "../../common/constants";
 import {InitialFRState, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {AvailableSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
+import {
+    SerialConnectionOptions,
+    UD3ConnectionOptions,
+    UDPConnectionOptions,
+} from "../../common/SingleConnectionOptions";
 import {getDefaultAdvancedOptions, TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
@@ -15,7 +19,6 @@ import {ConnectionPresets} from "./ConnectionPresets";
 
 export interface MergedConnectionOptions extends SerialConnectionOptions, UDPConnectionOptions {
     currentType: UD3ConnectionType;
-    advanced: AdvancedOptions;
 }
 
 export function areOptionsValid(options: MergedConnectionOptions): boolean {
@@ -33,12 +36,10 @@ export function areOptionsValid(options: MergedConnectionOptions): boolean {
     }
 }
 
-export function toSingleOptions(merged: MergedConnectionOptions): ConnectionOptions {
-    const advanced = merged.advanced;
+export function toSingleOptions(merged: MergedConnectionOptions): UD3ConnectionOptions {
     switch (merged.currentType) {
         case UD3ConnectionType.udp_min:
             return {
-                advanced,
                 connectionType: merged.currentType,
                 options: {
                     remoteIP: merged.remoteIP,
@@ -48,7 +49,6 @@ export function toSingleOptions(merged: MergedConnectionOptions): ConnectionOpti
         case UD3ConnectionType.serial_min:
         case UD3ConnectionType.serial_plain:
             return {
-                advanced,
                 connectionType: merged.currentType,
                 options: {
                     autoProductID: merged.autoProductID,
@@ -69,6 +69,7 @@ interface ConnectScreenState {
     showingAutoPorts: boolean;
 
     currentOptions: MergedConnectionOptions;
+    currentAdvancedOptions: AdvancedOptions;
 }
 
 export interface FRDisplayData {
@@ -90,11 +91,11 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
         const connectOptions = this.props.ttConfig.defaultConnectOptions;
         this.state = {
             autoPorts: [],
+            currentAdvancedOptions: getDefaultAdvancedOptions(this.props.ttConfig),
             currentOptions: {
                 currentType: connectOptions.defaultConnectionType || UD3ConnectionType.serial_min,
                 ...connectOptions.udpOptions,
                 ...connectOptions.serialOptions,
-                advanced: getDefaultAdvancedOptions(this.props.ttConfig),
             },
             error: '',
             showingAutoPorts: false,
@@ -113,19 +114,27 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
         const setOptions = (opts: Partial<MergedConnectionOptions>) => this.setState(
             (oldState) => ({currentOptions: {...oldState.currentOptions, ...opts}}),
         );
+        const setAdvancedOptions = (opts: Partial<AdvancedOptions>) => this.setState(
+            (oldState) => ({currentAdvancedOptions: {...oldState.currentAdvancedOptions, ...opts}}),
+        );
         return <div className={'tt-connect-screen'} ref={this.mainDivRef}>
             <ConnectForm
                 currentOptions={this.state.currentOptions}
+                currentAdvancedOptions={this.state.currentAdvancedOptions}
                 setOptions={setOptions}
+                setAdvancedOptions={setAdvancedOptions}
                 connecting={this.props.connecting}
                 darkMode={this.props.darkMode}
                 openSerialOptionsScreen={autoPorts => this.setState({autoPorts, showingAutoPorts: true})}
             />
             <ConnectionPresets
-                mainFormProps={this.state.currentOptions}
-                setMainFormProps={setOptions}
+                mainAdvanced={this.state.currentAdvancedOptions}
+                setMainAdvanced={setAdvancedOptions}
+                mainOptions={this.state.currentOptions}
+                setMainOptions={setOptions}
                 connecting={this.props.connecting}
                 darkMode={this.props.darkMode}
+                ttConfig={this.props.ttConfig}
             />
             {this.makeDarkmodeToggle()}
             {this.makeToast()}
@@ -134,7 +143,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 darkMode={this.props.darkMode}
                 shown={this.state.showingAutoPorts}
                 close={() => this.setState({showingAutoPorts: false})}
-                setOption={opts => this.setState({currentOptions: {...this.state.currentOptions, ...opts}})}
+                setOption={setOptions}
             />
         </div>;
     }

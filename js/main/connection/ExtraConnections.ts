@@ -15,8 +15,6 @@ export class ExtraConnections {
         }
     }
 
-    public tickSlow() {}
-
     public close() {
         if (this.midiServer) {
             this.midiServer.close();

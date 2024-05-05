@@ -11,6 +11,7 @@ export interface AdvancedFormProps {
     setOptions: (newOptions: Partial<AdvancedOptions>) => any;
     darkMode: boolean;
     connecting: boolean;
+    keyPrefix?: string;
 }
 
 export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
@@ -41,8 +42,10 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
         const setOption = (toSet: Partial<NetSidConfig>) => {
             this.props.setOptions({netSidOptions: {...current, ...toSet}});
         };
-        const rows: JSX.Element[] = [
-            this.helper.makeCheckbox("Enable NetSID", current.enabled, enabled => setOption({enabled})),
+        const rows: React.JSX.Element[] = [
+            this.helper.makeCheckbox(
+                "Enable NetSID", current.enabled, enabled => setOption({enabled}), undefined, this.props.keyPrefix,
+            ),
         ];
         if (current.enabled) {
             rows.push(this.helper.makeIntField('NetSID port', current.port, port => setOption({port})));
@@ -56,7 +59,11 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
             this.props.setOptions({midiOptions: {...current, ...toSet}});
         };
         const rows: JSX.Element[] = [this.helper.makeCheckbox(
-            "Run RTP-MIDI server", current.runMidiServer, runMidiServer => setOption({runMidiServer}),
+            "Run RTP-MIDI server",
+            current.runMidiServer,
+            runMidiServer => setOption({runMidiServer}),
+            undefined,
+            this.props.keyPrefix,
         )];
         if (current.runMidiServer) {
             rows.push(this.helper.makeIntField('RTP-MIDI port', current.port, port => setOption({port})));

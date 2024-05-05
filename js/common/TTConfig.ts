@@ -1,4 +1,4 @@
-import {FullConnectionOptions} from "./ConnectionOptions";
+import {FullConnectionOptions} from "./SingleConnectionOptions";
 import {AdvancedOptions, MidiConfig, NetSidConfig} from "./Options";
 
 export interface TTConfig {
