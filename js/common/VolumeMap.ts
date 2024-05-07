@@ -6,6 +6,14 @@ export interface VolumeKey {
     voice?: VoiceID;
 }
 
+export type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
+
+export const DEFAULT_MIXER_LAYER = 'coilMaster';
+
+export const NUM_SPECIFIC_FADERS = 8;
+
+export const DEFAULT_VOLUME = 100;
+
 export class VolumeMap {
     // All volumes in percent (0-100)
     private readonly masterVolume: number;
@@ -19,7 +27,7 @@ export class VolumeMap {
         voiceVolume?: Map<VoiceID, number>,
         specificVolumes?: Map<CoilID, Map<VoiceID, number>>,
     ) {
-        this.masterVolume = masterVolume || 100;
+        this.masterVolume = masterVolume !== undefined ? masterVolume : DEFAULT_VOLUME;
         this.coilVolume = coilVolume || new Map<CoilID, number>();
         this.voiceVolume = voiceVolume || new Map<VoiceID, number>();
         this.specificVolumes = specificVolumes || new Map<CoilID, Map<VoiceID, number>>();
@@ -37,7 +45,7 @@ export class VolumeMap {
                 return this.masterVolume;
             }
         })();
-        return rawResult !== undefined ? rawResult : 100;
+        return rawResult !== undefined ? rawResult : DEFAULT_VOLUME;
     }
 
     public getTotalVolume(coil: CoilID, voice: VoiceID) {
@@ -68,5 +76,35 @@ export class VolumeMap {
 
     public withoutVoiceVolumes() {
         return new VolumeMap(this.masterVolume, this.coilVolume);
+    }
+
+    public getFaderStates(currentLayer: MixerLayer): Map<number, number> {
+        const baseMap = (() => {
+            if (currentLayer === 'coilMaster') {
+                return this.coilVolume;
+            } else if (currentLayer === 'voiceMaster') {
+                return this.voiceVolume;
+            } else {
+                return this.specificVolumes.get(currentLayer);
+            }
+        })();
+        const resultMap = new Map<number, number>(baseMap);
+        for (let i = 0; i < NUM_SPECIFIC_FADERS; ++i) {
+            const volume = baseMap?.get(i);
+            resultMap.set(i, volume === undefined ? DEFAULT_VOLUME : volume);
+        }
+        return resultMap;
+    }
+
+    public getFaderID(key: VolumeKey) {
+        if (key.coil === undefined && key.voice === undefined) {
+            // Master
+            return NUM_SPECIFIC_FADERS;
+        } else if (key.voice === undefined) {
+            // Coil master is the only other case without a specified void
+            return key.coil;
+        } else {
+            return key.voice;
+        }
     }
 }

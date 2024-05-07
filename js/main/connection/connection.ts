@@ -9,6 +9,7 @@ import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
 import {media_state} from "../media/media_player";
+import {BehringerXTouch} from "../media/PhysicalMixer";
 import {setLastConnectionOptions, setUIConfig} from "../UIConfigHandler";
 import {CommandInterface} from "./commands";
 import {ExtraConnections} from "./ExtraConnections";
@@ -46,6 +47,10 @@ export function clearCoils() {
         extraConnections = undefined;
     }
     // TODO clear e.g. SID caches
+}
+
+export function getPhysicalMixer(): BehringerXTouch | undefined {
+    return extraConnections?.getPhysicalMixer();
 }
 
 export function forEachCoilAsync<T>(apply: (coil: CoilID) => Promise<T>) {

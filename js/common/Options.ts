@@ -10,9 +10,16 @@ export interface NetSidConfig {
     readonly port: number;
 }
 
+export interface PhysicalMixerConfig {
+    enable: boolean;
+    ip: string;
+    port: number;
+}
+
 export interface AdvancedOptions {
     midiOptions: MidiConfig;
     netSidOptions: NetSidConfig;
+    mixerOptions: PhysicalMixerConfig;
     enableMIDIInput: boolean;
 }
 

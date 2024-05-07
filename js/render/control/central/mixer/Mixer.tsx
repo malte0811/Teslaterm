@@ -3,7 +3,7 @@ import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../../../common/IPCConstantsToRenderer";
-import {VolumeKey, VolumeMap} from "../../../../common/VolumeMap";
+import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
@@ -13,8 +13,6 @@ export interface MixerProps {
     darkMode: boolean;
     coils: CoilState[];
 }
-
-type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
 
 interface MixerState {
     volumes: VolumeMap;
@@ -29,7 +27,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         super(props);
         this.state = {
             availablePrograms: [],
-            currentLayer: 'coilMaster',
+            currentLayer: DEFAULT_MIXER_LAYER,
             voiceProgram: new Map<CoilID, number>(),
             voices: [],
             volumes: new VolumeMap(),
@@ -48,6 +46,13 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel,
             (voiceProgram) => this.setState({voiceProgram}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, (layer) => this.setState({currentLayer: layer}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume,
+            ([key, volume]) => this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)})),
         );
     }
 
@@ -121,7 +126,10 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
 
     private makeLayerButton(layer: MixerLayer, text: string) {
         return <Button
-            onClick={() => this.setState({currentLayer: layer})}
+            onClick={() => {
+                this.setState({currentLayer: layer});
+                processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMixerLayer, layer);
+            }}
             style={{width: '100%'}}
             disabled={this.state.currentLayer === layer}
         >{text}</Button>;

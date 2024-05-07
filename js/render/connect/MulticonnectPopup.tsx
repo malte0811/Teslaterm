@@ -54,6 +54,7 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
                     darkMode={this.props.darkMode}
                     connecting={false}
                     keyPrefix={'multiconnect-advanced'}
+                    showMixer={true}
                 />
             </Modal.Body>
             <Modal.Footer>

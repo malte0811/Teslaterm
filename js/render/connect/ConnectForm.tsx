@@ -95,26 +95,13 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
             </TTDropdown>
             <Form onSubmit={e => e.preventDefault()}>
                 {optionsForType}
-                <Accordion
-                    defaultActiveKey={'-1'}
-                    className={this.props.darkMode && 'dark-accordion'}
-                >
-                    <Accordion.Item eventKey={'0'}>
-                        <Accordion.Header>Advanced Settings</Accordion.Header>
-                        <Accordion.Body style={({
-                            // TODO sort of a hack, but works well enough
-                            height: '50vh',
-                            overflowY: 'auto',
-                        })}>
-                            <AdvancedOptionsForm
-                                currentOptions={this.props.currentAdvancedOptions}
-                                setOptions={this.props.setAdvancedOptions}
-                                darkMode={this.props.darkMode}
-                                connecting={this.props.connecting}
-                            />
-                        </Accordion.Body>
-                    </Accordion.Item>
-                </Accordion>
+                <AdvancedOptionsForm
+                    currentOptions={this.props.currentAdvancedOptions}
+                    setOptions={this.props.setAdvancedOptions}
+                    darkMode={this.props.darkMode}
+                    connecting={this.props.connecting}
+                    showMixer={false}
+                />
                 <Button
                     onClick={this.props.connecting ? ConnectForm.abort : this.connect}
                     variant={this.props.connecting ? 'warning' : 'primary'}

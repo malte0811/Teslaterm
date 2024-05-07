@@ -4,6 +4,7 @@ import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
 import {TTConfig} from "./TTConfig";
 import {UIConfig} from "./UIConfig";
+import {MixerLayer, VolumeKey} from "./VolumeMap";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -21,8 +22,10 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
         setAvailableMIDIPrograms: makeKey<string[]>('midi-programs'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
+        setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
         setMIDIProgramsByChannel: makeKey<Map<VoiceID, number>>('media-programs-by-channel'),
         setMediaChannels: makeKey<VoiceID[]>('media-channels'),
+        setVolume: makeKey<[VolumeKey, number]>('set-mixer-volume'),
     },
     connect: {
         connectionError: makeKey<string>('connection-error'),

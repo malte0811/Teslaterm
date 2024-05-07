@@ -18,7 +18,6 @@ const FILENAME = 'tt-ui-config.json';
 
 function makeDefaultConnectOptions(): FullConnectionOptions {
     return {
-        type: UD3ConnectionType.serial_min,
         serialOptions: {
             autoProductID: DEFAULT_SERIAL_PRODUCT,
             autoVendorID: DEFAULT_SERIAL_VENDOR,
@@ -26,6 +25,7 @@ function makeDefaultConnectOptions(): FullConnectionOptions {
             baudrate: 460_800,
             serialPort: getDefaultSerialPortForConfig(),
         },
+        type: UD3ConnectionType.serial_min,
         udpOptions: {remoteIP: "localhost", udpMinPort: 1337},
     };
 }
@@ -34,6 +34,7 @@ function makeDefaultAdvancedOptions(): AdvancedOptions {
     return {
         enableMIDIInput: false,
         midiOptions: {bonjourName: "Teslaterm", localName: "Teslaterm", port: 12001, runMidiServer: false},
+        mixerOptions: {enable: false, ip: 'localhost', port: 5004},
         netSidOptions: {enabled: false, port: 6581},
     };
 }
@@ -65,12 +66,8 @@ function getFileData() {
     if (object.connectionPresets === undefined) {
         object.connectionPresets = [];
     }
-    if (object.advancedOptions === undefined) {
-        object.advancedOptions = makeDefaultAdvancedOptions();
-    }
-    if (object.lastConnectOptions === undefined) {
-        object.lastConnectOptions = makeDefaultConnectOptions();
-    }
+    object.advancedOptions = {...object.advancedOptions, ...makeDefaultAdvancedOptions()};
+    object.lastConnectOptions = {...object.lastConnectOptions, ...makeDefaultConnectOptions()};
     for (const preset of object.connectionPresets) {
         fixConnectionPreset(preset, object.lastConnectOptions, object.advancedOptions);
     }

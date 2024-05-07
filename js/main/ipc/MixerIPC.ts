@@ -1,8 +1,8 @@
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../common/IPCConstantsToRenderer";
-import {VolumeKey, VolumeMap} from "../../common/VolumeMap";
-import {forEachCoilAsync} from "../connection/connection";
+import {DEFAULT_MIXER_LAYER, MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap} from "../../common/VolumeMap";
+import {forEachCoilAsync, getPhysicalMixer} from "../connection/connection";
 import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getUIConfig} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
@@ -11,6 +11,7 @@ export class MixerIPC {
     private voices: number[] = [0, 1, 2];
     private programByVoice: Map<VoiceID, number> = new Map<VoiceID, number>();
     private volumes: VolumeMap = new VolumeMap();
+    private currentLayer: MixerLayer = DEFAULT_MIXER_LAYER;
     private readonly processIPC: MainIPC;
 
     constructor(processIPC: MainIPC) {
@@ -19,9 +20,14 @@ export class MixerIPC {
             this.programByVoice.set(channel, program);
             await sendProgramChange(channel, program);
         });
+        processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.centralTab.setMixerLayer, async (layer) => {
+            this.currentLayer = layer;
+            getPhysicalMixer()?.movePhysicalSliders(this.volumes.getFaderStates(this.currentLayer));
+        });
         processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, async ([key, volume]) => {
             this.volumes = this.volumes.with(key, volume);
             await this.sendVolumeUpdates(key);
+            getPhysicalMixer()?.movePhysicalSlider(this.volumes.getFaderID(key), volume);
         });
     }
 
@@ -48,6 +54,32 @@ export class MixerIPC {
         this.setVoices(this.voices);
         this.setProgramsByVoice(this.programByVoice);
         this.sendAvailablePrograms();
+    }
+
+    public setVolumeFromPhysical(fader: number, percent: number) {
+        const key: VolumeKey = (() => {
+            if (fader >= NUM_SPECIFIC_FADERS) {
+                return {};
+            } else if (this.currentLayer === 'voiceMaster') {
+                return {voice: fader};
+            } else if (this.currentLayer === 'coilMaster') {
+                return {coil: fader};
+            } else {
+                return {coil: this.currentLayer, voice: fader};
+            }
+        })();
+        this.volumes = this.volumes.with(key, percent);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, percent]);
+        this.sendVolumeUpdates(key).catch((err) => console.error("Failed to send volume update:", err));
+    }
+
+    public setLayerFromPhysical(layer: MixerLayer) {
+        this.currentLayer = layer;
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, layer);
+    }
+
+    public getCurrentLayer() {
+        return this.currentLayer;
     }
 
     private async sendVolumeUpdates(changedKey: VolumeKey) {
