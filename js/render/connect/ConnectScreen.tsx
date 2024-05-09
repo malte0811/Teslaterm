@@ -13,7 +13,6 @@ import {
 import {UIConfig} from "../../common/UIConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
-import {ConnectedSerialDevices} from "./ConnectedSerialDevices";
 import {ConnectForm} from "./ConnectForm";
 import {ConnectionPresets} from "./ConnectionPresets";
 
@@ -42,8 +41,10 @@ export function toSingleOptions(merged: MergedConnectionOptions): UD3ConnectionO
             return {
                 connectionType: merged.currentType,
                 options: {
+                    remoteDesc: merged.remoteDesc,
                     remoteIP: merged.remoteIP,
                     udpMinPort: merged.udpMinPort,
+                    useDesc: merged.useDesc,
                 },
             };
         case UD3ConnectionType.serial_min:
@@ -85,10 +86,11 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
     constructor(props: ConnectScreenProps) {
         super(props);
         const connectOptions = this.props.config.lastConnectOptions;
+        console.log(connectOptions);
         this.state = {
             currentAdvancedOptions: this.props.config.advancedOptions,
             currentOptions: {
-                currentType: connectOptions.type || UD3ConnectionType.serial_min,
+                currentType: connectOptions.type,
                 ...connectOptions.udpOptions,
                 ...connectOptions.serialOptions,
             },

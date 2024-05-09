@@ -1,38 +1,36 @@
 import {Button, Modal, Table} from "react-bootstrap";
-import {SerialConnectionOptions} from "../../common/SingleConnectionOptions";
-import {AvailableSerialPort} from "../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../TTComponent";
 
+export interface DeviceInfo {
+    columns: string[];
+    select: () => any;
+}
+
 export interface ConnectedDevicesProps {
-    autoPorts: AvailableSerialPort[];
+    columnTitles: string[];
+    rows: DeviceInfo[];
+
     shown: boolean;
     darkMode: boolean;
 
-    setOption: (newOptions: Partial<SerialConnectionOptions>) => any;
     close: () => any;
 }
 
-export class ConnectedSerialDevices extends TTComponent<ConnectedDevicesProps, {}> {
+export class ConnectedDevices extends TTComponent<ConnectedDevicesProps, {}> {
     public render() {
-        const makeRow = (port: AvailableSerialPort) => <tr key={port.path}>
-            <td>{port.path}</td>
-            <td>{port.manufacturer}</td>
-            <td>{port.vendorID}</td>
-            <td>{port.productID}</td>
+        const makeRow = (port: DeviceInfo, i: number) => <tr key={`suggestion-${i}`}>
+            {port.columns.map((col) => <td>{col}</td>)}
             <td><Button size={"sm"} onClick={() => {
-                this.props.setOption({
-                    autoProductID: port.productID,
-                    autoVendorID: port.vendorID,
-                    serialPort: port.path,
-                });
+                port.select();
                 this.props.close();
             }}>Select</Button></td>
         </tr>;
         const table = <Table hover bordered>
             <thead><tr>
-                <th>Port</th><th>Manufacturer</th><th>Vendor ID</th><th>Product ID</th><th></th>
+                {this.props.columnTitles.map((col) => <td>{col}</td>)}
+                <th></th>
             </tr></thead>
-            <tbody>{this.props.autoPorts.map(makeRow)}</tbody>
+            <tbody>{this.props.rows.map(makeRow)}</tbody>
         </Table>;
         return <Modal
             show={this.props.shown}

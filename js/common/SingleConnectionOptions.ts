@@ -11,6 +11,8 @@ export interface SerialConnectionOptions {
 
 export interface UDPConnectionOptions {
     remoteIP: string;
+    remoteDesc: string;
+    useDesc: boolean;
     udpMinPort: number;
 }
 

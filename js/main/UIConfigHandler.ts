@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import {UD3ConnectionType} from "../common/constants";
-import {ConnectionPreset, IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
+import {ConnectionPreset} from "../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../common/Options";
 import {FullConnectionOptions, UD3ConnectionOptions} from "../common/SingleConnectionOptions";
 import {UIConfig} from "../common/UIConfig";
@@ -16,17 +16,24 @@ import {ipcs} from "./ipc/IPCProvider";
 let uiConfig: UIConfig | undefined;
 const FILENAME = 'tt-ui-config.json';
 
-function makeDefaultConnectOptions(): FullConnectionOptions {
-    return {
-        serialOptions: {
-            autoProductID: DEFAULT_SERIAL_PRODUCT,
-            autoVendorID: DEFAULT_SERIAL_VENDOR,
-            autoconnect: false,
-            baudrate: 460_800,
-            serialPort: getDefaultSerialPortForConfig(),
-        },
-        type: UD3ConnectionType.serial_min,
-        udpOptions: {remoteIP: "localhost", udpMinPort: 1337},
+function fixConnectionOptions(options: FullConnectionOptions) {
+    if (options.type === undefined) {
+        options.type = UD3ConnectionType.serial_min;
+    }
+    options.serialOptions = {
+        autoProductID: DEFAULT_SERIAL_PRODUCT,
+        autoVendorID: DEFAULT_SERIAL_VENDOR,
+        autoconnect: false,
+        baudrate: 460_800,
+        serialPort: getDefaultSerialPortForConfig(),
+        ...options.serialOptions,
+    };
+    options.udpOptions = {
+        remoteDesc: 'None',
+        remoteIP: "localhost",
+        udpMinPort: 1337,
+        useDesc: false,
+        ...options.udpOptions,
     };
 }
 
@@ -67,7 +74,7 @@ function getFileData() {
         object.connectionPresets = [];
     }
     object.advancedOptions = {...object.advancedOptions, ...makeDefaultAdvancedOptions()};
-    object.lastConnectOptions = {...object.lastConnectOptions, ...makeDefaultConnectOptions()};
+    fixConnectionOptions(object.lastConnectOptions);
     for (const preset of object.connectionPresets) {
         fixConnectionPreset(preset, object.lastConnectOptions, object.advancedOptions);
     }
