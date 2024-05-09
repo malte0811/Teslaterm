@@ -35,7 +35,7 @@ export class Connecting implements IConnectionState {
                 ToastSeverity.error,
                 'connection-error',
             );
-            ipcs.connectionUI.sendConnectionError(this.removeErrorPrefixes(error + ''));
+            ipcs.connectionUI.sendConnectionError(connection.getCoil(), this.removeErrorPrefixes(error + ''));
             console.log("While connecting: ", error);
             connection.releaseResources();
             this.state = State.failed;

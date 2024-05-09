@@ -72,8 +72,10 @@ export class Idle implements IConnectionState {
             case UD3ConnectionType.udp_min:
                 return connectUDP(coil, this.options.options);
             default:
-                ipcs.connectionUI.sendConnectionError("Connection type \"" + CONNECTION_TYPE_DESCS.get(type) +
-                    "\" (" + type + ") is currently not supported");
+                ipcs.connectionUI.sendConnectionError(
+                    coil,
+                    `Connection type "${CONNECTION_TYPE_DESCS.get(type)}" (${type}) is currently not supported`,
+                );
                 return undefined;
         }
     }
@@ -99,7 +101,7 @@ async function connectSerial(
                 return create(coil, port.path, options.baudrate);
             }
         }
-        ipcs.connectionUI.sendConnectionError("Did not find device with specified product/vendor ID");
+        ipcs.connectionUI.sendConnectionError(coil, "Did not find device with specified product/vendor ID");
         return undefined;
     } else {
         return create(coil, options.serialPort, options.baudrate);
@@ -113,7 +115,7 @@ async function connectUDP(coil: CoilID, options: UDPConnectionOptions) {
                 return createMinUDPConnection(coil, options.udpMinPort, port.remoteIP);
             }
         }
-        ipcs.connectionUI.sendConnectionError("Did not find UD3 with specified name");
+        ipcs.connectionUI.sendConnectionError(coil, "Did not find UD3 with specified name");
         return undefined;
     } else {
         return createMinUDPConnection(coil, options.udpMinPort, addressFromString(options.remoteIP));

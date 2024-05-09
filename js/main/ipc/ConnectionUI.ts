@@ -1,9 +1,11 @@
+import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     AvailableSerialPort,
     ConnectionPreset,
     IPC_CONSTANTS_TO_RENDERER,
     IUDPConnectionSuggestion,
+    ToastSeverity,
 } from "../../common/IPCConstantsToRenderer";
 import {clearCoils, multiConnect, singleConnect} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
@@ -39,8 +41,12 @@ export class ConnectionUIIPC {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, ports);
     }
 
-    public sendConnectionError(error: string) {
+    public sendConnectionError(coil: CoilID, error: string) {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.connectionError, error);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.openToastOn, [
+            {title: 'Connection Error', message: error, level: ToastSeverity.error},
+            coil,
+        ]);
     }
 
     private setPresets(presets: ConnectionPreset[]) {
