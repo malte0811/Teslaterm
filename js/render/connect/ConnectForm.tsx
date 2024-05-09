@@ -13,6 +13,7 @@ import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
 import {AdvancedOptionsForm} from "./AdvancedOptionsForm";
+import {ConnectedSerialDevices} from "./ConnectedSerialDevices";
 import {areOptionsValid, MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
 import {FormHelper} from "./FormHelper";
 
@@ -23,13 +24,13 @@ export interface ConnectFormProps {
     setAdvancedOptions: (newOptions: Partial<AdvancedOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
-    openSerialOptionsScreen: (options: AvailableSerialPort[]) => any;
 }
 
 export interface ConnectFormState {
     availableSerialPorts: AvailableSerialPort[];
     udpSuggestions: IUDPConnectionSuggestion[];
     serialAutoconnect: boolean;
+    showingSerialOptions: boolean;
 }
 
 export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState> {
@@ -40,12 +41,14 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
 
     private readonly firstFieldRef: React.RefObject<HTMLInputElement> = React.createRef();
     private readonly helper: FormHelper;
+    private suggestionTimer: NodeJS.Timeout;
 
     constructor(props) {
         super(props);
         this.state = {
             availableSerialPorts: [],
             serialAutoconnect: this.props.currentOptions.serialPort !== undefined,
+            showingSerialOptions: false,
             udpSuggestions: [],
         };
         this.connect = this.connect.bind(this);
@@ -61,10 +64,17 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.setSerialSuggestions, (ports: AvailableSerialPort[]) => {
             this.setState({availableSerialPorts: ports});
         });
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, undefined);
+        const requestSuggestions = () => processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, undefined);
+        this.suggestionTimer = setInterval(requestSuggestions, 10000);
+        requestSuggestions();
         if (this.firstFieldRef.current) {
             this.firstFieldRef.current.focus();
         }
+    }
+
+    public componentWillUnmount() {
+        super.componentWillUnmount();
+        clearInterval(this.suggestionTimer);
     }
 
     public render() {
@@ -109,6 +119,13 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                     disabled={!this.props.connecting && !areOptionsValid(this.props.currentOptions)}
                 >{this.props.connecting ? 'Abort connection' : 'Connect'}</Button>
             </Form>
+            <ConnectedSerialDevices
+                autoPorts={this.state.availableSerialPorts}
+                darkMode={this.props.darkMode}
+                shown={this.state.showingSerialOptions}
+                close={() => this.setState({showingSerialOptions: false})}
+                setOption={this.props.setOptions}
+            />
         </div>;
     }
 
@@ -162,7 +179,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         }
         formElements.push(this.helper.makeButton(
             'Show connected devices',
-            () => this.props.openSerialOptionsScreen(this.state.availableSerialPorts),
+            () => this.setState({showingSerialOptions: true}),
         ));
         formElements.push(this.helper.makeIntField(
             'Baudrate', options.baudrate, baudrate => this.props.setOptions({baudrate}),

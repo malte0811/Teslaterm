@@ -65,9 +65,6 @@ interface ConnectScreenState {
     error: string;
     showingError: boolean;
 
-    autoPorts: AvailableSerialPort[];
-    showingAutoPorts: boolean;
-
     currentOptions: MergedConnectionOptions;
     currentAdvancedOptions: AdvancedOptions;
 }
@@ -89,7 +86,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
         super(props);
         const connectOptions = this.props.config.lastConnectOptions;
         this.state = {
-            autoPorts: [],
             currentAdvancedOptions: this.props.config.advancedOptions,
             currentOptions: {
                 currentType: connectOptions.type || UD3ConnectionType.serial_min,
@@ -97,7 +93,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 ...connectOptions.serialOptions,
             },
             error: '',
-            showingAutoPorts: false,
             showingError: false,
         };
     }
@@ -124,7 +119,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 setAdvancedOptions={setAdvancedOptions}
                 connecting={this.props.connecting}
                 darkMode={this.props.config.darkMode}
-                openSerialOptionsScreen={autoPorts => this.setState({autoPorts, showingAutoPorts: true})}
             />
             <ConnectionPresets
                 mainAdvanced={this.state.currentAdvancedOptions}
@@ -136,13 +130,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
             />
             {this.makeDarkmodeToggle()}
             {this.makeToast()}
-            <ConnectedSerialDevices
-                autoPorts={this.state.autoPorts}
-                darkMode={this.props.config.darkMode}
-                shown={this.state.showingAutoPorts}
-                close={() => this.setState({showingAutoPorts: false})}
-                setOption={setOptions}
-            />
         </div>;
     }
 
