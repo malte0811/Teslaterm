@@ -1,6 +1,6 @@
 import * as MidiPlayer from "midi-player-js";
 import {CoilID} from "../../common/constants";
-import {VoiceID} from "../../common/IPCConstantsToRenderer";
+import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {forEachCoil, forEachCoilAsync, getConnectionState, hasUD3Connection} from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
@@ -64,11 +64,11 @@ function getVarIntLength(byteArray, base) {
 
 let received_event = false;
 
-export function sendProgramChange(voice: VoiceID, program: number) {
+export function sendProgramChange(voice: ChannelID, program: number) {
     return playMidiData([0xc0 | (voice - 1), program]);
 }
 
-export function sendVolume(coil: CoilID, voice: VoiceID, volumePercent: number) {
+export function sendVolume(coil: CoilID, voice: ChannelID, volumePercent: number) {
     return playMidiDataOn(
         coil,
         [

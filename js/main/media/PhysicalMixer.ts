@@ -1,13 +1,15 @@
 import {manager, Session} from "rtpmidi";
+import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {PhysicalMixerConfig} from "../../common/Options";
-import {MixerLayer} from "../../common/VolumeMap";
+import {DEFAULT_MIXER_LAYER, MixerLayer} from "../../common/VolumeMap";
 import {getCoils} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
+import {now} from "../microtime";
 
 // MIDI standard would be -8192 to 8191, but this is easier for this application
 const FADER_MAX = 16383;
 const PERCENT_MAX = 100;
-const PITCH_BEND_SIGNATURE = 0xb0;
+const PITCH_BEND_SIGNATURE = 0xe0;
 const NOTE_ON_SIGNATURE = 0x90;
 const PREV_BANK_KEY = 46;
 const NEXT_BANK_NOTE = 47;
@@ -28,7 +30,7 @@ function decodePitchBend(data: number[]) {
 }
 
 function decodeNoteOn(data: number[]) {
-    if (data.length !== 3 || (data[0] & 0xf0) !== NOTE_ON_SIGNATURE) {
+    if (data.length !== 3 || (data[0] & 0xf0) !== NOTE_ON_SIGNATURE || data[2] !== 127) {
         return undefined;
     } else {
         return {
@@ -49,45 +51,80 @@ function percentToFader(percent: number) {
 
 export class BehringerXTouch {
     private readonly session: Session;
+    private readonly config: PhysicalMixerConfig;
+    private readonly reconnectTimer: NodeJS.Timeout;
+    private lastMessageTime: number;
+    private lastFaderState: number[];
 
     constructor(config: PhysicalMixerConfig) {
+        this.lastFaderState = [];
+        this.config = config;
         this.session = manager.createSession({
             bonjourName: 'Teslaterm to XTouch',
             localName: 'Teslaterm to XTouch',
-            port: 5004,
+            port: 5005,
         });
-        this.session.on("message", async (delta, data) => {
+        this.session.on('message', async (delta, data) => {
             const asPitchBend = decodePitchBend(data);
             if (asPitchBend) {
-                ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel - 1, faderToPercent(asPitchBend.value));
+                const volumePercent = faderToPercent(asPitchBend.value);
+                ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel, volumePercent);
             }
             const asNoteOn = decodeNoteOn(data);
             if (asNoteOn) {
+                console.log(asNoteOn);
                 const layers: MixerLayer[] = ['coilMaster', 'voiceMaster', ...getCoils()];
                 const currentIndex = layers.indexOf(ipcs.mixer.getCurrentLayer());
                 if (asNoteOn.key === PREV_BANK_KEY && currentIndex > 0) {
-                    ipcs.mixer.setLayerFromPhysical(layers[currentIndex - 1]);
+                    ipcs.mixer.setLayer(layers[currentIndex - 1]);
                 } else if (asNoteOn.key === NEXT_BANK_NOTE && currentIndex < layers.length - 1) {
-                    ipcs.mixer.setLayerFromPhysical(layers[currentIndex + 1]);
+                    ipcs.mixer.setLayer(layers[currentIndex + 1]);
                 }
             }
         });
-        this.session.connect({port: config.port, address: config.ip});
-    }
-
-    public movePhysicalSlider(slider: number, percent: number) {
-        const pitch = percentToFader(percent);
-        const message = buildPitchBendMessage(slider + 1, pitch);
-        this.session.sendMessage(0, message);
+        this.session.on(
+            'streamAdded',
+            () => setTimeout(() => ipcs.mixer.setLayer(DEFAULT_MIXER_LAYER), 100),
+        );
+        this.session.on('controlMessage', () => this.lastMessageTime = Date.now());
+        this.connect();
+        this.lastMessageTime = Date.now();
+        this.reconnectTimer = setInterval(() => this.checkReconnect(), 1_000);
     }
 
     public movePhysicalSliders(values: Map<number, number>) {
-        for (const [key, value] of values.entries()) {
-            this.movePhysicalSlider(key, value);
+        for (const [fader, value] of values.entries()) {
+            if (value !== this.lastFaderState[fader]) {
+                if (value < 100) {
+                    console.log(`Setting ${fader} to ${value}`);
+                }
+                const pitch = percentToFader(value);
+                const message = buildPitchBendMessage(fader, pitch);
+                this.session.sendMessage(0, message);
+                this.lastFaderState[fader] = value;
+            }
         }
     }
 
     public close() {
         this.session.end();
+        clearInterval(this.reconnectTimer);
+    }
+
+    private checkReconnect() {
+        const now = Date.now();
+        if (this.lastMessageTime + 6_000 < now) {
+            console.log("Reconnecting", now);
+            this.lastMessageTime = now;
+            // TODO remove connected var
+            if (this.session.getStreams().length > 0) {
+                this.session.removeStream(this.session.getStreams()[0]);
+            }
+            this.connect();
+        }
+    }
+
+    private connect() {
+        this.session.connect({port: this.config.port, address: this.config.ip});
     }
 }

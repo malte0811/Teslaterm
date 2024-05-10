@@ -73,7 +73,7 @@ function getFileData() {
     if (object.connectionPresets === undefined) {
         object.connectionPresets = [];
     }
-    object.advancedOptions = {...object.advancedOptions, ...makeDefaultAdvancedOptions()};
+    object.advancedOptions = {...makeDefaultAdvancedOptions(), ...object.advancedOptions};
     fixConnectionOptions(object.lastConnectOptions);
     for (const preset of object.connectionPresets) {
         fixConnectionPreset(preset, object.lastConnectOptions, object.advancedOptions);

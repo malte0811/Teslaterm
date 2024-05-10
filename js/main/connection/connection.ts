@@ -35,6 +35,10 @@ export function getCoils() {
     return connectionState.keys();
 }
 
+export function numCoils() {
+    return connectionState.size;
+}
+
 export function initializeExtraConnections(options: AdvancedOptions) {
     extraConnections = new ExtraConnections(options);
 }

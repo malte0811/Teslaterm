@@ -1,5 +1,5 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {VoiceID} from "../../common/IPCConstantsToRenderer";
+import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
@@ -18,8 +18,9 @@ export async function loadMidiFile(file: TransmittedFile) {
     player.loadArrayBuffer(file.contents);
     const events = fixBrokenArray(player.getEvents());
     const uniqueChannels: number[] = [];
-    const programByChannel = new Map<VoiceID, number>();
-    const multiProgramChannels = new Set<VoiceID>();
+    const programByChannel = new Map<ChannelID, number>();
+    const volumeByChannel = new Map<ChannelID, number>();
+    const multiProgramChannels = new Set<ChannelID>();
     for (const event of events) {
         if (event.channel !== undefined && !uniqueChannels.includes(event.channel)) {
             uniqueChannels.push(event.channel);
@@ -31,9 +32,12 @@ export async function loadMidiFile(file: TransmittedFile) {
                 programByChannel.delete(event.channel);
             }
             programByChannel.set(event.channel, event.value);
+        } else if (event.name === 'Controller Change' && event.number === 7) {
+            volumeByChannel.set(event.channel, event.value * (100 / 127));
         }
     }
     uniqueChannels.sort((a, b) => a - b);
+    console.log(volumeByChannel);
     await media_state.loadFile(
         file,
         MediaFileType.midi,
@@ -43,5 +47,10 @@ export async function loadMidiFile(file: TransmittedFile) {
         stopMidiFile,
     );
     ipcs.mixer.setProgramsByVoice(programByChannel);
+    uniqueChannels.forEach((channel) => {
+        if (volumeByChannel.has(channel)) {
+            ipcs.mixer.setVolume({channel}, volumeByChannel.get(channel));
+        }
+    });
     ipcs.misc.updateMediaInfo();
 }

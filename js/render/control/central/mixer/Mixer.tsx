@@ -2,7 +2,7 @@ import React from "react";
 import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER, ChannelID} from "../../../../common/IPCConstantsToRenderer";
 import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
@@ -16,9 +16,9 @@ export interface MixerProps {
 
 interface MixerState {
     volumes: VolumeMap;
-    voiceProgram: Map<VoiceID, number>;
+    voiceProgram: Map<ChannelID, number>;
     currentLayer: MixerLayer;
-    voices: VoiceID[];
+    channels: ChannelID[];
     availablePrograms: string[];
 }
 
@@ -29,7 +29,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             availablePrograms: [],
             currentLayer: DEFAULT_MIXER_LAYER,
             voiceProgram: new Map<CoilID, number>(),
-            voices: [],
+            channels: [],
             volumes: new VolumeMap(),
         };
     }
@@ -37,7 +37,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
     public componentDidMount() {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels,
-            (voices) => this.setState({voices}),
+            (voices) => this.setState({channels: voices}),
         );
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms,
@@ -66,9 +66,9 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 value={this.getVolume({coil: state.id})}
             />);
         } else if (layer === 'voiceMaster') {
-            sliders = this.makeVoiceSliders(undefined);
+            sliders = this.makeChannelSliders(undefined);
         } else {
-            sliders = this.makeVoiceSliders(layer);
+            sliders = this.makeChannelSliders(layer);
         }
         return <div className={'tt-mixer'}>
             <div className={'tt-mixer-border-box'}>
@@ -84,7 +84,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             </div>
             <div className={'tt-mixer-selector'}>
                 {this.makeLayerButton('coilMaster', "By Coil")}
-                {this.makeLayerButton('voiceMaster', "By Voice")}
+                {this.makeLayerButton('voiceMaster', "By Channel")}
                 {...this.props.coils.map((coil) => this.makeLayerButton(coil.id, coil.name || 'Unknown'))}
             </div>
         </div>;
@@ -99,26 +99,26 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, [key, volume]);
     }
 
-    private setProgram(voice: VoiceID, program: number) {
+    private setProgram(voice: ChannelID, program: number) {
         this.setState((oldState) => {
-            const newPrograms = new Map<VoiceID, number>(oldState.voiceProgram);
+            const newPrograms = new Map<ChannelID, number>(oldState.voiceProgram);
             newPrograms.set(voice, program);
             return {voiceProgram: newPrograms};
         });
         processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, [voice, program]);
     }
 
-    private makeVoiceSliders(coil?: CoilID) {
-        return this.state.voices.map((i) => {
+    private makeChannelSliders(coil?: CoilID) {
+        return this.state.channels.map((i) => {
             const program: InstrumentChoice = {
                 available: this.state.availablePrograms,
                 currentChoice: this.state.voiceProgram.get(i) || 0,
                 setValue: (val) => this.setProgram(i, val),
             };
             return <MixerColumn
-                title={`Voice ${i}`}
-                setValue={(volume) => this.setVolume({voice: i, coil}, volume)}
-                value={this.getVolume({voice: i, coil})}
+                title={`Channel ${i}`}
+                setValue={(volume) => this.setVolume({channel: i, coil}, volume)}
+                value={this.getVolume({channel: i, coil})}
                 program={program}
             />;
         });

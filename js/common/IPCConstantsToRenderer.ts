@@ -23,8 +23,8 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setAvailableMIDIPrograms: makeKey<string[]>('midi-programs'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
-        setMIDIProgramsByChannel: makeKey<Map<VoiceID, number>>('media-programs-by-channel'),
-        setMediaChannels: makeKey<VoiceID[]>('media-channels'),
+        setMIDIProgramsByChannel: makeKey<Map<ChannelID, number>>('media-programs-by-channel'),
+        setMediaChannels: makeKey<ChannelID[]>('media-channels'),
         setVolume: makeKey<[VolumeKey, number]>('set-mixer-volume'),
     },
     connect: {
@@ -246,4 +246,4 @@ export interface ConnectionPreset {
     options: SingleConnectionOptions;
 }
 
-export type VoiceID = number;
+export type ChannelID = number;

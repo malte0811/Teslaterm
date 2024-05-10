@@ -29,8 +29,6 @@ export class Idle implements IConnectionState {
         const connection = await this.createConnection(id);
         if (connection) {
             setConnectionState(id, new Connecting(connection, this, this));
-        } else {
-            return undefined;
         }
     }
 

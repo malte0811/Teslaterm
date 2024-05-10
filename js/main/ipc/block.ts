@@ -1,5 +1,5 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ToastSeverity, VoiceID} from "../../common/IPCConstantsToRenderer";
+import {ToastSeverity, ChannelID} from "../../common/IPCConstantsToRenderer";
 import {forEachCoil, getConnectionState} from "../connection/connection";
 import {setUIConfig} from "../UIConfigHandler";
 import {ipcs} from "./IPCProvider";
@@ -80,7 +80,7 @@ export function loadVMS(file: TransmittedFile) {
         ).reduce((a, b) => a + b);
         ipcs.misc.openGenericToast('VMS', "Found " + totalBlocks + " blocks", ToastSeverity.info);
         sendBlocks(programs);
-        ipcs.mixer.setProgramsByVoice(new Map<VoiceID, number>());
+        ipcs.mixer.setProgramsByVoice(new Map<ChannelID, number>());
         setUIConfig({midiPrograms: programs.map((p) => p.name)});
         ipcs.mixer.sendAvailablePrograms();
     } catch (e) {

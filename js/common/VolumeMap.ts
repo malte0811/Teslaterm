@@ -1,9 +1,9 @@
 import {CoilID} from "./constants";
-import {VoiceID} from "./IPCConstantsToRenderer";
+import {ChannelID} from "./IPCConstantsToRenderer";
 
 export interface VolumeKey {
     coil?: CoilID;
-    voice?: VoiceID;
+    channel?: ChannelID;
 }
 
 export type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
@@ -18,27 +18,30 @@ export class VolumeMap {
     // All volumes in percent (0-100)
     private readonly masterVolume: number;
     private readonly coilVolume: Map<CoilID, number>;
-    private readonly voiceVolume: Map<VoiceID, number>;
-    private readonly specificVolumes: Map<CoilID, Map<VoiceID, number>>;
+    private readonly voiceVolume: Map<ChannelID, number>;
+    private readonly specificVolumes: Map<CoilID, Map<ChannelID, number>>;
+    private readonly channelByFader: number[];
 
     public constructor(
         masterVolume?: number,
         coilVolume?: Map<CoilID, number>,
-        voiceVolume?: Map<VoiceID, number>,
-        specificVolumes?: Map<CoilID, Map<VoiceID, number>>,
+        voiceVolume?: Map<ChannelID, number>,
+        specificVolumes?: Map<CoilID, Map<ChannelID, number>>,
+        channelByFader?: number[],
     ) {
         this.masterVolume = masterVolume !== undefined ? masterVolume : DEFAULT_VOLUME;
         this.coilVolume = coilVolume || new Map<CoilID, number>();
-        this.voiceVolume = voiceVolume || new Map<VoiceID, number>();
-        this.specificVolumes = specificVolumes || new Map<CoilID, Map<VoiceID, number>>();
+        this.voiceVolume = voiceVolume || new Map<ChannelID, number>();
+        this.specificVolumes = specificVolumes || new Map<CoilID, Map<ChannelID, number>>();
+        this.channelByFader = channelByFader || [0, 1, 2];
     }
 
     public getIndividualVolume(key: VolumeKey) {
         const rawResult = (() => {
-            if (key.voice !== undefined && key.coil !== undefined) {
-                return this.specificVolumes.get(key.coil)?.get(key.voice);
-            } else if (key.voice !== undefined) {
-                return this.voiceVolume.get(key.voice);
+            if (key.channel !== undefined && key.coil !== undefined) {
+                return this.specificVolumes.get(key.coil)?.get(key.channel);
+            } else if (key.channel !== undefined) {
+                return this.voiceVolume.get(key.channel);
             } else if (key.coil !== undefined) {
                 return this.coilVolume.get(key.coil);
             } else {
@@ -48,63 +51,73 @@ export class VolumeMap {
         return rawResult !== undefined ? rawResult : DEFAULT_VOLUME;
     }
 
-    public getTotalVolume(coil: CoilID, voice: VoiceID) {
-        return this.getIndividualVolume({coil, voice}) / 100 *
+    public getTotalVolume(coil: CoilID, voice: ChannelID) {
+        return this.getIndividualVolume({coil, channel: voice}) / 100 *
             this.getIndividualVolume({coil}) / 100 *
-            this.getIndividualVolume({voice}) / 100 *
+            this.getIndividualVolume({channel: voice}) / 100 *
             this.getIndividualVolume({});
     }
 
     public with(key: VolumeKey, newValue: number) {
         const newCoilVolume = new Map<CoilID, number>(this.coilVolume);
-        const newVoiceVolume = new Map<VoiceID, number>(this.voiceVolume);
-        const newSpecificVolume = new Map<CoilID, Map<VoiceID, number>>(this.specificVolumes);
+        const newVoiceVolume = new Map<ChannelID, number>(this.voiceVolume);
+        const newSpecificVolume = new Map<CoilID, Map<ChannelID, number>>(this.specificVolumes);
         let masterVolume = this.masterVolume;
-        if (key.voice !== undefined && key.coil !== undefined) {
-            const submap = new Map<VoiceID, number>(newSpecificVolume.get(key.coil));
-            submap.set(key.voice, newValue);
+        if (key.channel !== undefined && key.coil !== undefined) {
+            const submap = new Map<ChannelID, number>(newSpecificVolume.get(key.coil));
+            submap.set(key.channel, newValue);
             newSpecificVolume.set(key.coil, submap);
-        } else if (key.voice !== undefined) {
-            newVoiceVolume.set(key.voice, newValue);
+        } else if (key.channel !== undefined) {
+            newVoiceVolume.set(key.channel, newValue);
         } else if (key.coil !== undefined) {
             newCoilVolume.set(key.coil, newValue);
         } else {
             masterVolume = newValue;
         }
-        return new VolumeMap(masterVolume, newCoilVolume, newVoiceVolume, newSpecificVolume);
+        return new VolumeMap(masterVolume, newCoilVolume, newVoiceVolume, newSpecificVolume, this.channelByFader);
     }
 
-    public withoutVoiceVolumes() {
-        return new VolumeMap(this.masterVolume, this.coilVolume);
+    public withChannelMap(channelByFader: number[]) {
+        return new VolumeMap(
+            this.masterVolume, this.coilVolume, this.voiceVolume, this.specificVolumes, channelByFader
+        );
     }
 
-    public getFaderStates(currentLayer: MixerLayer): Map<number, number> {
-        const baseMap = (() => {
-            if (currentLayer === 'coilMaster') {
-                return this.coilVolume;
-            } else if (currentLayer === 'voiceMaster') {
-                return this.voiceVolume;
-            } else {
-                return this.specificVolumes.get(currentLayer);
-            }
-        })();
-        const resultMap = new Map<number, number>(baseMap);
+    public getFaderStates(currentLayer: MixerLayer, numCoils: number): Map<number, number> {
+        const resultMap = new Map<number, number>();
+        const numActive = currentLayer === 'coilMaster' ? numCoils : this.channelByFader.length;
         for (let i = 0; i < NUM_SPECIFIC_FADERS; ++i) {
-            const volume = baseMap?.get(i);
-            resultMap.set(i, volume === undefined ? DEFAULT_VOLUME : volume);
+            resultMap.set(i, i < numActive ? DEFAULT_VOLUME : 0);
         }
+        if (currentLayer === 'coilMaster') {
+            for (const [coil, volume] of this.coilVolume) {
+                resultMap.set(coil, volume);
+            }
+        } else {
+            const baseMap = (() => {
+                if (currentLayer === 'voiceMaster') {
+                    return this.voiceVolume;
+                } else {
+                    return this.specificVolumes.get(currentLayer);
+                }
+            })();
+            for (const [channel, volume] of (baseMap || new Map<ChannelID, number>())) {
+                const volume = baseMap?.get(channel);
+                const fader = this.getFaderID(channel);
+                if (fader >= 0) {
+                    resultMap.set(fader, volume);
+                }
+            }
+        }
+        resultMap.set(NUM_SPECIFIC_FADERS, this.masterVolume);
         return resultMap;
     }
 
-    public getFaderID(key: VolumeKey) {
-        if (key.coil === undefined && key.voice === undefined) {
-            // Master
-            return NUM_SPECIFIC_FADERS;
-        } else if (key.voice === undefined) {
-            // Coil master is the only other case without a specified void
-            return key.coil;
-        } else {
-            return key.voice;
-        }
+    public getFaderID(channel: ChannelID) {
+        return this.channelByFader.indexOf(channel);
+    }
+
+    public getChannelMap() {
+        return this.channelByFader;
     }
 }

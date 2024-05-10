@@ -50,7 +50,6 @@ export class App extends TTComponent<{}, TopLevelState> {
                 const result = {
                     coils: [...oldState.coils],
                     multicoil,
-                    // TODO this should only happen once connect is done
                     screen: oldState.screen,
                 };
                 if (!oldState.coils.includes(coil)) {

@@ -1,17 +1,16 @@
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, VoiceID} from "../../common/IPCConstantsToRenderer";
-import {DEFAULT_MIXER_LAYER, MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap} from "../../common/VolumeMap";
-import {forEachCoilAsync, getPhysicalMixer} from "../connection/connection";
+import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap} from "../../common/VolumeMap";
+import {forEachCoilAsync, getCoils, getPhysicalMixer, numCoils} from "../connection/connection";
 import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getUIConfig} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
 
 export class MixerIPC {
-    private voices: number[] = [0, 1, 2];
-    private programByVoice: Map<VoiceID, number> = new Map<VoiceID, number>();
+    private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
     private volumes: VolumeMap = new VolumeMap();
-    private currentLayer: MixerLayer = DEFAULT_MIXER_LAYER;
+    private currentLayer: MixerLayer;
     private readonly processIPC: MainIPC;
 
     constructor(processIPC: MainIPC) {
@@ -20,28 +19,28 @@ export class MixerIPC {
             this.programByVoice.set(channel, program);
             await sendProgramChange(channel, program);
         });
-        processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.centralTab.setMixerLayer, async (layer) => {
-            this.currentLayer = layer;
-            getPhysicalMixer()?.movePhysicalSliders(this.volumes.getFaderStates(this.currentLayer));
-        });
-        processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, async ([key, volume]) => {
-            this.volumes = this.volumes.with(key, volume);
-            await this.sendVolumeUpdates(key);
-            getPhysicalMixer()?.movePhysicalSlider(this.volumes.getFaderID(key), volume);
-        });
+        processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.centralTab.setMixerLayer,
+            async (layer) => this.setLayer(layer),
+        );
+        processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.centralTab.setVolume,
+            async ([key, volume]) => {
+                this.setVolume(key, volume);
+            },
+        );
     }
 
-    public getProgramFor(channel: VoiceID) {
+    public getProgramFor(channel: ChannelID) {
         return this.programByVoice.get(channel);
     }
 
-    public setVoices(voices: number[]) {
-        this.voices = voices;
-        this.volumes = this.volumes.withoutVoiceVolumes();
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels, this.voices);
+    public setChannels(channelIDs: number[]) {
+        this.volumes = this.volumes.withChannelMap(channelIDs);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels, this.volumes.getChannelMap());
     }
 
-    public setProgramsByVoice(programByVoice: Map<VoiceID, number>) {
+    public setProgramsByVoice(programByVoice: Map<ChannelID, number>) {
         this.programByVoice = programByVoice;
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel, this.programByVoice);
     }
@@ -51,46 +50,60 @@ export class MixerIPC {
     }
 
     public sendFullState() {
-        this.setVoices(this.voices);
+        this.setChannels(this.volumes.getChannelMap());
         this.setProgramsByVoice(this.programByVoice);
         this.sendAvailablePrograms();
     }
 
     public setVolumeFromPhysical(fader: number, percent: number) {
+        const channelID = this.volumes.getChannelMap()[fader];
         const key: VolumeKey = (() => {
             if (fader >= NUM_SPECIFIC_FADERS) {
                 return {};
             } else if (this.currentLayer === 'voiceMaster') {
-                return {voice: fader};
+                return channelID && {channel: channelID};
             } else if (this.currentLayer === 'coilMaster') {
-                return {coil: fader};
+                return fader < numCoils() && {coil: fader};
             } else {
-                return {coil: this.currentLayer, voice: fader};
+                return channelID && {coil: this.currentLayer, channel: channelID};
             }
         })();
-        this.volumes = this.volumes.with(key, percent);
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, percent]);
-        this.sendVolumeUpdates(key).catch((err) => console.error("Failed to send volume update:", err));
+        if (key) {
+            this.setVolume(key, percent);
+        }
     }
 
-    public setLayerFromPhysical(layer: MixerLayer) {
-        this.currentLayer = layer;
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, layer);
+    public setVolume(key: VolumeKey, percent: number) {
+        this.volumes = this.volumes.with(key, percent);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, percent]);
+        this.sendVolumeToCoil(key).catch((err) => console.error("Failed to send volume update:", err));
+        this.updatePhysicalMixer();
     }
 
     public getCurrentLayer() {
         return this.currentLayer;
     }
 
-    private async sendVolumeUpdates(changedKey: VolumeKey) {
-        const sendUpdate = async (coil: CoilID, voice: VoiceID) => {
+    public setLayer(layer: MixerLayer) {
+        this.currentLayer = layer;
+        this.updatePhysicalMixer();
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, layer);
+    }
+
+    private updatePhysicalMixer() {
+        const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
+        getPhysicalMixer()?.movePhysicalSliders(faders);
+    }
+
+    private async sendVolumeToCoil(changedKey: VolumeKey) {
+        const sendUpdate = async (coil: CoilID, voice: ChannelID) => {
             await sendVolume(coil, voice, this.volumes.getTotalVolume(coil, voice));
         };
         const sendUpdatesToCoil = async (coil: CoilID) => {
-            if (changedKey.voice) {
-                await sendUpdate(coil, changedKey.voice);
+            if (changedKey.channel) {
+                await sendUpdate(coil, changedKey.channel);
             } else {
-                await Promise.all(this.voices.map((voice) => sendUpdate(coil, voice)));
+                await Promise.all(this.volumes.getChannelMap().map((voice) => sendUpdate(coil, voice)));
             }
         };
         if (changedKey.coil) {
