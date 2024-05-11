@@ -21,9 +21,18 @@ export async function loadMidiFile(file: TransmittedFile) {
     const programByChannel = new Map<ChannelID, number>();
     const volumeByChannel = new Map<ChannelID, number>();
     const multiProgramChannels = new Set<ChannelID>();
+    const nameByTrack = new Map<number, string>();
+    const trackByChannel = new Map<ChannelID, number>();
     for (const event of events) {
+        if (event.name === 'Sequence/Track Name') {
+            nameByTrack.set(event.track, event.string);
+        }
         if (event.channel !== undefined && !uniqueChannels.includes(event.channel)) {
             uniqueChannels.push(event.channel);
+        }
+        // TODO detect invalid data
+        if (event.channel !== undefined && event.track !== undefined) {
+            trackByChannel.set(event.channel, event.track);
         }
         if (event.name === 'Program Change' && !multiProgramChannels.has(event.channel)) {
             if (programByChannel.has(event.channel) && programByChannel.get(event.channel) !== event.value) {
@@ -36,8 +45,11 @@ export async function loadMidiFile(file: TransmittedFile) {
             volumeByChannel.set(event.channel, event.value * (100 / 127));
         }
     }
+    const nameByChannel = new Map<ChannelID, string>();
+    for (const [channel, track] of trackByChannel) {
+        nameByChannel.set(channel, nameByTrack.get(track) || `Channel ${channel}`);
+    }
     uniqueChannels.sort((a, b) => a - b);
-    console.log(volumeByChannel);
     await media_state.loadFile(
         file,
         MediaFileType.midi,
@@ -47,6 +59,7 @@ export async function loadMidiFile(file: TransmittedFile) {
         stopMidiFile,
     );
     ipcs.mixer.setProgramsByVoice(programByChannel);
+    ipcs.mixer.setChannelNames(nameByChannel);
     uniqueChannels.forEach((channel) => {
         if (volumeByChannel.has(channel)) {
             ipcs.mixer.setVolume({channel}, volumeByChannel.get(channel));

@@ -17,6 +17,7 @@ export interface MixerProps {
 interface MixerState {
     volumes: VolumeMap;
     voiceProgram: Map<ChannelID, number>;
+    channelNames: Map<ChannelID, string>;
     currentLayer: MixerLayer;
     channels: ChannelID[];
     availablePrograms: string[];
@@ -27,9 +28,10 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         super(props);
         this.state = {
             availablePrograms: [],
+            channelNames: new Map<ChannelID, string>(),
+            channels: [],
             currentLayer: DEFAULT_MIXER_LAYER,
             voiceProgram: new Map<CoilID, number>(),
-            channels: [],
             volumes: new VolumeMap(),
         };
     }
@@ -46,6 +48,9 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel,
             (voiceProgram) => this.setState({voiceProgram}),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIChannelNames, (names) => this.setState({channelNames: names}),
         );
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, (layer) => this.setState({currentLayer: layer}),
@@ -116,7 +121,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 setValue: (val) => this.setProgram(i, val),
             };
             return <MixerColumn
-                title={`Channel ${i}`}
+                title={this.state.channelNames.get(i) || `Channel ${i}`}
                 setValue={(volume) => this.setVolume({channel: i, coil}, volume)}
                 value={this.getVolume({channel: i, coil})}
                 program={program}

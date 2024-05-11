@@ -9,6 +9,7 @@ import {MainIPC} from "./IPCProvider";
 
 export class MixerIPC {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
+    private nameByVoice: Map<ChannelID, string> = new Map<ChannelID, string>();
     private volumes: VolumeMap = new VolumeMap();
     private currentLayer: MixerLayer;
     private readonly processIPC: MainIPC;
@@ -43,6 +44,11 @@ export class MixerIPC {
     public setProgramsByVoice(programByVoice: Map<ChannelID, number>) {
         this.programByVoice = programByVoice;
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel, this.programByVoice);
+    }
+
+    public setChannelNames(nameByVoice: Map<ChannelID, string>) {
+        this.nameByVoice = nameByVoice;
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIChannelNames, this.nameByVoice);
     }
 
     public sendAvailablePrograms() {

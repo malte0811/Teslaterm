@@ -10,7 +10,7 @@ import {
 import {clearCoils, multiConnect, singleConnect} from "../connection/connection";
 import {sendConnectionSuggestions} from "../connection/types/Suggestions";
 import {getUIConfig, setUIConfig} from "../UIConfigHandler";
-import {MainIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
 
 export class ConnectionUIIPC {
     private readonly processIPC: MainIPC;
@@ -43,10 +43,7 @@ export class ConnectionUIIPC {
 
     public sendConnectionError(coil: CoilID, error: string) {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.connectionError, error);
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.openToastOn, [
-            {title: 'Connection Error', message: error, level: ToastSeverity.error},
-            coil,
-        ]);
+        ipcs.coilMisc(coil).openToast('Connection Error', error, ToastSeverity.error, 'connect-error');
     }
 
     private setPresets(presets: ConnectionPreset[]) {

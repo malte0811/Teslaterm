@@ -1,7 +1,7 @@
-import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {CoilID, coilSuffix, UD3AlarmLevel} from "./constants";
 import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
+import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {TTConfig} from "./TTConfig";
 import {UIConfig} from "./UIConfig";
 import {MixerLayer, VolumeKey} from "./VolumeMap";
@@ -22,9 +22,10 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
         setAvailableMIDIPrograms: makeKey<string[]>('midi-programs'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
-        setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
+        setMIDIChannelNames: makeKey<Map<ChannelID, string>>('name-by-channel'),
         setMIDIProgramsByChannel: makeKey<Map<ChannelID, number>>('media-programs-by-channel'),
         setMediaChannels: makeKey<ChannelID[]>('media-channels'),
+        setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
         setVolume: makeKey<[VolumeKey, number]>('set-mixer-volume'),
     },
     connect: {
@@ -37,19 +38,19 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         fullList: makeKey<{events: ParsedEvent[], initial: InitialFRState}>('fr-event-list'),
     },
     menu: {
-        ud3State: makeKey<[CoilID, UD3State]>('menu-ud3-state'),
         setMediaTitle: makeKey<string>('menu-media-title'),
         setScriptName: makeKey<string>('menu-script-name'),
+        ud3State: makeKey<[CoilID, UD3State]>('menu-ud3-state'),
     },
     openToastOn: makeKey<[ToastData, CoilID?]>('open-toast-coil'),
-    script: {
-        requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
-    },
+    registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
     scope: {
         redrawMedia: makeKey<MediaState>('scope-draw-media'),
     },
+    script: {
+        requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
+    },
     ttConfig: makeKey<TTConfig>('tt-config'),
-    registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
     udName: makeKey<[CoilID, string]>('ud-name'),
     uiConfig: makeKey<UIConfig>('uiConfig'),
     updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
