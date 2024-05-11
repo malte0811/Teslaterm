@@ -37,15 +37,15 @@ interface Block {
     nextBlock2: number;
     nextBlock3: number;
     offBlock: number;
-    offBehavior: number;
+    behavior: number;
     type: number;
     target: number;
     thresholdDirection: number;
-    targetValue: number;
-    param0: number;
+    targetFactor: number;
     param1: number;
     param2: number;
     param3: number;
+    periodMs: number;
     flags: number;
 }
 
@@ -135,15 +135,15 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             nextBlock2: blockMap.getAsInt('nextBlock[2]'),
             nextBlock3: blockMap.getAsInt('nextBlock[3]'),
             offBlock: blockMap.getAsInt('offBlock'),
-            offBehavior: blockMap.getMapped('offBehavior', NOTEOFF_BEHAVIOR),
+            behavior: blockMap.getMapped('offBehavior', NOTEOFF_BEHAVIOR),
             type: blockMap.getMapped('type', VMS_MODTYPE),
             target: blockMap.getMapped('target', KNOWN_VALUE),
             thresholdDirection: blockMap.getMapped('thresholdDirection', DIRECTION),
-            targetValue: blockMap.getAsInt('targetValue'),
-            param0: blockMap.getAsInt('param[0]'),
-            param1: blockMap.getAsInt('param[1]'),
-            param2: blockMap.getAsInt('param[2]'),
-            param3: blockMap.getAsInt('param[3]'),
+            targetFactor: blockMap.getAsInt('targetValue'),
+            param1: blockMap.getAsInt('param[0]'),
+            param2: blockMap.getAsInt('param[1]'),
+            param3: blockMap.getAsInt('param[2]'),
+            periodMs: blockMap.getAsInt('param[3]'),
             flags: blockMap.getAsInt('flags'),
         });
     }
@@ -219,15 +219,15 @@ function sendBlock(block: Block) {
     writeUint32(block.nextBlock3);
     writeUint32(block.offBlock);
 
-    writeUint32(block.offBehavior);
+    writeUint32(block.behavior);
     writeUint32(block.type);
     writeUint32(block.target);
     writeUint32(block.thresholdDirection);
-    writeUint32(block.targetValue);
-    writeUint32(block.param0);
+    writeUint32(block.targetFactor);
     writeUint32(block.param1);
     writeUint32(block.param2);
     writeUint32(block.param3);
+    writeUint32(block.periodMs);
     writeUint32(block.flags);
     sendToAll(buf);
 }
