@@ -1,9 +1,9 @@
-import {AdvancedOptions} from "../../common/Options";
-import {MultiConnectionOptions, SingleConnectionOptions} from "../../common/SingleConnectionOptions";
 import {CoilID} from "../../common/constants";
 import {FlightEventType} from "../../common/FlightRecorderTypes";
 import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
 import {PlayerActivity} from "../../common/MediaTypes";
+import {AdvancedOptions} from "../../common/Options";
+import {MultiConnectionOptions, SingleConnectionOptions} from "../../common/SingleConnectionOptions";
 import {sleep} from "../helper";
 import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
@@ -39,8 +39,8 @@ export function numCoils() {
     return connectionState.size;
 }
 
-export function initializeExtraConnections(options: AdvancedOptions) {
-    extraConnections = new ExtraConnections(options);
+export function initializeExtraConnections(options: AdvancedOptions, multicoil: boolean) {
+    extraConnections = new ExtraConnections(options, multicoil);
 }
 
 export function clearCoils() {
@@ -55,6 +55,10 @@ export function clearCoils() {
 
 export function getPhysicalMixer(): BehringerXTouch | undefined {
     return extraConnections?.getPhysicalMixer();
+}
+
+export function isMulticoil(): boolean | undefined {
+    return extraConnections?.isMulticoil();
 }
 
 export function forEachCoilAsync<T>(apply: (coil: CoilID) => Promise<T>) {
@@ -157,26 +161,26 @@ export async function singleConnect(args: SingleConnectionOptions) {
     setUIConfig({advancedOptions: args.advanced});
     setLastConnectionOptions(args);
     await setRelativeOntime(100);
-    initializeExtraConnections(args.advanced);
-    await new Idle(args, false).connect(makeNewCoilID(false));
+    initializeExtraConnections(args.advanced, false);
+    await new Idle(args).connect(makeNewCoilID());
 }
 
 export async function multiConnect(args: MultiConnectionOptions) {
     setUIConfig({advancedOptions: args.advanced});
     await setRelativeOntime(0);
-    initializeExtraConnections(args.advanced);
+    initializeExtraConnections(args.advanced, true);
     await Promise.all(args.ud3Options.map(
         async (coilArg, i) => {
             await sleep(100 * i);
-            await new Idle(coilArg, true).connect(makeNewCoilID(true));
+            await new Idle(coilArg).connect(makeNewCoilID());
         },
     ));
 }
 
 let nextCoilID = 0;
 
-function makeNewCoilID(multicoil: boolean): CoilID {
+function makeNewCoilID(): CoilID {
     const id: CoilID = nextCoilID++;
-    ipcs.initCoilIPC(id, multicoil);
+    ipcs.initCoilIPC(id);
     return id;
 }

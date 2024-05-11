@@ -1,9 +1,8 @@
 import {ipcMain} from "electron";
-import {Simulate} from "react-dom/test-utils";
 import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPCToMainKey, PerCoilMainIPCs} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, IPCToRendererKey} from "../../common/IPCConstantsToRenderer";
-import {forEachCoil} from "../connection/connection";
+import {forEachCoil, isMulticoil} from "../connection/connection";
 import {initAlarms} from "../connection/telemetry/Alarms";
 import {mainWindow} from "../main_electron";
 import {CommandIPC, registerCommonCommandsIPC} from "./Commands";
@@ -131,7 +130,7 @@ export class IPCCollection {
         return this.miscByCoil.get(coil);
     }
 
-    public initCoilIPC(coil: CoilID, multicoil: boolean) {
+    public initCoilIPC(coil: CoilID) {
         const tempIPC = new TemporaryIPC();
         this.ipcScopeByCoil.set(coil, tempIPC);
         this.slidersByCoil.set(coil, new SlidersIPC(tempIPC, coil));
@@ -142,7 +141,7 @@ export class IPCCollection {
         this.scopeByCoil.set(coil, new ScopeIPC(tempIPC, coil));
         this.miscByCoil.set(coil, new ByCoilMiscIPC(tempIPC, coil));
         initAlarms(coil);
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, multicoil]);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, isMulticoil()]);
         sendCoilSync(coil);
     }
 

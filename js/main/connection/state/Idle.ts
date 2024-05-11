@@ -1,9 +1,10 @@
-import {
-    SerialConnectionOptions,
-    UD3ConnectionOptions, UDPConnectionOptions
-} from "../../../common/SingleConnectionOptions";
 import {CoilID, CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../../common/constants";
 import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
+import {
+    SerialConnectionOptions,
+    UD3ConnectionOptions,
+    UDPConnectionOptions,
+} from "../../../common/SingleConnectionOptions";
 import {ipcs} from "../../ipc/IPCProvider";
 import {setConnectionState} from "../connection";
 import {resetAlarms} from "../telemetry/Alarms";
@@ -17,11 +18,9 @@ import {IConnectionState} from "./IConnectionState";
 
 export class Idle implements IConnectionState {
     private readonly options: UD3ConnectionOptions;
-    private readonly isMultiCoil: boolean;
 
-    constructor(args: UD3ConnectionOptions, isMulticoil: boolean) {
+    constructor(args: UD3ConnectionOptions) {
         this.options = args;
-        this.isMultiCoil = isMulticoil;
     }
 
     public async connect(id: CoilID) {
@@ -30,10 +29,6 @@ export class Idle implements IConnectionState {
         if (connection) {
             setConnectionState(id, new Connecting(connection, this, this));
         }
-    }
-
-    public isMulticoil() {
-        return this.isMultiCoil;
     }
 
     public getActiveConnection(): UD3Connection | undefined {

@@ -7,8 +7,9 @@ export class ExtraConnections {
     private readonly midiServer?: MidiServer;
     private readonly sidServer?: NetworkSIDServer;
     private readonly physicalMixer?: BehringerXTouch;
+    private readonly multicoil: boolean;
 
-    public constructor(options: AdvancedOptions) {
+    public constructor(options: AdvancedOptions, multicoil: boolean) {
         if (options.midiOptions.runMidiServer) {
             this.midiServer = new MidiServer(options.midiOptions);
         }
@@ -18,10 +19,15 @@ export class ExtraConnections {
         if (options.mixerOptions.enable) {
             this.physicalMixer = new BehringerXTouch(options.mixerOptions);
         }
+        this.multicoil = multicoil;
     }
 
     public getPhysicalMixer() {
         return this.physicalMixer;
+    }
+
+    public isMulticoil() {
+        return this.multicoil;
     }
 
     public close() {

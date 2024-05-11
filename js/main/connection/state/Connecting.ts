@@ -1,6 +1,6 @@
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
-import {startConf} from "../connection";
+import {isMulticoil, startConf} from "../connection";
 import * as telemetry from "../telemetry";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connected} from "./Connected";
@@ -85,7 +85,7 @@ export class Connecting implements IConnectionState {
 
     private async connect() {
         this.state = State.connecting;
-        ipcs.sliders(this.connection.getCoil()).reinitState(this.idleState.isMulticoil());
+        ipcs.sliders(this.connection.getCoil()).reinitState(isMulticoil());
         await this.connection.startTerminal(
             this.getAutoTerminal(),
             (data) => telemetry.receive_main(
