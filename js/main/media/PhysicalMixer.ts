@@ -5,6 +5,7 @@ import {DEFAULT_MIXER_LAYER, MixerLayer} from "../../common/VolumeMap";
 import {getCoils} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
+import {media_state} from "./media_player";
 
 // MIDI standard would be -8192 to 8191, but this is easier for this application
 const FADER_MAX = 16383;
@@ -13,6 +14,8 @@ const PITCH_BEND_SIGNATURE = 0xe0;
 const NOTE_ON_SIGNATURE = 0x90;
 const PREV_BANK_KEY = 46;
 const NEXT_BANK_NOTE = 47;
+const STOP_NOTE = 93;
+const PLAY_NOTE = 94;
 
 function buildPitchBendMessage(midiChannel: number, pitch: number) {
     return [PITCH_BEND_SIGNATURE | midiChannel, pitch & 0x7f, pitch >> 7];
@@ -29,7 +32,7 @@ function decodePitchBend(data: number[]) {
     }
 }
 
-function decodeNoteOn(data: number[]) {
+function decodeButtonPress(data: number[]) {
     if (data.length !== 3 || (data[0] & 0xf0) !== NOTE_ON_SIGNATURE || data[2] !== 127) {
         return undefined;
     } else {
@@ -70,15 +73,18 @@ export class BehringerXTouch {
                 const volumePercent = faderToPercent(asPitchBend.value);
                 ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel, volumePercent);
             }
-            const asNoteOn = decodeNoteOn(data);
-            if (asNoteOn) {
-                console.log(asNoteOn);
+            const asButtonPress = decodeButtonPress(data);
+            if (asButtonPress) {
                 const layers: MixerLayer[] = ['coilMaster', 'voiceMaster', ...getCoils()];
                 const currentIndex = layers.indexOf(ipcs.mixer.getCurrentLayer());
-                if (asNoteOn.key === PREV_BANK_KEY && currentIndex > 0) {
+                if (asButtonPress.key === PREV_BANK_KEY && currentIndex > 0) {
                     ipcs.mixer.setLayer(layers[currentIndex - 1]);
-                } else if (asNoteOn.key === NEXT_BANK_NOTE && currentIndex < layers.length - 1) {
+                } else if (asButtonPress.key === NEXT_BANK_NOTE && currentIndex < layers.length - 1) {
                     ipcs.mixer.setLayer(layers[currentIndex + 1]);
+                } else if (asButtonPress.key === PLAY_NOTE) {
+                    await media_state.startPlaying();
+                } else if (asButtonPress.key === STOP_NOTE) {
+                    media_state.stopPlaying();
                 }
             }
         });
