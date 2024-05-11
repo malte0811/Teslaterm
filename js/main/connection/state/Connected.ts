@@ -1,9 +1,8 @@
-import {CoilID} from "../../../common/constants";
+import {CoilID, LAST_SUPPORTED_PROTOCOL} from "../../../common/constants";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {SynthType} from "../../../common/MediaTypes";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
-import {ExtraConnections} from "../ExtraConnections";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Bootloading} from "./Bootloading";
 import {IConnectionState} from "./IConnectionState";
@@ -65,6 +64,17 @@ export class Connected implements IConnectionState {
             this.activeConnection.disconnect();
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
             return new Reconnecting(this.activeConnection, this.idleState);
+        } else if (this.activeConnection.getProtocolVersion() > LAST_SUPPORTED_PROTOCOL) {
+            console.log(`Protocol version is ${this.activeConnection.getProtocolVersion()}, last supported is ${LAST_SUPPORTED_PROTOCOL}`);
+            ipcs.coilMisc(this.activeConnection.getCoil()).openToast(
+                'Unsupported protocol version',
+                'Please check for Teslaterm updates that support your UD3 version',
+                ToastSeverity.error,
+                'unsupported-protocol',
+            );
+            this.activeConnection.disconnect();
+            ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
+            return this.idleState;
         }
 
         return this;
