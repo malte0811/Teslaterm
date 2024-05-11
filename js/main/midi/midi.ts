@@ -9,7 +9,7 @@ import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
 import {maybeRedirectEvent} from "./MidiRedirector";
 
-export const kill_msg = Buffer.of(0xB0, 0x77, 0x00);
+export const kill_msg = Buffer.of(0xB0, 0x78, 0x00);
 
 // Initialize player and register event handler
 export const player = new MidiPlayer.Player(
