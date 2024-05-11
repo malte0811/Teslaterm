@@ -2,12 +2,12 @@ import React from "react";
 import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, ChannelID} from "../../../../common/IPCConstantsToRenderer";
-import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap} from "../../../../common/VolumeMap";
+import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../../../common/IPCConstantsToRenderer";
+import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap, VolumeUpdate} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
-import {InstrumentChoice, MixerColumn} from "./MixerColumn";
+import {InstrumentChoice, MixerColumn, MuteState} from "./MixerColumn";
 
 export interface MixerProps {
     darkMode: boolean;
@@ -65,11 +65,9 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         let sliders: React.JSX.Element[];
         const layer = this.state.currentLayer;
         if (layer === 'coilMaster') {
-            sliders = this.props.coils.map(state => <MixerColumn
-                title={state.name || 'Unknown'}
-                setValue={(volume) => this.setVolume({coil: state.id}, volume)}
-                value={this.getVolume({coil: state.id})}
-            />);
+            sliders = this.props.coils.map(
+                state => this.makeMixer({coil: state.id}, state.name || 'Unknown'),
+            );
         } else if (layer === 'voiceMaster') {
             sliders = this.makeChannelSliders(undefined);
         } else {
@@ -83,8 +81,10 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             <div className={'tt-mixer-border-box'}>
                 <MixerColumn
                     title={'Master'}
-                    setValue={(val) => this.setVolume({}, val)}
-                    value={this.getVolume({})}
+                    setValue={(val) => this.setVolume({}, {volumePercent: val})}
+                    value={this.state.volumes.getIndividualVolume({})}
+                    mute={MuteState.unavailable}
+                    setMute={() => {}}
                 />
             </div>
             <div className={'tt-mixer-selector'}>
@@ -95,11 +95,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         </div>;
     }
 
-    private getVolume(key: VolumeKey) {
-        return this.state.volumes.getIndividualVolume(key);
-    }
-
-    private setVolume(key: VolumeKey, volume: number) {
+    private setVolume(key: VolumeKey, volume: VolumeUpdate) {
         this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)}));
         processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, [key, volume]);
     }
@@ -120,13 +116,20 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 currentChoice: this.state.voiceProgram.get(i) || 0,
                 setValue: (val) => this.setProgram(i, val),
             };
-            return <MixerColumn
-                title={this.state.channelNames.get(i) || `Channel ${i}`}
-                setValue={(volume) => this.setVolume({channel: i, coil}, volume)}
-                value={this.getVolume({channel: i, coil})}
-                program={program}
-            />;
+            return this.makeMixer({channel: i, coil}, this.state.channelNames.get(i) || `Channel ${i}`, program);
         });
+    }
+
+    private makeMixer(key: VolumeKey, title: string, program?: InstrumentChoice) {
+        const state = this.state.volumes.getVolumeSetting(key);
+        return <MixerColumn
+            title={title}
+            setValue={(volume) => this.setVolume(key, {volumePercent: volume})}
+            value={state.volumePercent}
+            mute={state.muted ? MuteState.muted : MuteState.audible}
+            setMute={(state) => this.setVolume(key, {muted: state === MuteState.muted})}
+            program={program}
+        />;
     }
 
     private makeLayerButton(layer: MixerLayer, text: string) {

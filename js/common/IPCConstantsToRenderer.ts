@@ -4,7 +4,7 @@ import {MediaFileType, PlayerActivity} from './MediaTypes';
 import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {TTConfig} from "./TTConfig";
 import {UIConfig} from "./UIConfig";
-import {MixerLayer, VolumeKey} from "./VolumeMap";
+import {MixerLayer, VolumeKey, VolumeUpdate} from "./VolumeMap";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -26,7 +26,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setMIDIProgramsByChannel: makeKey<Map<ChannelID, number>>('media-programs-by-channel'),
         setMediaChannels: makeKey<ChannelID[]>('media-channels'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
-        setVolume: makeKey<[VolumeKey, number]>('set-mixer-volume'),
+        setVolume: makeKey<[VolumeKey, VolumeUpdate]>('set-mixer-volume'),
     },
     connect: {
         connectionError: makeKey<string>('connection-error'),

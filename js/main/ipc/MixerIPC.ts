@@ -1,8 +1,8 @@
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
-import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap} from "../../common/VolumeMap";
-import {forEachCoilAsync, getCoils, getPhysicalMixer, numCoils} from "../connection/connection";
+import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap, VolumeUpdate} from "../../common/VolumeMap";
+import {forEachCoilAsync, getPhysicalMixer, numCoils} from "../connection/connection";
 import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getUIConfig} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
@@ -11,7 +11,7 @@ export class MixerIPC {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
     private nameByVoice: Map<ChannelID, string> = new Map<ChannelID, string>();
     private volumes: VolumeMap = new VolumeMap();
-    private currentLayer: MixerLayer;
+    private currentLayer: MixerLayer = 'coilMaster';
     private readonly processIPC: MainIPC;
 
     constructor(processIPC: MainIPC) {
@@ -27,7 +27,7 @@ export class MixerIPC {
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.centralTab.setVolume,
             async ([key, volume]) => {
-                this.setVolume(key, volume);
+                this.updateVolume(key, volume);
             },
         );
     }
@@ -61,7 +61,7 @@ export class MixerIPC {
         this.sendAvailablePrograms();
     }
 
-    public setVolumeFromPhysical(fader: number, percent: number) {
+    public setVolumeFromPhysical(fader: number, update: VolumeUpdate) {
         const channelID = this.volumes.getChannelMap()[fader];
         const key: VolumeKey = (() => {
             if (fader >= NUM_SPECIFIC_FADERS) {
@@ -71,17 +71,17 @@ export class MixerIPC {
             } else if (this.currentLayer === 'coilMaster') {
                 return fader < numCoils() && {coil: fader};
             } else {
-                return channelID && {coil: this.currentLayer, channel: channelID};
+                return channelID !== undefined ? {coil: this.currentLayer, channel: channelID} : undefined;
             }
         })();
         if (key) {
-            this.setVolume(key, percent);
+            this.updateVolume(key, update);
         }
     }
 
-    public setVolume(key: VolumeKey, percent: number) {
-        this.volumes = this.volumes.with(key, percent);
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, percent]);
+    public updateVolume(key: VolumeKey, update: VolumeUpdate) {
+        this.volumes = this.volumes.with(key, update);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, update]);
         this.sendVolumeToCoil(key).catch((err) => console.error("Failed to send volume update:", err));
         this.updatePhysicalMixer();
     }

@@ -1,4 +1,4 @@
-import {DropdownButton} from "react-bootstrap";
+import {Button, DropdownButton} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {TTComponent} from "../../../TTComponent";
 
@@ -8,17 +8,27 @@ export interface InstrumentChoice {
     available: string[];
 }
 
+export enum MuteState {
+    unavailable,
+    muted,
+    audible,
+}
+
 export interface MixerColumnProps {
     title: string;
     setValue: (val: number) => any;
     value: number;
     program?: InstrumentChoice;
+    mute: MuteState;
+    setMute: (state: MuteState) => any;
 }
 
 export class MixerColumn extends TTComponent<MixerColumnProps, {}> {
     public render() {
         return <div className={'tt-mixer-slider-outer-box'}>
             <div className={'tt-mixer-slider-box'}>
+                {this.renderMuteButton()}
+
                 <input
                     className={'tt-vertical-slider'}
                     type={'range'}
@@ -61,6 +71,20 @@ export class MixerColumn extends TTComponent<MixerColumnProps, {}> {
             </DropdownButton>;
         } else {
             return <></>;
+        }
+    }
+
+    private renderMuteButton() {
+        switch (this.props.mute) {
+            case MuteState.unavailable:
+                return <></>;
+            case MuteState.muted:
+                return <Button
+                    onClick={() => this.props.setMute(MuteState.audible)}
+                    variant={'danger'}
+                >Unmute</Button>;
+            case MuteState.audible:
+                return <Button onClick={() => this.props.setMute(MuteState.muted)}>Mute</Button>;
         }
     }
 }

@@ -1,7 +1,7 @@
 import {manager, Session} from "rtpmidi";
 import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {PhysicalMixerConfig} from "../../common/Options";
-import {DEFAULT_MIXER_LAYER, MixerLayer} from "../../common/VolumeMap";
+import {DEFAULT_MIXER_LAYER, MixerLayer, NUM_SPECIFIC_FADERS, VolumeSetting} from "../../common/VolumeMap";
 import {getCoils} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {now} from "../microtime";
@@ -16,9 +16,15 @@ const PREV_BANK_KEY = 46;
 const NEXT_BANK_NOTE = 47;
 const STOP_NOTE = 93;
 const PLAY_NOTE = 94;
+const FIRST_MUTE_NOTE = 16;
+const LAST_MUTE_NOTE = 16 + NUM_SPECIFIC_FADERS - 1;
 
 function buildPitchBendMessage(midiChannel: number, pitch: number) {
     return [PITCH_BEND_SIGNATURE | midiChannel, pitch & 0x7f, pitch >> 7];
+}
+
+function buildButtonMessage(note: number, on: boolean) {
+    return [NOTE_ON_SIGNATURE, note, on ? 127 : 0];
 }
 
 function decodePitchBend(data: number[]) {
@@ -57,10 +63,10 @@ export class BehringerXTouch {
     private readonly config: PhysicalMixerConfig;
     private readonly reconnectTimer: NodeJS.Timeout;
     private lastMessageTime: number;
-    private lastFaderState: number[];
+    private readonly lastFaderState: number[] = [];
+    private readonly lastMuteStates: boolean[] = [];
 
     constructor(config: PhysicalMixerConfig) {
-        this.lastFaderState = [];
         this.config = config;
         this.session = manager.createSession({
             bonjourName: 'Teslaterm to XTouch',
@@ -71,7 +77,7 @@ export class BehringerXTouch {
             const asPitchBend = decodePitchBend(data);
             if (asPitchBend) {
                 const volumePercent = faderToPercent(asPitchBend.value);
-                ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel, volumePercent);
+                ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel, {volumePercent});
             }
             const asButtonPress = decodeButtonPress(data);
             if (asButtonPress) {
@@ -85,6 +91,9 @@ export class BehringerXTouch {
                     await media_state.startPlaying();
                 } else if (asButtonPress.key === STOP_NOTE) {
                     media_state.stopPlaying();
+                } else if (asButtonPress.key >= FIRST_MUTE_NOTE && asButtonPress.key <= LAST_MUTE_NOTE) {
+                    const fader = asButtonPress.key - FIRST_MUTE_NOTE;
+                    ipcs.mixer.setVolumeFromPhysical(fader, {muted: !this.lastMuteStates[fader]});
                 }
             }
         });
@@ -98,16 +107,16 @@ export class BehringerXTouch {
         this.reconnectTimer = setInterval(() => this.checkReconnect(), 1_000);
     }
 
-    public movePhysicalSliders(values: Map<number, number>) {
-        for (const [fader, value] of values.entries()) {
-            if (value !== this.lastFaderState[fader]) {
-                if (value < 100) {
-                    console.log(`Setting ${fader} to ${value}`);
-                }
-                const pitch = percentToFader(value);
-                const message = buildPitchBendMessage(fader, pitch);
-                this.session.sendMessage(0, message);
-                this.lastFaderState[fader] = value;
+    public movePhysicalSliders(values: Map<number, VolumeSetting>) {
+        for (const [fader, value] of values) {
+            if (value.volumePercent !== this.lastFaderState[fader]) {
+                const pitch = percentToFader(value.volumePercent);
+                this.session.sendMessage(0, buildPitchBendMessage(fader, pitch));
+                this.lastFaderState[fader] = value.volumePercent;
+            }
+            if (value.muted !== this.lastMuteStates[fader]) {
+                this.session.sendMessage(0, buildButtonMessage(FIRST_MUTE_NOTE + fader, value.muted));
+                this.lastMuteStates[fader] = value.muted;
             }
         }
     }
@@ -120,9 +129,7 @@ export class BehringerXTouch {
     private checkReconnect() {
         const now = Date.now();
         if (this.lastMessageTime + 6_000 < now) {
-            console.log("Reconnecting", now);
             this.lastMessageTime = now;
-            // TODO remove connected var
             if (this.session.getStreams().length > 0) {
                 this.session.removeStream(this.session.getStreams()[0]);
             }

@@ -1,7 +1,7 @@
 import {MultiConnectionOptions, SingleConnectionOptions} from './SingleConnectionOptions';
 import {CoilID, coilSuffix} from "./constants";
 import {ConnectionPreset, ChannelID} from "./IPCConstantsToRenderer";
-import {MixerLayer, VolumeKey} from "./VolumeMap";
+import {MixerLayer, VolumeKey, VolumeUpdate} from "./VolumeMap";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -20,7 +20,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setCentralTelemetry: makeKey<string[]>('set-central-telemetry'),
         setMIDIProgramOverride: makeKey<[ChannelID, number]>('set-program-override'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
-        setVolume: makeKey<[VolumeKey, number]>('set-volume'),
+        setVolume: makeKey<[VolumeKey, VolumeUpdate]>('set-volume'),
     },
     clearCoils: makeKey<undefined>('clear-coils'),
     commands: {

@@ -93,7 +93,7 @@ export async function loadMidiFile(file: TransmittedFile) {
     ipcs.mixer.setChannelNames(nameByChannel);
     uniqueChannels.forEach((channel) => {
         if (volumeByChannel.has(channel)) {
-            ipcs.mixer.setVolume({channel}, volumeByChannel.get(channel));
+            ipcs.mixer.updateVolume({channel}, {volumePercent: volumeByChannel.get(channel)});
         }
     });
     ipcs.misc.updateMediaInfo();
