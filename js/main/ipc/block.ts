@@ -29,6 +29,36 @@ class VMSDataMap {
     }
 }
 
+class VMSBuffer {
+    private readonly buffer: ArrayBuffer;
+    private readonly view: DataView;
+    private nextIndex: number = 0;
+
+    public constructor(size: number) {
+        this.buffer = new ArrayBuffer(size);
+        this.view = new DataView(this.buffer);
+    }
+
+    public writeUint32(value: number) {
+        this.view.setUint32(this.nextIndex, value);
+        this.nextIndex += 4;
+    }
+
+    public writeUint16(value: number) {
+        this.view.setUint16(this.nextIndex, value);
+        this.nextIndex += 2;
+    }
+
+    public writeUint8(value: number) {
+        this.view.setUint8(this.nextIndex, value);
+        ++this.nextIndex;
+    }
+
+    public getBuffer() {
+        return this.buffer;
+    }
+}
+
 interface Block {
     uid: number;
     outsEnabled: boolean;
@@ -126,10 +156,11 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
         if (!key.startsWith(keyPrefix)) {
             continue;
         }
-        const blockMap = mapData.map.get(key) as VMSDataMap;
+        const blockMap = mapData.getAsMap(key);
         blocks.push({
             uid: blockMap.getAsInt('uid'),
             outsEnabled: blockMap.getAsBool('outsEnabled'),
+            // TODO what to use as default in new setup?
             nextBlock0: blockMap.getAsInt('nextBlock[0]'),
             nextBlock1: blockMap.getAsInt('nextBlock[1]'),
             nextBlock2: blockMap.getAsInt('nextBlock[2]'),
@@ -181,18 +212,16 @@ function parseProgramsFromStructure(programsMap: VMSDataMap): Program[] {
 }
 
 // Packet format/conversion
-function prepareBlockBuffer(): [ArrayBuffer, DataView] {
-    const buf = new ArrayBuffer(65);
-    const view = new DataView(buf);
-    view.setUint8(0, 1);
-    return [buf, view];
+function prepareBlockBuffer() {
+    const buffer = new VMSBuffer(65);
+    buffer.writeUint8(1);
+    return buffer;
 }
 
-function prepareHeaderBuffer(): [ArrayBuffer, DataView] {
-    const buf = new ArrayBuffer(20);
-    const view = new DataView(buf);
-    view.setUint8(0, 2);
-    return [buf, view];
+function prepareHeaderBuffer() {
+    const buffer = new VMSBuffer(20);
+    buffer.writeUint8(1);
+    return buffer;
 }
 
 function sendToAll(frame: ArrayBuffer) {
@@ -202,34 +231,29 @@ function sendToAll(frame: ArrayBuffer) {
 }
 
 function sendBlock(block: Block) {
-    const [buf, view] = prepareBlockBuffer();
-    let index: number = 1;
-    const writeUint32 = (value: number) => {
-        view.setUint32(index, value);
-        index += 4;
-    };
-    writeUint32(block.uid);
+    const buf = prepareBlockBuffer();
+    buf.writeUint32(block.uid);
     if (block.outsEnabled === false) {
-        writeUint32(0xDEADBEEF);
+        buf.writeUint32(0xDEADBEEF);
     } else {
-        writeUint32(block.nextBlock0);
+        buf.writeUint32(block.nextBlock0);
     }
-    writeUint32(block.nextBlock1);
-    writeUint32(block.nextBlock2);
-    writeUint32(block.nextBlock3);
-    writeUint32(block.offBlock);
+    buf.writeUint32(block.nextBlock1);
+    buf.writeUint32(block.nextBlock2);
+    buf.writeUint32(block.nextBlock3);
+    buf.writeUint32(block.offBlock);
 
-    writeUint32(block.behavior);
-    writeUint32(block.type);
-    writeUint32(block.target);
-    writeUint32(block.thresholdDirection);
-    writeUint32(block.targetFactor);
-    writeUint32(block.param1);
-    writeUint32(block.param2);
-    writeUint32(block.param3);
-    writeUint32(block.periodMs);
-    writeUint32(block.flags);
-    sendToAll(buf);
+    buf.writeUint32(block.behavior);
+    buf.writeUint32(block.type);
+    buf.writeUint32(block.target);
+    buf.writeUint32(block.thresholdDirection);
+    buf.writeUint32(block.targetFactor);
+    buf.writeUint32(block.param1);
+    buf.writeUint32(block.param2);
+    buf.writeUint32(block.param3);
+    buf.writeUint32(block.periodMs);
+    buf.writeUint32(block.flags);
+    sendToAll(buf.getBuffer());
 }
 
 function sendNullBlock() {
@@ -237,17 +261,11 @@ function sendNullBlock() {
 }
 
 function sendProgramHeader(programID: number, program: Program) {
-    const [buf, view] = prepareHeaderBuffer();
-    let index: number = 1;
-    view.setUint8(index, program.maps.length);
-    index++;
-    view.setUint8(index, programID);
-    index++;
-    new TextEncoder().encode(program.name).forEach((c) => {
-        view.setUint8(index, c);
-        index++;
-    });
-    sendToAll(buf);
+    const buf = prepareHeaderBuffer();
+    buf.writeUint8(program.maps.length);
+    buf.writeUint8(programID);
+    new TextEncoder().encode(program.name).forEach((c) => buf.writeUint8(c));
+    sendToAll(buf.getBuffer());
 }
 
 function sendNullHeader() {
@@ -255,19 +273,12 @@ function sendNullHeader() {
 }
 
 function sendMapEntry(entry: BlockMap) {
-    const buf = new ArrayBuffer(11);
-    const view = new DataView(buf);
-    let index: number = 0;
-    view.setUint8(index, 3);
-    index++;
-    view.setUint8(index, entry.startNote);
-    index++;
-    view.setUint8(index, entry.endNote);
-    index++;
-    view.setUint16(index, entry.noteFrequency);
-    index += 2;
-    view.setUint8(index, entry.volumeModifier);
-    index++;
+    const buf = new VMSBuffer(11);
+    buf.writeUint8(3);
+    buf.writeUint8(entry.startNote);
+    buf.writeUint8(entry.endNote);
+    buf.writeUint16(entry.noteFrequency);
+    buf.writeUint8(entry.volumeModifier);
     let flag = 0;
     if (entry.enablePitchbend) {
         flag |= FLAGS.MAP_ENA_PITCHBEND;
@@ -287,10 +298,9 @@ function sendMapEntry(entry: BlockMap) {
     if (entry.frequencyMode) {
         flag |= FLAGS.MAP_FREQ_MODE;
     }
-    view.setUint8(index, flag);
-    index++;
-    view.setUint32(index, entry.startBlock);
-    sendToAll(buf);
+    buf.writeUint8(flag);
+    buf.writeUint32(entry.startBlock);
+    sendToAll(buf.getBuffer());
 }
 
 function sendFlush() {
