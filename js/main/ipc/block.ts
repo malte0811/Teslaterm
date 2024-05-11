@@ -33,19 +33,34 @@ class VMSBuffer {
     private readonly buffer: ArrayBuffer;
     private readonly view: DataView;
     private nextIndex: number = 0;
+    private littleEndian: boolean;
 
-    public constructor(size: number) {
+    public constructor(size: number, littleEndian: boolean) {
         this.buffer = new ArrayBuffer(size);
         this.view = new DataView(this.buffer);
+        this.littleEndian = littleEndian;
+    }
+
+    public writeUint(value: number, bits: number) {
+        switch (bits) {
+            case 8:
+                return this.writeUint8(value);
+            case 16:
+                return this.writeUint16(value);
+            case 32:
+                return this.writeUint32(value);
+            default:
+                throw new Error(`Invalid bit count ${bits}`);
+        }
     }
 
     public writeUint32(value: number) {
-        this.view.setUint32(this.nextIndex, value);
+        this.view.setUint32(this.nextIndex, value, this.littleEndian);
         this.nextIndex += 4;
     }
 
     public writeUint16(value: number) {
-        this.view.setUint16(this.nextIndex, value);
+        this.view.setUint16(this.nextIndex, value, this.littleEndian);
         this.nextIndex += 2;
     }
 
@@ -109,7 +124,7 @@ export function loadVMS(file: TransmittedFile) {
             p => p.maps.map(map => map.blocks.length).reduce((a, b) => a + b),
         ).reduce((a, b) => a + b);
         ipcs.misc.openGenericToast('VMS', "Found " + totalBlocks + " blocks", ToastSeverity.info);
-        sendBlocks(programs);
+        sendBlocks(programs, false);
         ipcs.mixer.setProgramsByVoice(new Map<ChannelID, number>());
         setUIConfig({midiPrograms: programs.map((p) => p.name)});
         ipcs.mixer.sendAvailablePrograms();
@@ -212,15 +227,15 @@ function parseProgramsFromStructure(programsMap: VMSDataMap): Program[] {
 }
 
 // Packet format/conversion
-function prepareBlockBuffer() {
-    const buffer = new VMSBuffer(65);
+function prepareBlockBuffer(newFormat: boolean) {
+    const buffer = new VMSBuffer(newFormat ? 45 : 65, newFormat);
     buffer.writeUint8(1);
     return buffer;
 }
 
-function prepareHeaderBuffer() {
-    const buffer = new VMSBuffer(20);
-    buffer.writeUint8(1);
+function prepareHeaderBuffer(littleEndian: boolean) {
+    const buffer = new VMSBuffer(20, littleEndian);
+    buffer.writeUint8(2);
     return buffer;
 }
 
@@ -230,23 +245,27 @@ function sendToAll(frame: ArrayBuffer) {
     );
 }
 
-function sendBlock(block: Block) {
-    const buf = prepareBlockBuffer();
-    buf.writeUint32(block.uid);
+function sendBlock(block: Block, newFormat: boolean) {
+    const buf = prepareBlockBuffer(newFormat);
+    const writeBlockID = (id: number) => buf.writeUint(id, newFormat ? 16 : 32);
+    buf.writeUint32(block.uid - (newFormat ? 1 : 0));
     if (block.outsEnabled === false) {
-        buf.writeUint32(0xDEADBEEF);
+        writeBlockID(newFormat ? 0xFFFF : 0xDEADBEEF);
     } else {
-        buf.writeUint32(block.nextBlock0);
+        writeBlockID(block.nextBlock0);
     }
-    buf.writeUint32(block.nextBlock1);
-    buf.writeUint32(block.nextBlock2);
-    buf.writeUint32(block.nextBlock3);
-    buf.writeUint32(block.offBlock);
+    writeBlockID(block.nextBlock1);
+    writeBlockID(block.nextBlock2);
+    writeBlockID(block.nextBlock3);
+    writeBlockID(block.offBlock);
 
-    buf.writeUint32(block.behavior);
-    buf.writeUint32(block.type);
-    buf.writeUint32(block.target);
-    buf.writeUint32(block.thresholdDirection);
+    buf.writeUint(block.behavior, newFormat ? 8 : 32);
+    buf.writeUint(block.type + (newFormat ? 1 : 0), newFormat ? 8 : 32);
+    buf.writeUint(block.target, newFormat ? 16 : 32);
+    if (!newFormat) {
+        // TODO Did this just get removed?
+        buf.writeUint32(block.thresholdDirection);
+    }
     buf.writeUint32(block.targetFactor);
     buf.writeUint32(block.param1);
     buf.writeUint32(block.param2);
@@ -256,24 +275,28 @@ function sendBlock(block: Block) {
     sendToAll(buf.getBuffer());
 }
 
-function sendNullBlock() {
-    sendToAll(prepareBlockBuffer()[0]);
+function sendNullBlock(newFormat: boolean, nullID: number) {
+    const buffer = prepareBlockBuffer(newFormat);
+    if (newFormat) {
+        buffer.writeUint32(nullID);
+    }
+    sendToAll(buffer.getBuffer());
 }
 
-function sendProgramHeader(programID: number, program: Program) {
-    const buf = prepareHeaderBuffer();
+function sendProgramHeader(programID: number, program: Program, littleEndian: boolean) {
+    const buf = prepareHeaderBuffer(littleEndian);
     buf.writeUint8(program.maps.length);
     buf.writeUint8(programID);
     new TextEncoder().encode(program.name).forEach((c) => buf.writeUint8(c));
     sendToAll(buf.getBuffer());
 }
 
-function sendNullHeader() {
-    sendToAll(prepareHeaderBuffer()[0]);
+function sendNullHeader(littleEndian: boolean) {
+    sendToAll(prepareHeaderBuffer(littleEndian).getBuffer());
 }
 
-function sendMapEntry(entry: BlockMap) {
-    const buf = new VMSBuffer(11);
+function sendMapEntry(entry: BlockMap, littleEndian: boolean) {
+    const buf = new VMSBuffer(11, littleEndian);
     buf.writeUint8(3);
     buf.writeUint8(entry.startNote);
     buf.writeUint8(entry.endNote);
@@ -309,22 +332,24 @@ function sendFlush() {
     sendToAll(buf);
 }
 
-function sendBlocks(programs: Program[]) {
+function sendBlocks(programs: Program[], newFormat: boolean) {
+    let maxID = 0;
     for (const program of programs) {
         for (const map of program.maps) {
             for (const block of map.blocks) {
                 if (block.uid !== -1) {
-                    sendBlock(block);
+                    sendBlock(block, newFormat);
+                    maxID = Math.max(maxID, block.uid);
                 }
             }
         }
     }
-    sendNullBlock();
+    sendNullBlock(newFormat, maxID);
     programs.forEach((program, id) => {
-        sendProgramHeader(id, program);
-        program.maps.forEach(sendMapEntry);
+        sendProgramHeader(id, program, newFormat);
+        program.maps.forEach((map) => sendMapEntry(map, newFormat));
     });
-    sendNullHeader();
+    sendNullHeader(newFormat);
     sendFlush();
 }
 
