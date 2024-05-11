@@ -1,4 +1,4 @@
-import {CoilID, FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
+import {CoilID, FEATURE_PROTOCOL_VERSION, FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
 import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
 import {Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {config} from "../../init";
@@ -90,6 +90,10 @@ export abstract class UD3Connection {
 
     public getFeatureValue(feature: string): string {
         return config.defaultUDFeatures.get(feature);
+    }
+
+    public getProtocolVersion() {
+        return Number.parseFloat(this.getFeatureValue(FEATURE_PROTOCOL_VERSION));
     }
 
     public toUD3Time(now: number) {
