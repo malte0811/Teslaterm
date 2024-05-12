@@ -16,7 +16,10 @@ import {ipcs} from "./ipc/IPCProvider";
 let uiConfig: UIConfig | undefined;
 const FILENAME = 'tt-ui-config.json';
 
-function fixConnectionOptions(options: FullConnectionOptions) {
+function fixConnectionOptions(options: Partial<FullConnectionOptions>): FullConnectionOptions {
+    if (!options) {
+        options = {};
+    }
     if (options.type === undefined) {
         options.type = UD3ConnectionType.serial_min;
     }
@@ -35,6 +38,7 @@ function fixConnectionOptions(options: FullConnectionOptions) {
         useDesc: false,
         ...options.udpOptions,
     };
+    return options as FullConnectionOptions;
 }
 
 function makeDefaultAdvancedOptions(): AdvancedOptions {
@@ -74,7 +78,7 @@ function getFileData() {
         object.connectionPresets = [];
     }
     object.advancedOptions = {...makeDefaultAdvancedOptions(), ...object.advancedOptions};
-    fixConnectionOptions(object.lastConnectOptions);
+    object.lastConnectOptions = fixConnectionOptions(object.lastConnectOptions);
     for (const preset of object.connectionPresets) {
         fixConnectionPreset(preset, object.lastConnectOptions, object.advancedOptions);
     }
