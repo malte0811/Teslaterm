@@ -239,8 +239,8 @@ function prepareBlockBuffer(newFormat: boolean) {
     return buffer;
 }
 
-function prepareHeaderBuffer(littleEndian: boolean) {
-    const buffer = new VMSBuffer(20, littleEndian);
+function prepareHeaderBuffer(newFormat: boolean) {
+    const buffer = new VMSBuffer(newFormat ? 29 : 20, newFormat);
     buffer.writeUint8(2);
     return buffer;
 }
@@ -283,10 +283,16 @@ function sendNullBlock(connection: UD3Connection, newFormat: boolean, nullID: nu
     connection.sendVMSFrames(buffer.getBuffer());
 }
 
-function sendProgramHeader(programID: number, program: Program, connection: UD3Connection, littleEndian: boolean) {
-    const buf = prepareHeaderBuffer(littleEndian);
+function sendProgramHeader(programID: number, program: Program, connection: UD3Connection, newFormat: boolean) {
+    const buf = prepareHeaderBuffer(newFormat);
+    if (newFormat) {
+        buf.writeUint32(programID);
+    }
     buf.writeUint8(program.maps.length);
     buf.writeUint8(programID);
+    if (newFormat) {
+        buf.writeUint8(programID);
+    }
     new TextEncoder().encode(program.name).forEach((c) => buf.writeUint8(c));
     connection.sendVMSFrames(buf.getBuffer());
 }
