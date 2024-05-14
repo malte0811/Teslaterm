@@ -160,6 +160,7 @@ export class IPCCollection {
     public tick100() {
         this.metersByCoil.forEach((ipc) => ipc.tick());
         this.slidersByCoil.forEach((ipc) => ipc.tick100());
+        this.mixer.tick100();
     }
 }
 
