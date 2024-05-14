@@ -1,5 +1,5 @@
 import {CoilID} from "../../common/constants";
-import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../common/IPCConstantsToMain";
 import {getToRenderIPCPerCoil} from "../../common/IPCConstantsToRenderer";
 import {CommandInterface} from "../connection/commands";
 import {
@@ -16,7 +16,7 @@ export async function setRelativeOntime(newRelative: number) {
     await forEachCoilAsync(async (coil) => {
         const coilIPC = ipcs.sliders(coil);
         coilIPC.sendSliderSync();
-        await getCoilCommands(coil).setOntime(coilIPC.ontime);
+        coilIPC.scheduleOntimeUpdate();
     });
 }
 
@@ -65,17 +65,25 @@ export class SlidersIPC {
     private readonly coil: CoilID;
     private readonly commands: CommandInterface;
     private multicoil: boolean;
+    private readonly delayedCommands = new Map<string, () => any>();
 
     constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.reinitState(false);
-        const channels = getToMainIPCPerCoil(coil);
-        processIPC.on(channels.sliders.setOntimeAbsolute, (ot) => this.setAbsoluteOntime(ot));
-        processIPC.on(channels.sliders.setBPS, (bps) => this.setBPS(bps));
-        processIPC.on(channels.sliders.setBurstOntime, (bon) => this.setBurstOntime(bon));
-        processIPC.on(channels.sliders.setBurstOfftime, (boff) => this.setBurstOfftime(boff));
         this.processIPC = processIPC;
         this.coil = coil;
         this.commands = getCoilCommands(coil);
+        const channels = getToMainIPCPerCoil(coil);
+        this.addDelayedListener(channels.sliders.setOntimeAbsolute, (ot) => this.setAbsoluteOntime(ot));
+        this.addDelayedListener(channels.sliders.setBPS, (bps) => this.setBPS(bps));
+        this.addDelayedListener(channels.sliders.setBurstOntime, (bon) => this.setBurstOntime(bon));
+        this.addDelayedListener(channels.sliders.setBurstOfftime, (boff) => this.setBurstOfftime(boff));
+    }
+
+    public tick100() {
+        for (const setter of this.delayedCommands.values()) {
+            setter();
+        }
+        this.delayedCommands.clear();
     }
 
     public get bps() {
@@ -152,6 +160,16 @@ export class SlidersIPC {
         this.state = new SliderState(multicoil);
         this.multicoil = multicoil;
         this.sendSliderSync();
+    }
+
+    public scheduleOntimeUpdate() {
+        this.delayedCommands.set('ontimeUpdate', () => this.commands.setOntime(this.state.ontime));
+    }
+
+    private addDelayedListener(key: IPCToMainKey<number>, run: (value: number) => any) {
+        this.processIPC.on(
+            key, (value) => this.delayedCommands.set(key.channel, () => run(value)),
+        );
     }
 }
 
