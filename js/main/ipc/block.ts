@@ -91,7 +91,7 @@ interface Block {
     param1: number;
     param2: number;
     param3: number;
-    periodMs: number;
+    period_us: number;
     flags: number;
 }
 
@@ -178,7 +178,7 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             continue;
         }
         const blockMap = mapData.getAsMap(key);
-        blocks.push({
+        const newBlock: Block = {
             uid: blockMap.getAsInt('uid'),
             outsEnabled: blockMap.getAsBool('outsEnabled'),
             // TODO what to use as default in new setup?
@@ -195,9 +195,17 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             param1: blockMap.getAsInt('param[0]'),
             param2: blockMap.getAsInt('param[1]'),
             param3: blockMap.getAsInt('param[2]'),
-            periodMs: blockMap.getAsInt('param[3]'),
+            period_us: blockMap.getAsInt('param[3]'),
             flags: blockMap.getAsInt('flags'),
-        });
+        };
+
+        // apply flag fix
+        if (!newBlock.outsEnabled) {
+            newBlock.flags |= 0x80000000;
+            console.log("fixed flag: " + newBlock.flags);
+        }
+
+        blocks.push(newBlock);
     }
     return blocks;
 }
@@ -246,9 +254,13 @@ function prepareHeaderBuffer(newFormat: boolean) {
 }
 
 function sendBlock(block: Block, connection: UD3Connection, newFormat: boolean) {
+    if (block.uid === -1) {
+        return;
+    }
+
     const buf = prepareBlockBuffer(newFormat);
     const writeBlockID = (id: number) => buf.writeUint(id, newFormat ? 16 : 32);
-    buf.writeUint32(block.uid - (newFormat ? 1 : 0));
+    buf.writeUint32(block.uid);
     if (block.outsEnabled === false) {
         writeBlockID(newFormat ? 0xFFFF : 0xDEADBEEF);
     } else {
@@ -270,7 +282,8 @@ function sendBlock(block: Block, connection: UD3Connection, newFormat: boolean) 
     buf.writeUint32(block.param1);
     buf.writeUint32(block.param2);
     buf.writeUint32(block.param3);
-    buf.writeUint32(block.periodMs);
+    // new format uses period in milliseconds instead of microseconds
+    buf.writeUint32(newFormat ? (block.period_us / 1000) : (block.period_us));
     buf.writeUint32(block.flags);
     connection.sendVMSFrames(buf.getBuffer());
 }
@@ -376,8 +389,9 @@ const KNOWN_VALUE = new Map<string, number>()
     .set('CC_102', 16).set('CC_103', 17).set('CC_104', 18).set('CC_105', 19).set('CC_106', 20).set('CC_107', 21)
     .set('CC_108', 22).set('CC_109', 23).set('CC_110', 24).set('CC_111', 25).set('CC_112', 26).set('CC_113', 27)
     .set('CC_114', 28).set('CC_115', 29).set('CC_116', 30).set('CC_117', 31).set('CC_118', 32).set('CC_119', 33)
-    .set('HyperVoice_Count', 34).set('HyperVoice_Phase', 35)
-    .set('KNOWNVAL_MAX', 36);
+    .set('HyperVoice_Count', 34).set('HyperVoice_Phase', 35).set('HyperVoice_Volume', 36)
+    .set('volume', 37).set('volumeCurrent', 38).set('volumeTarget', 39).set('volumeFactor', 40)
+    .set('KNOWNVAL_MAX', 41);
 
 const DIRECTION = new Map<string, number>().set('RISING', 0).set('FALLING', 1).set('ANY', 2).set('NONE', 3);
 
