@@ -91,7 +91,7 @@ interface Block {
     param1: number;
     param2: number;
     param3: number;
-    period_us: number;
+    periodUS: number;
     flags: number;
 }
 
@@ -195,14 +195,13 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             param1: blockMap.getAsInt('param[0]'),
             param2: blockMap.getAsInt('param[1]'),
             param3: blockMap.getAsInt('param[2]'),
-            period_us: blockMap.getAsInt('param[3]'),
+            periodUS: blockMap.getAsInt('param[3]'),
             flags: blockMap.getAsInt('flags'),
         };
 
         // apply flag fix
         if (!newBlock.outsEnabled) {
             newBlock.flags |= 0x80000000;
-            console.log("fixed flag: " + newBlock.flags);
         }
 
         blocks.push(newBlock);
@@ -283,7 +282,7 @@ function sendBlock(block: Block, connection: UD3Connection, newFormat: boolean) 
     buf.writeUint32(block.param2);
     buf.writeUint32(block.param3);
     // new format uses period in milliseconds instead of microseconds
-    buf.writeUint32(newFormat ? (block.period_us / 1000) : (block.period_us));
+    buf.writeUint32(newFormat ? (block.periodUS / 1000) : (block.periodUS));
     buf.writeUint32(block.flags);
     connection.sendVMSFrames(buf.getBuffer());
 }
@@ -356,10 +355,8 @@ function sendBlocks(programs: Program[], connection: UD3Connection, newFormat: b
     for (const program of programs) {
         for (const map of program.maps) {
             for (const block of map.blocks) {
-                if (block.uid !== -1) {
-                    sendBlock(block, connection, newFormat);
-                    maxID = Math.max(maxID, block.uid);
-                }
+                sendBlock(block, connection, newFormat);
+                maxID = Math.max(maxID, block.uid);
             }
         }
     }
