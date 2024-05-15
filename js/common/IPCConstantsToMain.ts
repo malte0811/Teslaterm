@@ -21,6 +21,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setMIDIProgramOverride: makeKey<[ChannelID, number]>('set-program-override'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
         setVolume: makeKey<[VolumeKey, VolumeUpdate]>('set-volume'),
+        switchMediaFile: makeKey<{next: boolean}>('switch-file'),
     },
     clearCoils: makeKey<undefined>('clear-coils'),
     commands: {

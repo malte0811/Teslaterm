@@ -3,6 +3,7 @@ import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../../../common/IPCConstantsToRenderer";
+import {TTConfig} from "../../../../common/TTConfig";
 import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap, VolumeUpdate} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
@@ -12,6 +13,7 @@ import {InstrumentChoice, MixerColumn, MuteState} from "./MixerColumn";
 export interface MixerProps {
     darkMode: boolean;
     coils: CoilState[];
+    ttConfig: TTConfig;
 }
 
 interface MixerState {
@@ -91,6 +93,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 {this.makeLayerButton('coilMaster', "By Coil")}
                 {this.makeLayerButton('voiceMaster', "By Channel")}
                 {...this.props.coils.map((coil) => this.makeLayerButton(coil.id, coil.name || 'Unknown'))}
+                {this.makeMediaCycleButtons()}
             </div>
         </div>;
     }
@@ -141,5 +144,21 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             style={{width: '100%'}}
             disabled={this.state.currentLayer === layer}
         >{text}</Button>;
+    }
+
+    private makeMediaCycleButtons() {
+        if (this.props.ttConfig.mainMediaPath !== '') {
+            return <>
+                <Button onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: true})}>
+                    Next
+                </Button>
+                <Button
+                    onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: false})}>
+                    Prev
+                </Button>
+            </>;
+        } else {
+            return <></>;
+        }
     }
 }

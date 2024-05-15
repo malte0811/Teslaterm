@@ -1,8 +1,12 @@
+import fs from "fs";
+import * as path from "node:path";
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap, VolumeUpdate} from "../../common/VolumeMap";
 import {forEachCoil, getPhysicalMixer, numCoils} from "../connection/connection";
+import {config} from "../init";
+import {loadMediaFile} from "../media/media_player";
 import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getUIConfig} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
@@ -14,6 +18,9 @@ export class MixerIPC {
     private currentLayer: MixerLayer = 'coilMaster';
     private readonly processIPC: MainIPC;
     private readonly updates = new Map<CoilID, Set<ChannelID>>();
+    // TODO hack, needs to move elsewhere and become more configurable
+    private readonly availableFiles: string[];
+    private fileIndex: number = 0;
 
     constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
@@ -31,6 +38,20 @@ export class MixerIPC {
                 this.updateVolume(key, volume);
             },
         );
+        processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.centralTab.setVolume,
+            async ([key, volume]) => {
+                this.updateVolume(key, volume);
+            },
+        );
+        if (config.mainMediaPath !== '') {
+            this.availableFiles = fs.readdirSync(config.mainMediaPath, {withFileTypes: true})
+                .filter((entry) => entry.isFile())
+                .map((entry) => entry.name);
+            processIPC.on(
+                IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, (choice) => this.cycleMediaFile(choice.next),
+            );
+        }
     }
 
     public tick100() {
@@ -107,6 +128,15 @@ export class MixerIPC {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, layer);
     }
 
+    public cycleMediaFile(forward: boolean) {
+        if (forward) {
+            this.fileIndex = (this.fileIndex + 1) % this.availableFiles.length;
+        } else {
+            this.fileIndex = (this.fileIndex + this.availableFiles.length - 1) % this.availableFiles.length;
+        }
+        this.loadSelectedFile();
+    }
+
     private updatePhysicalMixer() {
         const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
         getPhysicalMixer()?.movePhysicalSliders(faders);
@@ -130,6 +160,16 @@ export class MixerIPC {
             sendUpdatesToCoil(changedKey.coil);
         } else {
             forEachCoil(sendUpdatesToCoil);
+        }
+    }
+
+    private loadSelectedFile() {
+        if (this.availableFiles) {
+            const fileName = this.availableFiles[this.fileIndex];
+            const filePath = path.join(config.mainMediaPath, fileName);
+            const data = fs.readFileSync(filePath);
+            loadMediaFile({contents: data, name: fileName})
+                .catch((e) => console.error('Loading media file', e));
         }
     }
 }

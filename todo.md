@@ -1,4 +1,0 @@
-- Volume slider
-- Reconnect to mixer
-- MIDI file list select
-- Volume aus Dateien lesen

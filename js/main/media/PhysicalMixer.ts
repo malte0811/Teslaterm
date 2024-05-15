@@ -18,6 +18,8 @@ const STOP_NOTE = 93;
 const PLAY_NOTE = 94;
 const FIRST_MUTE_NOTE = 16;
 const LAST_MUTE_NOTE = 16 + NUM_SPECIFIC_FADERS - 1;
+const PREV_SONG_NOTE = 98;
+const NEXT_SONG_NOTE = 99;
 
 function buildPitchBendMessage(midiChannel: number, pitch: number) {
     return [PITCH_BEND_SIGNATURE | midiChannel, pitch & 0x7f, pitch >> 7];
@@ -94,6 +96,10 @@ export class BehringerXTouch {
                 } else if (asButtonPress.key >= FIRST_MUTE_NOTE && asButtonPress.key <= LAST_MUTE_NOTE) {
                     const fader = asButtonPress.key - FIRST_MUTE_NOTE;
                     ipcs.mixer.setVolumeFromPhysical(fader, {muted: !this.lastMuteStates[fader]});
+                } else if (asButtonPress.key === PREV_SONG_NOTE) {
+                    ipcs.mixer.cycleMediaFile(false);
+                } else if (asButtonPress.key === NEXT_SONG_NOTE) {
+                    ipcs.mixer.cycleMediaFile(true);
                 }
             }
         });
