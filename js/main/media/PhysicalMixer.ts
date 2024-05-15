@@ -136,6 +136,8 @@ export class BehringerXTouch {
         const now = Date.now();
         if (this.lastMessageTime + 6_000 < now) {
             this.lastMessageTime = now;
+            this.lastMuteStates.length = 0;
+            this.lastFaderState.length = 0;
             if (this.session.getStreams().length > 0) {
                 this.session.removeStream(this.session.getStreams()[0]);
             }
