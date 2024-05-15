@@ -1,3 +1,4 @@
+import {forEach} from "react-bootstrap/ElementChildren";
 import {manager, Session} from "rtpmidi";
 import {PlayerActivity} from "../../common/MediaTypes";
 import {PhysicalMixerConfig} from "../../common/Options";
@@ -10,6 +11,7 @@ import {media_state} from "./media_player";
 const FADER_MAX = 16383;
 const PERCENT_MAX = 100;
 const PITCH_BEND_SIGNATURE = 0xe0;
+const CONTROL_CHANGE_SIGNATURE = 0xb0;
 const NOTE_ON_SIGNATURE = 0x90;
 const PREV_BANK_KEY = 46;
 const NEXT_BANK_NOTE = 47;
@@ -68,6 +70,7 @@ export class BehringerXTouch {
     // Index is MIDI note used to trigger the button
     private readonly lastButtonStates = new Map<number, boolean>();
     private readonly mediaUpdateCallback: (state: PlayerActivity) => any;
+    private displayColors: number[] = [0, 1, 2, 3, 4, 5, 6, 7];
 
     constructor(config: PhysicalMixerConfig) {
         this.config = config;
@@ -103,13 +106,21 @@ export class BehringerXTouch {
                     ipcs.mixer.cycleMediaFile(true);
                 }
             }
+
+            if (!asPitchBend && !asButtonPress) {
+                let hex = '';
+                for (let i = 0; i < data.length ; i++) {
+                    hex += ' ' + data[i].toString(16);
+                }
+                console.log("got unknown message: \"" + hex + "\"");
+            }
         });
         this.session.on('controlMessage', () => this.lastMessageTime = Date.now());
         this.lastMessageTime = Date.now();
         this.reconnectTimer = setInterval(() => this.checkReconnect(), 1_000);
         this.mediaUpdateCallback = (state) => {
-            this.setButton(PLAY_NOTE, state === PlayerActivity.idle);
-            this.setButton(STOP_NOTE, state === PlayerActivity.playing);
+            this.setButton(STOP_NOTE, state === PlayerActivity.idle);
+            this.setButton(PLAY_NOTE, state === PlayerActivity.playing);
         };
         media_state.addUpdateCallback(this.mediaUpdateCallback);
         this.session.on('streamAdded', () => setTimeout(() => {
@@ -134,6 +145,121 @@ export class BehringerXTouch {
             }
             this.setButton(FIRST_MUTE_NOTE + fader, value.muted);
         }
+    }
+
+    public set7SegmentText(startDigit: number, value: string) {
+        // is there even any data?
+        if (value.length === 0) { return; }
+
+        // go through all chars of the string and send them
+        let num: number = startDigit;
+        for (let i = 0; i < value.length; i++) {
+            const char: string = value[i];
+
+            // is the next digit a dot? If there even is one
+            if (i < value.length - 1) {
+                if (char === '.') {
+                    // yes! skip it and set the value with dotOn = true
+                    this.set7SegmentValue(num, char, true);
+                    i++;
+                } else {
+                    // no, just deal with it later
+                    this.set7SegmentValue(num, char, false);
+                }
+            } else {
+                // no further character => can't have a dot anyway
+                this.set7SegmentValue(num, char, false);
+            }
+
+            num ++;
+        }
+    }
+
+    public setDisplay(id: number, topString: string, bottomString: string, backgroundColor: number) {
+        this.displayColors[id] = backgroundColor;
+
+        this.updateDisplayColors();
+
+        // set top display line
+        this.writeStringToLCD(id, true, topString);
+        this.writeStringToLCD(id, false, bottomString);
+    }
+
+    public updateDisplayColors() {
+        // sysex cmd 72: set all display colors?
+        let midiString = 'F00000661472'; // sysex header + devicecode (14 for xTouch) + setLCD command (12)
+
+        // generate display color commands
+        for (let i = 0; i < 8; i++) {
+            midiString += ('00' + this.displayColors[i].toString(16)).slice(-2);
+        }
+
+        // add sysex terminator
+        midiString += 'F7';
+
+        this.sendMidicommandFromHexString(midiString);
+
+        // send dummy noteoff... no idea why we'd need to do that though
+        this.sendMidicommandFromHexString('800000');
+    }
+
+    private writeStringToLCD(id: number, topNBottom: boolean, value: string) {
+        // generate a long string with the sysex command
+        let midiString = 'F00000661412'; // sysex header + devicecode (14 for xTouch) + setLCD command (12)
+
+        // set offset. each display has 7 chars, with a total of 56 on the top row
+        const offset: number = id * 7 + (topNBottom ? 0 : 56);
+        midiString += ('00' + offset.toString(16)).slice(-2);   // generate a single zero-padded hex value
+
+        // copy text
+        let lengthLimited = value.length;
+        if (lengthLimited + id > 56) { lengthLimited = 56 - id; }
+        for (let i = 0; i < lengthLimited; i++) {
+            midiString += ('00' + value.charCodeAt(i).toString(16)).slice(-2);
+        }
+
+        // add sysex terminator
+        midiString += 'F7';
+
+        // and finally send the command
+        this.sendMidicommandFromHexString(midiString);
+
+        // send dummy noteoff... no idea why we'd need to do that though
+        this.sendMidicommandFromHexString('800000');
+    }
+
+    private sendMidicommandFromHexString(cmd: string) {
+        const tokens = cmd.match(/[0-9a-z]{2}/gi);
+        const midiCommand = tokens.map(t => parseInt(t, 16));
+/*
+        let hex = '';
+        for (let i = 0; i < midiCommand.length ; i++) {
+            hex += ' ' + midiCommand[i].toString(16);
+        }
+        console.log("send message: \"" + hex + "\"");
+*/
+        this.session.sendMessage(0, midiCommand);
+    }
+
+    private set7SegmentValue(digit: number, value: string, dotOn: boolean) {
+        // is the digit valid? (0-11)
+        if (digit > 11)  { return; }
+
+        // is there even any char to display
+        if (value.length === 0)  { return; }
+
+        // build midi message
+
+        // digit is adressed 0-12 mapped to 0x4b - 0x40
+        const digitId = 0x4b - digit;
+
+        // value selected like this:
+        // 0	Dot	ASCII
+        // b7	b6	b5	b4	b3	b2	b1	b0
+        const controllerValue = (dotOn ? 0x40 : 0) | (value.charCodeAt(0) & 0x3f);
+
+        const message = [CONTROL_CHANGE_SIGNATURE, digitId, controllerValue];
+        this.session.sendMessage(0, message);
     }
 
     private setButton(midiNote: number, light: boolean) {

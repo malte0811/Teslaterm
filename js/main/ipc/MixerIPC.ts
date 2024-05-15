@@ -140,6 +140,29 @@ export class MixerIPC {
     public updatePhysicalMixer() {
         const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
         getPhysicalMixer()?.movePhysicalSliders(faders);
+
+        getPhysicalMixer()?.setDisplay(0, 'test123', 'test345', 5);
+        getPhysicalMixer()?.setDisplay(1, 'test11251257845', 'test2', 5);
+        getPhysicalMixer()?.setDisplay(2, 'test1', 'test2', 4);
+        getPhysicalMixer()?.setDisplay(3, 'test1', 'test2', 3);
+
+
+        getPhysicalMixer()?.setDisplay(4, 'test1', 'test2', 6);
+        getPhysicalMixer()?.setDisplay(5, 'test1', 'test2', 3);
+        getPhysicalMixer()?.setDisplay(6, 'test1', 'test2', 1);
+        getPhysicalMixer()?.setDisplay(7, 'test1', 'test2', 5);
+
+        switch (this.currentLayer) {
+            case 'voiceMaster':
+                getPhysicalMixer()?.set7SegmentText(0, 'CH');
+                break;
+            case 'coilMaster':
+                getPhysicalMixer()?.set7SegmentText(0, 'GC');
+                break;
+            default:
+                getPhysicalMixer()?.set7SegmentText(0, 'C' + this.currentLayer);
+                break;
+        }
     }
 
     private sendVolumeToCoil(changedKey: VolumeKey) {
