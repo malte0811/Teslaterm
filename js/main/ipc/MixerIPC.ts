@@ -137,7 +137,7 @@ export class MixerIPC {
         this.loadSelectedFile();
     }
 
-    private updatePhysicalMixer() {
+    public updatePhysicalMixer() {
         const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
         getPhysicalMixer()?.movePhysicalSliders(faders);
     }

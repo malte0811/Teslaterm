@@ -1,10 +1,9 @@
 import {manager, Session} from "rtpmidi";
-import {ChannelID} from "../../common/IPCConstantsToRenderer";
+import {PlayerActivity} from "../../common/MediaTypes";
 import {PhysicalMixerConfig} from "../../common/Options";
 import {DEFAULT_MIXER_LAYER, MixerLayer, NUM_SPECIFIC_FADERS, VolumeSetting} from "../../common/VolumeMap";
 import {getCoils} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
-import {now} from "../microtime";
 import {media_state} from "./media_player";
 
 // MIDI standard would be -8192 to 8191, but this is easier for this application
@@ -66,7 +65,9 @@ export class BehringerXTouch {
     private readonly reconnectTimer: NodeJS.Timeout;
     private lastMessageTime: number;
     private readonly lastFaderState: number[] = [];
-    private readonly lastMuteStates: boolean[] = [];
+    // Index is MIDI note used to trigger the button
+    private readonly lastButtonStates = new Map<number, boolean>();
+    private readonly mediaUpdateCallback: (state: PlayerActivity) => any;
 
     constructor(config: PhysicalMixerConfig) {
         this.config = config;
@@ -95,7 +96,7 @@ export class BehringerXTouch {
                     media_state.stopPlaying();
                 } else if (asButtonPress.key >= FIRST_MUTE_NOTE && asButtonPress.key <= LAST_MUTE_NOTE) {
                     const fader = asButtonPress.key - FIRST_MUTE_NOTE;
-                    ipcs.mixer.setVolumeFromPhysical(fader, {muted: !this.lastMuteStates[fader]});
+                    ipcs.mixer.setVolumeFromPhysical(fader, {muted: !this.lastButtonStates.get(asButtonPress.key)});
                 } else if (asButtonPress.key === PREV_SONG_NOTE) {
                     ipcs.mixer.cycleMediaFile(false);
                 } else if (asButtonPress.key === NEXT_SONG_NOTE) {
@@ -103,14 +104,25 @@ export class BehringerXTouch {
                 }
             }
         });
-        this.session.on(
-            'streamAdded',
-            () => setTimeout(() => ipcs.mixer.setLayer(DEFAULT_MIXER_LAYER), 100),
-        );
         this.session.on('controlMessage', () => this.lastMessageTime = Date.now());
-        this.connect();
         this.lastMessageTime = Date.now();
         this.reconnectTimer = setInterval(() => this.checkReconnect(), 1_000);
+        this.mediaUpdateCallback = (state) => {
+            this.setButton(PLAY_NOTE, state === PlayerActivity.idle);
+            this.setButton(STOP_NOTE, state === PlayerActivity.playing);
+        };
+        media_state.addUpdateCallback(this.mediaUpdateCallback);
+        this.session.on('streamAdded', () => setTimeout(() => {
+            ipcs.mixer.updatePhysicalMixer();
+            this.mediaUpdateCallback(media_state.state);
+        }, 100));
+        this.connect();
+    }
+
+    public close() {
+        this.session.end();
+        clearInterval(this.reconnectTimer);
+        media_state.removeUpdateCallback(this.mediaUpdateCallback);
     }
 
     public movePhysicalSliders(values: Map<number, VolumeSetting>) {
@@ -120,23 +132,22 @@ export class BehringerXTouch {
                 this.session.sendMessage(0, buildPitchBendMessage(fader, pitch));
                 this.lastFaderState[fader] = value.volumePercent;
             }
-            if (value.muted !== this.lastMuteStates[fader]) {
-                this.session.sendMessage(0, buildButtonMessage(FIRST_MUTE_NOTE + fader, value.muted));
-                this.lastMuteStates[fader] = value.muted;
-            }
+            this.setButton(FIRST_MUTE_NOTE + fader, value.muted);
         }
     }
 
-    public close() {
-        this.session.end();
-        clearInterval(this.reconnectTimer);
+    private setButton(midiNote: number, light: boolean) {
+        if (light !== this.lastButtonStates.get(midiNote)) {
+            this.session.sendMessage(0, buildButtonMessage(midiNote, light));
+            this.lastButtonStates.set(midiNote, light);
+        }
     }
 
     private checkReconnect() {
         const now = Date.now();
         if (this.lastMessageTime + 6_000 < now) {
             this.lastMessageTime = now;
-            this.lastMuteStates.length = 0;
+            this.lastButtonStates.clear();
             this.lastFaderState.length = 0;
             if (this.session.getStreams().length > 0) {
                 this.session.removeStream(this.session.getStreams()[0]);

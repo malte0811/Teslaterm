@@ -39,6 +39,7 @@ export class PlayerState {
     private titleInt: string | undefined;
     private stateInt: PlayerActivity = PlayerActivity.idle;
     private voices: number[] = [0, 1, 2];
+    private readonly listeners: Array<(state: PlayerActivity) => any> = [];
 
     public constructor() {
         this.currentFileInt = undefined;
@@ -91,7 +92,7 @@ export class PlayerState {
         if (this.startCallback) {
             await this.startCallback();
         }
-        this.stateInt = PlayerActivity.playing;
+        this.setState(PlayerActivity.playing);
     }
 
     public stopPlaying(): void {
@@ -102,9 +103,25 @@ export class PlayerState {
         if (this.stopCallback) {
             this.stopCallback();
         }
-        this.stateInt = PlayerActivity.idle;
+        this.setState(PlayerActivity.idle);
         ipcs.misc.updateMediaInfo();
         scripting.onMediaStopped();
+    }
+
+    public addUpdateCallback(mediaUpdateCallback: (state: PlayerActivity) => any) {
+        this.listeners.push(mediaUpdateCallback);
+
+    }
+
+    public removeUpdateCallback(mediaUpdateCallback: (state: PlayerActivity) => any) {
+        const index = this.listeners.indexOf(mediaUpdateCallback);
+        this.listeners[index] = this.listeners[this.listeners.length - 1];
+        this.listeners.pop();
+    }
+
+    private setState(state: PlayerActivity) {
+        this.stateInt = state;
+        this.listeners.forEach((cb) => cb(state));
     }
 }
 
