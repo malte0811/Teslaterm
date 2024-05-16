@@ -43,6 +43,15 @@ export function initializeExtraConnections(options: AdvancedOptions, multicoil: 
     extraConnections = new ExtraConnections(options, multicoil);
 }
 
+export function findCoilByName(name: string): CoilID | undefined {
+    for (const coil of getCoils()) {
+        if (name === getOptionalUD3Connection(coil)?.getUDName()) {
+            return coil;
+        }
+    }
+    return undefined;
+}
+
 export function clearCoils() {
     connectionState.clear();
     ipcs.clearCoils();

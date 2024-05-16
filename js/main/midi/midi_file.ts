@@ -81,6 +81,17 @@ export async function loadMidiFile(file: TransmittedFile) {
         nameByChannel.set(channel, nameByTrack.get(track) || `Channel ${channel}`);
     }
     uniqueChannels.sort((a, b) => a - b);
+    ipcs.mixer.setProgramsByVoice(programByChannel);
+    ipcs.mixer.setChannelNames(nameByChannel);
+    uniqueChannels.forEach((channel) => {
+        if (volumeByChannel.has(channel)) {
+            ipcs.mixer.updateVolume({channel}, {
+                muted: false,
+                volumePercent: volumeByChannel.get(channel),
+            });
+        }
+    });
+    ipcs.misc.updateMediaInfo();
     await media_state.loadFile(
         file,
         MediaFileType.midi,
@@ -89,12 +100,4 @@ export async function loadMidiFile(file: TransmittedFile) {
         startCurrentMidiFile,
         stopMidiFile,
     );
-    ipcs.mixer.setProgramsByVoice(programByChannel);
-    ipcs.mixer.setChannelNames(nameByChannel);
-    uniqueChannels.forEach((channel) => {
-        if (volumeByChannel.has(channel)) {
-            ipcs.mixer.updateVolume({channel}, {volumePercent: volumeByChannel.get(channel)});
-        }
-    });
-    ipcs.misc.updateMediaInfo();
 }

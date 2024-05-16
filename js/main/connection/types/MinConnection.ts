@@ -23,6 +23,7 @@ export abstract class MinConnection extends BootloadableConnection {
     private actualUDFeatures: Map<string, string>;
     private connectionsToSetTTerm: TerminalHandle[] = [];
     private counter: number = 0;
+    private udName: string = undefined;
 
     protected constructor(coil: CoilID) {
         super(coil);
@@ -236,7 +237,8 @@ export abstract class MinConnection extends BootloadableConnection {
                     }
                 }
             } else if (id === UD3MinIDs.EVENT && data[0] === EVENT_GET_INFO) {
-                ipcs.coilMisc(this.getCoil()).sendUDName(parseEventInfo(data).udName);
+                this.udName = parseEventInfo(data).udName;
+                ipcs.coilMisc(this.getCoil()).sendUDName(this.getUDName());
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {
@@ -268,6 +270,10 @@ export abstract class MinConnection extends BootloadableConnection {
 
     public getFeatureValue(feature: string): string {
         return this.actualUDFeatures.get(feature);
+    }
+
+    public getUDName(): string | undefined {
+        return this.udName;
     }
 
     abstract send(data: MINDataBuffer, onError: (err) => void): void;

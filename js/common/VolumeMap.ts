@@ -19,7 +19,7 @@ export interface VolumeSetting {
 
 export type VolumeUpdate = Partial<VolumeSetting>;
 
-const DEFAULT_VOLUME: VolumeSetting = {muted: false, volumePercent: 100};
+export const DEFAULT_VOLUME: VolumeSetting = {muted: false, volumePercent: 100};
 const OFF_VOLUME: VolumeSetting = {muted: false, volumePercent: 0};
 
 function updateVolume<K>(map: Map<K, VolumeSetting> | undefined, key: K, update: VolumeUpdate) {

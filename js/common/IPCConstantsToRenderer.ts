@@ -3,7 +3,7 @@ import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
 import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {TTConfig} from "./TTConfig";
-import {UIConfig} from "./UIConfig";
+import {SyncedUIConfig} from "./UIConfig";
 import {MixerLayer, VolumeKey, VolumeUpdate} from "./VolumeMap";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
@@ -52,7 +52,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     },
     ttConfig: makeKey<TTConfig>('tt-config'),
     udName: makeKey<[CoilID, string]>('ud-name'),
-    uiConfig: makeKey<UIConfig>('uiConfig'),
+    uiConfig: makeKey<SyncedUIConfig>('uiConfig'),
     updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
 

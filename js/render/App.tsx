@@ -4,7 +4,7 @@ import {CoilID} from "../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
 import {TTConfig} from "../common/TTConfig";
-import {UIConfig} from "../common/UIConfig";
+import {SyncedUIConfig} from "../common/UIConfig";
 import {ConnectScreen, FRDisplayData} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
@@ -21,7 +21,7 @@ interface TopLevelState {
     screen: TopScreen;
     flightEvents?: FRDisplayData;
     ttConfig: TTConfig;
-    config: UIConfig;
+    config: SyncedUIConfig;
     coils: CoilID[];
     multicoil: boolean;
 }

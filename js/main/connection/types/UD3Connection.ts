@@ -66,6 +66,8 @@ export abstract class UD3Connection {
 
     public abstract isMultiTerminal(): boolean;
 
+    public abstract getUDName(): string | undefined;
+
     public getAutoTerminalID(): TerminalHandle {
         return 0;
     }

@@ -2,7 +2,7 @@ import React from "react";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
-import {UIConfig} from "../../../common/UIConfig";
+import {SyncedUIConfig} from "../../../common/UIConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {CoilState} from "../MainScreen";
@@ -14,7 +14,7 @@ import {TelemetryOverview} from "./TelemetryOverview";
 
 export interface ControlTabProps {
     ttConfig: TTConfig;
-    config: UIConfig;
+    config: SyncedUIConfig;
     coils: CoilState[];
     toasts: ToastsProps;
 }

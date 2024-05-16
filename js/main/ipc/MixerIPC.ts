@@ -4,11 +4,11 @@ import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap, VolumeUpdate} from "../../common/VolumeMap";
-import {forEachCoil, getPhysicalMixer, numCoils} from "../connection/connection";
+import {forEachCoil, getConnectionState, getPhysicalMixer, numCoils} from "../connection/connection";
 import {config} from "../init";
-import {loadMediaFile} from "../media/media_player";
+import {loadMediaFile, media_state} from "../media/media_player";
 import {sendProgramChange, sendVolume} from "../midi/midi";
-import {getUIConfig} from "../UIConfigHandler";
+import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
 
 export class MixerIPC {
@@ -24,10 +24,10 @@ export class MixerIPC {
 
     constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
-        processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, async ([channel, program]) => {
-            this.programByVoice.set(channel, program);
-            await sendProgramChange(channel, program);
-        });
+        processIPC.onAsync(
+            IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride,
+            async ([channel, program]) => this.setProgramForChannel(channel, program),
+        );
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.centralTab.setMixerLayer,
             async (layer) => this.setLayer(layer),
@@ -73,6 +73,13 @@ export class MixerIPC {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels, this.volumes.getChannelMap());
     }
 
+    public setProgramForChannel(channel: ChannelID, program: number) {
+        this.programByVoice.set(channel, program);
+        updateDefaultProgram(media_state.title, channel, program);
+        sendProgramChange(channel, program).catch((x) => console.error('Sending program change', x));
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel, this.programByVoice);
+    }
+
     public setProgramsByVoice(programByVoice: Map<ChannelID, number>) {
         this.programByVoice = programByVoice;
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel, this.programByVoice);
@@ -84,7 +91,9 @@ export class MixerIPC {
     }
 
     public sendAvailablePrograms() {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms, getUIConfig().midiPrograms);
+        this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms, getUIConfig().syncedConfig.midiPrograms,
+        );
     }
 
     public sendFullState() {
@@ -116,6 +125,7 @@ export class MixerIPC {
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, update]);
         this.sendVolumeToCoil(key);
         this.updatePhysicalMixer();
+        updateDefaultVolumes(media_state.title, key, update);
     }
 
     public getCurrentLayer() {

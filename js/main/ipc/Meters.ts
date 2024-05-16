@@ -67,7 +67,7 @@ export class MetersIPC {
 
     public sendCentralTelemetry() {
         const values: CentralTelemetryValue[] = [];
-        for (const nameToSend of getUIConfig().centralTelemetry) {
+        for (const nameToSend of getUIConfig().syncedConfig.centralTelemetry) {
             const config = this.configs.find((cfg) => cfg && cfg.name === nameToSend);
             if (config) {
                 const value = this.lastScaledValues[config.meterId];

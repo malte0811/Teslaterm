@@ -100,6 +100,10 @@ export class PlainSerialConnection extends UD3Connection {
         return 0;
     }
 
+    public getUDName(): string | undefined {
+        return undefined;
+    }
+
     private async sendAsync(rawData: Buffer): Promise<void> {
         return new Promise<void>((res, rej) => {
             getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, rawData);

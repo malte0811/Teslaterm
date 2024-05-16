@@ -10,7 +10,7 @@ import {
     UD3ConnectionOptions,
     UDPConnectionOptions,
 } from "../../common/SingleConnectionOptions";
-import {UIConfig} from "../../common/UIConfig";
+import {SyncedUIConfig} from "../../common/UIConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
 import {ConnectForm} from "./ConnectForm";
@@ -76,7 +76,7 @@ export interface FRDisplayData {
 }
 
 export interface ConnectScreenProps {
-    config: UIConfig;
+    config: SyncedUIConfig;
     connecting: boolean;
     setDarkMode: (newVal: boolean) => void;
     openFlightRecording: (data: FRDisplayData) => any;
