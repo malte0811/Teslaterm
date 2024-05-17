@@ -128,6 +128,10 @@ export class MixerIPC {
         updateDefaultVolumes(media_state.title, key, update);
     }
 
+    public getVolume(coil: CoilID, channel: ChannelID) {
+        return this.volumes.getTotalVolume(coil, channel);
+    }
+
     public getCurrentLayer() {
         return this.currentLayer;
     }
