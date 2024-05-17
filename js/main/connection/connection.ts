@@ -1,6 +1,6 @@
 import {CoilID} from "../../common/constants";
 import {FlightEventType} from "../../common/FlightRecorderTypes";
-import {ConnectionStatus} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {PlayerActivity} from "../../common/MediaTypes";
 import {AdvancedOptions} from "../../common/Options";
 import {MultiConnectionOptions, SingleConnectionOptions} from "../../common/SingleConnectionOptions";
@@ -126,15 +126,23 @@ export function getConnectedCoils(): CoilID[] {
         .map(([id]) => id);
 }
 
-function anyConnected() {
-    return getConnectedCoils().length > 0;
+function allCoilsPermanentlyDisconnected() {
+    for (const connection of connectionState.values()) {
+        if (connection.getConnectionStatus() !== ConnectionStatus.IDLE) {
+            return false;
+        }
+    }
+    return true;
 }
 
 export function updateFast() {
     for (const [coil, coilState] of connectionState.entries()) {
         setConnectionState(coil, coilState.tickFast());
     }
-    if (!anyConnected() && media.media_state.state === PlayerActivity.playing) {
+    if (allCoilsPermanentlyDisconnected() && media.media_state.state === PlayerActivity.playing) {
+        ipcs.misc.openGenericToast(
+            'Stopping playback', 'All coil connected permanently lost, stopping playback', ToastSeverity.error,
+        );
         media.media_state.stopPlaying();
     }
 }
