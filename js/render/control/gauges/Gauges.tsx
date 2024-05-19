@@ -43,7 +43,7 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
                 newGauges[config.meterId] = {
                     config,
                     darkMode: this.props.darkMode,
-                    value: newGauges[config.meterId].value,
+                    value: newGauges[config.meterId]?.value || 0,
                 };
                 return {gauges: newGauges};
             });
