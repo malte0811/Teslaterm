@@ -24,12 +24,13 @@ export abstract class MinConnection extends BootloadableConnection {
     private connectionsToSetTTerm: TerminalHandle[] = [];
     private counter: number = 0;
     private udName: string = undefined;
+    private sidMINChannel: number = UD3MinIDs.SID;
 
     protected constructor(coil: CoilID) {
         super(coil);
         this.sidConnection = new UD3FormattedConnection(
             () => this.flushSynth(),
-            (data) => this.sendMedia(data),
+            (data, direct) => this.sendSID(data, direct),
             coil,
         );
         this.actualUDFeatures = new Map(config.defaultUDFeatures.entries());
@@ -72,15 +73,19 @@ export abstract class MinConnection extends BootloadableConnection {
         this.terminalCallbacks.clear();
     }
 
-    async sendMedia(data: Buffer) {
+    private async sendMedia(data: Buffer) {
         if (this.min_wrapper) {
             this.mediaFramesForBatching.push(data);
         }
     }
 
-    async sendMediaSID(data: Buffer) {
+    private async sendSID(data: Buffer, direct: boolean) {
         if (this.min_wrapper) {
-            this.mediaFramesForBatchingSID.push(data);
+            if (direct) {
+                await this.min_wrapper.enqueueFrame(this.sidMINChannel, data);
+            } else {
+                this.mediaFramesForBatchingSID.push(data);
+            }
         }
     }
 
@@ -90,9 +95,9 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    sendMidi = this.sendMedia;
+    public sendMidi = this.sendMedia;
 
-    getSidConnection(): ISidConnection {
+    public getSidConnection(): ISidConnection {
         return this.sidConnection;
     }
 
@@ -142,19 +147,16 @@ export abstract class MinConnection extends BootloadableConnection {
 
     private batchFrames(buf: Buffer[], maxPerFrame: number, insertFrameCnt: boolean, minID: number) {
         while (this.min_wrapper.get_relative_fifo_size() < 0.75 && buf.length > 0) {
-            let frameParts: Buffer[] = [];
+            const frameParts: Buffer[] = [];
             let currentSize = 0;
-            while (
-                buf.length > 0 &&
-                buf[0].length + currentSize <= maxPerFrame
-                ) {
+            while (buf.length > 0 && buf[0].length + currentSize <= maxPerFrame) {
                 currentSize += buf[0].length;
                 frameParts.push(buf.shift());
             }
             if (insertFrameCnt) {
                 frameParts.unshift(Buffer.from([frameParts.length]));
             }
-            let frame = Buffer.concat(frameParts);
+            const frame = Buffer.concat(frameParts);
             this.min_wrapper.enqueueFrame(minID, frame).catch(err => {
                 console.log("Failed to send media packet: " + err);
             });
@@ -301,10 +303,10 @@ export abstract class MinConnection extends BootloadableConnection {
         }
         if (this.getFeatureValue(FEATURE_MINSID) === "1") {
             this.sidConnection.switch_format(FormatVersion.v2);
-            this.sidConnection.sendToUD = (data) => this.sendMediaSID(data);
+            this.sidMINChannel = UD3MinIDs.SID;
         } else {
             this.sidConnection.switch_format(FormatVersion.v1);
-            this.sidConnection.sendToUD = (data) => this.sendMedia(data);
+            this.sidMINChannel = UD3MinIDs.MEDIA;
         }
     }
 }

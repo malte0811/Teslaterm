@@ -3,11 +3,13 @@ import * as path from "node:path";
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {MediaFileType} from "../../common/MediaTypes";
 import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap, VolumeUpdate} from "../../common/VolumeMap";
-import {forEachCoil, getConnectionState, getPhysicalMixer, numCoils} from "../connection/connection";
+import {forEachCoil, forEachCoilAsync, getPhysicalMixer, numCoils} from "../connection/connection";
 import {config} from "../init";
 import {loadMediaFile, media_state} from "../media/media_player";
 import {sendProgramChange, sendVolume} from "../midi/midi";
+import {getActiveSIDConnection, SidCommand} from "../sid/ISidConnection";
 import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
 
@@ -57,7 +59,7 @@ export class MixerIPC {
     public tick100() {
         for (const [coil, updatedChannels] of this.updates) {
             for (const channel of updatedChannels) {
-                sendVolume(coil, channel, this.volumes.getTotalVolume(coil, channel))
+                this.sendVolume(coil, channel)
                     .catch((x) => console.error("Sending volume update to ", coil, channel, x));
             }
         }
@@ -184,6 +186,17 @@ export class MixerIPC {
             const data = fs.readFileSync(filePath);
             loadMediaFile({contents: data, name: fileName})
                 .catch((e) => console.error('Loading media file', e));
+        }
+    }
+
+    private async sendVolume(coil: number, channel: number) {
+        const volumePercent = this.volumes.getTotalVolume(coil, channel);
+        if (media_state.type === MediaFileType.midi) {
+            await sendVolume(coil, channel, volumePercent);
+        } else {
+            await getActiveSIDConnection(coil)?.sendCommand(
+                SidCommand.setVolume, channel, volumePercent * ((1 << 15) / 100),
+            );
         }
     }
 }
