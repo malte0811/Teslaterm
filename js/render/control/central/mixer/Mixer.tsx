@@ -3,6 +3,7 @@ import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../../../common/IPCConstantsToRenderer";
+import {MediaFileType} from "../../../../common/MediaTypes";
 import {TTConfig} from "../../../../common/TTConfig";
 import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap, VolumeUpdate} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
@@ -23,6 +24,7 @@ interface MixerState {
     currentLayer: MixerLayer;
     channels: ChannelID[];
     availablePrograms: string[];
+    programSettable: boolean;
 }
 
 export class Mixer extends TTComponent<MixerProps, MixerState> {
@@ -33,6 +35,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             channelNames: new Map<ChannelID, string>(),
             channels: [],
             currentLayer: DEFAULT_MIXER_LAYER,
+            programSettable: true,
             voiceProgram: new Map<CoilID, number>(),
             volumes: new VolumeMap(),
         };
@@ -60,6 +63,10 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume,
             ([key, volume]) => this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)})),
+        );
+        this.addIPCListener(
+            IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
+            (state) => this.setState({programSettable: state.type === MediaFileType.midi}),
         );
     }
 
@@ -131,7 +138,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             value={state.volumePercent}
             mute={state.muted ? MuteState.muted : MuteState.audible}
             setMute={(state) => this.setVolume(key, {muted: state === MuteState.muted})}
-            program={program}
+            program={this.state.programSettable && program}
         />;
     }
 

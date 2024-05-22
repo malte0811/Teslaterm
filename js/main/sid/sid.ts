@@ -1,5 +1,6 @@
 import * as path from "path";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity, SynthType} from "../../common/MediaTypes";
 import {forEachCoil, forEachCoilAsync, getConnectedCoils, getUD3Connection} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
@@ -76,7 +77,7 @@ export async function loadSidFile(file: TransmittedFile) {
     } else {
         throw new Error("Unknown extension " + extension);
     }
-    ipcs.misc.updateMediaInfo();
+    ipcs.mixer.setChannelNames(new Map<ChannelID, string>());
 }
 
 export function update() {

@@ -100,6 +100,7 @@ export class PlayerState {
         this.voices = voices;
         const prefix = type === MediaFileType.midi ? 'MIDI file: ' : "SID file: ";
         ipcs.menu.setMediaName(prefix + title);
+        ipcs.misc.updateMediaInfo();
         ipcs.mixer.setChannels(this.voices);
         await forEachCoilAsync(async (coil) => {
             if (hasUD3Connection(coil)) {
