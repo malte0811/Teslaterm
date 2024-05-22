@@ -151,7 +151,7 @@ export class MixerIPC {
         const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
         getPhysicalMixer()?.movePhysicalSliders(faders);
 
-        getPhysicalMixer()?.setDisplay(0, 'test123', 'test345', 5);
+        /*getPhysicalMixer()?.setDisplay(0, 'test123', 'test345', 5);
         getPhysicalMixer()?.setDisplay(1, 'test11251257845', 'test2', 5);
         getPhysicalMixer()?.setDisplay(2, 'test1', 'test2', 4);
         getPhysicalMixer()?.setDisplay(3, 'test1', 'test2', 3);
@@ -160,7 +160,7 @@ export class MixerIPC {
         getPhysicalMixer()?.setDisplay(4, 'test1', 'test2', 6);
         getPhysicalMixer()?.setDisplay(5, 'test1', 'test2', 3);
         getPhysicalMixer()?.setDisplay(6, 'test1', 'test2', 1);
-        getPhysicalMixer()?.setDisplay(7, 'test1', 'test2', 5);
+        getPhysicalMixer()?.setDisplay(7, 'test1', 'test2', 5);*/
 
         switch (this.currentLayer) {
             case 'voiceMaster':
