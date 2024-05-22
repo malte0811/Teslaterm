@@ -55,11 +55,12 @@ export class VolumeMap {
         return setting.muted ? 0 : setting.volumePercent;
     }
 
-    public getTotalVolume(coil: CoilID, voice: ChannelID) {
-        return this.getIndividualVolume({coil, channel: voice}) / 100 *
-            this.getIndividualVolume({coil}) / 100 *
-            this.getIndividualVolume({channel: voice}) / 100 *
-            this.getIndividualVolume({});
+    public getCoilMasterFraction(coil: CoilID) {
+        return this.getIndividualVolume({coil}) / 100 * this.getIndividualVolume({}) / 100;
+    }
+
+    public getCoilVoiceMultiplier(coil: CoilID, channel: ChannelID) {
+        return this.getIndividualVolume({coil, channel}) / 100 * this.getIndividualVolume({channel}) / 100;
     }
 
     public withChannelMap(channelByFader: number[]) {

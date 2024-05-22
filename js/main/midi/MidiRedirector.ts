@@ -17,8 +17,8 @@ async function maybeRedirectProgramChange(channel: ChannelID): Promise<boolean> 
 // TODO always send volume at start of song?
 async function redirectVolumeChange(channel: ChannelID): Promise<void> {
     await forEachCoilAsync(async (coil) => {
-        const volume = ipcs.mixer.getVolume(coil, channel);
-        await sendVolume(coil, channel, volume);
+        const volume = ipcs.mixer.getVolumeMultiplier(coil, channel);
+        await sendVolume(coil, channel, volume * 100);
     });
 }
 

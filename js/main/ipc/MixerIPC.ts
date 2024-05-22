@@ -5,7 +5,7 @@ import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
 import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap, VolumeUpdate} from "../../common/VolumeMap";
-import {forEachCoil, forEachCoilAsync, getPhysicalMixer, numCoils} from "../connection/connection";
+import {forEachCoil, getCoilCommands, getPhysicalMixer, numCoils} from "../connection/connection";
 import {config} from "../init";
 import {loadMediaFile, media_state} from "../media/media_player";
 import {sendProgramChange, sendVolume} from "../midi/midi";
@@ -19,8 +19,8 @@ export class MixerIPC {
     private volumes: VolumeMap = new VolumeMap();
     private currentLayer: MixerLayer = 'coilMaster';
     private readonly processIPC: MainIPC;
-    private readonly updates = new Map<CoilID, Set<ChannelID>>();
-    // TODO hack, needs to move elsewhere and become more configurable
+    private readonly changedCoilMasters = new Set<CoilID>();
+    private readonly changedSpecificVolumes = new Map<ChannelID, Set<CoilID>>();
     private readonly availableFiles: string[];
     private fileIndex: number = 0;
 
@@ -57,13 +57,7 @@ export class MixerIPC {
     }
 
     public tick100() {
-        for (const [coil, updatedChannels] of this.updates) {
-            for (const channel of updatedChannels) {
-                this.sendVolume(coil, channel)
-                    .catch((x) => console.error("Sending volume update to ", coil, channel, x));
-            }
-        }
-        this.updates.clear();
+        this.processVolumeUpdates().catch((x) => console.error("Sending volume updates", x));
     }
 
     public getProgramFor(channel: ChannelID) {
@@ -125,13 +119,13 @@ export class MixerIPC {
     public updateVolume(key: VolumeKey, update: VolumeUpdate) {
         this.volumes = this.volumes.with(key, update);
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, update]);
-        this.sendVolumeToCoil(key);
+        this.markForUpdate(key);
         this.updatePhysicalMixer();
         updateDefaultVolumes(media_state.title, key, update);
     }
 
-    public getVolume(coil: CoilID, channel: ChannelID) {
-        return this.volumes.getTotalVolume(coil, channel);
+    public getVolumeMultiplier(coil: CoilID, channel: ChannelID) {
+        return this.volumes.getCoilVoiceMultiplier(coil, channel);
     }
 
     public getCurrentLayer() {
@@ -158,24 +152,21 @@ export class MixerIPC {
         getPhysicalMixer()?.movePhysicalSliders(faders);
     }
 
-    private sendVolumeToCoil(changedKey: VolumeKey) {
-        const sendUpdate = (coil: CoilID, voice: ChannelID) => {
-            if (!this.updates.has(coil)) {
-                this.updates.set(coil, new Set<ChannelID>());
-            }
-            this.updates.get(coil).add(voice);
-        };
-        const sendUpdatesToCoil = (coil: CoilID) => {
-            if (changedKey.channel) {
-                sendUpdate(coil, changedKey.channel);
+    private markForUpdate(changedKey: VolumeKey) {
+        const addAffectedCoils = (coils: Set<CoilID>) => {
+            if (changedKey.coil === undefined) {
+                forEachCoil((coil) => coils.add(coil));
             } else {
-                this.volumes.getChannelMap().map((voice) => sendUpdate(coil, voice));
+                coils.add(changedKey.coil);
             }
         };
-        if (changedKey.coil) {
-            sendUpdatesToCoil(changedKey.coil);
+        if (changedKey.channel === undefined) {
+            addAffectedCoils(this.changedCoilMasters);
         } else {
-            forEachCoil(sendUpdatesToCoil);
+            if (!this.changedSpecificVolumes.has(changedKey.channel)) {
+                this.changedSpecificVolumes.set(changedKey.channel, new Set<CoilID>());
+            }
+            addAffectedCoils(this.changedSpecificVolumes.get(changedKey.channel));
         }
     }
 
@@ -189,14 +180,28 @@ export class MixerIPC {
         }
     }
 
+    private processVolumeUpdates() {
+        const promises: Array<Promise<any>> = [];
+        for (const coil of this.changedCoilMasters) {
+            const coilVolume = this.volumes.getCoilMasterFraction(coil) * 32767;
+            promises.push(getCoilCommands(coil).setParam('vol', coilVolume.toFixed(0)));
+        }
+        this.changedCoilMasters.clear();
+        for (const [channel, updatedCoils] of this.changedSpecificVolumes) {
+            for (const coil of updatedCoils) {
+                promises.push(this.sendVolume(coil, channel));
+            }
+        }
+        this.changedSpecificVolumes.clear();
+        return Promise.all(promises);
+    }
+
     private async sendVolume(coil: number, channel: number) {
-        const volumePercent = this.volumes.getTotalVolume(coil, channel);
+        const volumeFraction = this.volumes.getCoilVoiceMultiplier(coil, channel);
         if (media_state.type === MediaFileType.midi) {
-            await sendVolume(coil, channel, volumePercent);
+            await sendVolume(coil, channel, volumeFraction * 100);
         } else {
-            await getActiveSIDConnection(coil)?.sendCommand(
-                SidCommand.setVolume, channel, volumePercent * ((1 << 15) / 100),
-            );
+            await getActiveSIDConnection(coil)?.sendCommand(SidCommand.setVolume, channel, volumeFraction * (1 << 15));
         }
     }
 }
