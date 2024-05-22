@@ -1,7 +1,7 @@
 import {CoilID} from "../../common/constants";
 import {getOptionalUD3Connection, getUD3Connection} from "../connection/connection";
 import * as microtime from "../microtime";
-import {ISidConnection} from "./ISidConnection";
+import {ISidConnection, SidCommand} from "./ISidConnection";
 import {getFirstQueuedFrameAfter} from "./sid";
 import {AbsoluteSIDFrame, FRAME_LENGTH, FRAME_UDTIME_LENGTH, SidFrame} from "./sid_api";
 
@@ -10,8 +10,10 @@ export enum FormatVersion {
     v2,
 }
 
+export type SIDDataCallback = (data: Buffer, direct: boolean) => Promise<any>;
+
 export class UD3FormattedConnection implements ISidConnection {
-    public sendToUD: (data: Buffer) => any;
+    private readonly sendToUD: SIDDataCallback;
     private readonly flushCallback: () => Promise<void>;
     private lastQueuedFrameTime: number | undefined = 0;
     private lastSentFrameTime: number | undefined = 0;
@@ -20,7 +22,7 @@ export class UD3FormattedConnection implements ISidConnection {
     private needsZeroSuffix: boolean = true;
     private readonly coil: CoilID;
 
-    constructor(flushCallback: () => Promise<void>, sendToUD: (data: Buffer) => any, coil: CoilID) {
+    constructor(flushCallback: () => Promise<void>, sendToUD: SIDDataCallback, coil: CoilID) {
         this.flushCallback = flushCallback;
         this.sendToUD = sendToUD;
         this.coil = coil;
@@ -33,6 +35,10 @@ export class UD3FormattedConnection implements ISidConnection {
 
     public onStart(): void {
         this.busy = false;
+    }
+
+    public async sendCommand(command: SidCommand, channel: number, value: number): Promise<void> {
+        await this.sendToUD(Buffer.of(0, command, channel, value >> 8, value & 255), true);
     }
 
     public tick() {
@@ -84,10 +90,8 @@ export class UD3FormattedConnection implements ISidConnection {
         if (this.needsZeroSuffix) {
             data[byteCount] = 0;
         }
-        // TODO rework command server/client system for multicoil TT
-        //  commandServer.sendSIDFrame(frameData, absoluteTime);
         this.lastSentFrameTime = frame.time;
-        this.sendToUD(data);
+        this.sendToUD(data, false);
     }
 
     public setBusy(busy: boolean): void {

@@ -27,7 +27,7 @@ export class ConnectionUIIPC {
         );
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.requestSuggestions, sendConnectionSuggestions);
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.getPresets, () => this.processIPC.send(
-            IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, getUIConfig().connectionPresets,
+            IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, getUIConfig().syncedConfig.connectionPresets,
         ));
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.connect.setPresets, (presets) => this.setPresets(presets));
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.clearCoils, clearCoils);

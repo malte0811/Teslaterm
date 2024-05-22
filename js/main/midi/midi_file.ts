@@ -4,7 +4,7 @@ import {MediaFileType} from "../../common/MediaTypes";
 import {isMulticoil} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
-import {player, startCurrentMidiFile, stopMidiFile} from "./midi";
+import {player, startCurrentMidiFile, stopMidiFile, VOLUME_CC_KEY} from "./midi";
 
 // TODO for some reason MidiPlayer::getEvents() is a 2-dim array despite the signature?
 function fixBrokenArray<T>(reallyTwoDimArray: T[]): T[] {
@@ -67,7 +67,7 @@ export async function loadMidiFile(file: TransmittedFile) {
             }
             if (event.name === 'Program Change') {
                 addValue(programsByChannel, event.channel, event.value);
-            } else if (event.name === 'Controller Change' && event.number === 7) {
+            } else if (event.name === 'Controller Change' && event.number === VOLUME_CC_KEY) {
                 addValue(volumesByChannel, event.channel, event.value * (100 / 127));
             }
         }
@@ -81,6 +81,17 @@ export async function loadMidiFile(file: TransmittedFile) {
         nameByChannel.set(channel, nameByTrack.get(track) || `Channel ${channel}`);
     }
     uniqueChannels.sort((a, b) => a - b);
+    ipcs.mixer.setProgramsByVoice(programByChannel);
+    ipcs.mixer.setChannelNames(nameByChannel);
+    uniqueChannels.forEach((channel) => {
+        if (volumeByChannel.has(channel)) {
+            ipcs.mixer.updateVolume({channel}, {
+                muted: false,
+                volumePercent: volumeByChannel.get(channel),
+            });
+        }
+    });
+    ipcs.misc.updateMediaInfo();
     await media_state.loadFile(
         file,
         MediaFileType.midi,
@@ -89,12 +100,4 @@ export async function loadMidiFile(file: TransmittedFile) {
         startCurrentMidiFile,
         stopMidiFile,
     );
-    ipcs.mixer.setProgramsByVoice(programByChannel);
-    ipcs.mixer.setChannelNames(nameByChannel);
-    uniqueChannels.forEach((channel) => {
-        if (volumeByChannel.has(channel)) {
-            ipcs.mixer.updateVolume({channel}, {volumePercent: volumeByChannel.get(channel)});
-        }
-    });
-    ipcs.misc.updateMediaInfo();
 }

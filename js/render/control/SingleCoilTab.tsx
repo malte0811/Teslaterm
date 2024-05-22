@@ -2,7 +2,7 @@ import React from "react";
 import {CoilID} from "../../common/constants";
 import {ConnectionStatus, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
-import {UIConfig} from "../../common/UIConfig";
+import {SyncedUIConfig} from "../../common/UIConfig";
 import {TTComponent} from "../TTComponent";
 import {Gauges} from "./gauges/Gauges";
 import {TerminalRef} from "./MainScreen";
@@ -28,7 +28,7 @@ export interface SingleCoilTabProps {
     toasts: ToastsProps;
     level: 'single-coil' | 'combined';
     returnToConnect: () => any;
-    config: UIConfig;
+    config: SyncedUIConfig;
 }
 
 export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {

@@ -108,7 +108,7 @@ export class CommonMiscIPC {
     }
 
     public syncUIConfig() {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.uiConfig, getUIConfig());
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.uiConfig, getUIConfig().syncedConfig);
     }
 
     public updateMediaInfo() {

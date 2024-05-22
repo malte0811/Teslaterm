@@ -1,6 +1,9 @@
 import {CoilID} from "../../common/constants";
 import {getOptionalUD3Connection} from "../connection/connection";
-import {SidFrame} from "./sid_api";
+
+export enum SidCommand {
+    setVolume,
+}
 
 export interface ISidConnection {
     onStart(): void;
@@ -8,6 +11,8 @@ export interface ISidConnection {
     flush(): Promise<void>;
 
     isBusy(): boolean;
+
+    sendCommand(command: SidCommand, channel: number, value: number): Promise<void>;
 }
 
 export function getActiveSIDConnection(coil: CoilID): ISidConnection | null {

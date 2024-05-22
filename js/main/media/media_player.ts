@@ -3,15 +3,50 @@ import {CoilID} from "../../common/constants";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
-import {forEachCoilAsync, getCoilCommands, getUD3Connection, hasUD3Connection} from "../connection/connection";
+import {CoilMixerState, SavedMixerState} from "../../common/UIConfig";
+import {
+    findCoilByName,
+    forEachCoilAsync,
+    getCoilCommands,
+    getUD3Connection,
+    hasUD3Connection
+} from "../connection/connection";
 import {getUD3State} from "../connection/telemetry/UD3State";
 import {ipcs} from "../ipc/IPCProvider";
 import {loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
 import {loadSidFile} from "../sid/sid";
+import {getDefaultVolumes, getUIConfig} from "../UIConfigHandler";
 
 export function isSID(type: MediaFileType): boolean {
     return type === MediaFileType.sid_dmp || type === MediaFileType.sid_emulated;
+}
+
+function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
+    ipcs.mixer.updateVolume({coil}, state.masterSetting);
+    state.channelSettings.forEach((settings, channel) => {
+        if (settings !== undefined) {
+            ipcs.mixer.updateVolume({coil, channel}, settings);
+        }
+    });
+}
+
+function applyMixerState(state: SavedMixerState) {
+    applyCoilMixerState(undefined, state.masterSettings);
+    for (const [coilName, settings] of Object.entries(state.coilSettings)) {
+        const coil = findCoilByName(coilName);
+        if (coil !== undefined) {
+            applyCoilMixerState(coil, settings);
+        }
+    }
+    state.channelPrograms.forEach((programName, channel) => {
+        if (programName !== undefined) {
+            const programID = getUIConfig().syncedConfig.midiPrograms.indexOf(programName);
+            if (programID >= 0) {
+                ipcs.mixer.setProgramForChannel(channel, programID);
+            }
+        }
+    });
 }
 
 export class PlayerState {
@@ -65,12 +100,14 @@ export class PlayerState {
         this.voices = voices;
         const prefix = type === MediaFileType.midi ? 'MIDI file: ' : "SID file: ";
         ipcs.menu.setMediaName(prefix + title);
+        ipcs.misc.updateMediaInfo();
         ipcs.mixer.setChannels(this.voices);
         await forEachCoilAsync(async (coil) => {
             if (hasUD3Connection(coil)) {
                 await getUD3Connection(coil).setSynthByFiletype(type, false);
             }
         });
+        applyMixerState(getDefaultVolumes(title));
     }
 
     public async startPlaying(): Promise<void> {

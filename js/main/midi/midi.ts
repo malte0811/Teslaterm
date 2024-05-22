@@ -10,6 +10,7 @@ import * as scripting from "../scripting";
 import {maybeRedirectEvent} from "./MidiRedirector";
 
 export const kill_msg = Buffer.of(0xB0, 0x78, 0x00);
+export const VOLUME_CC_KEY = 7;
 
 // Initialize player and register event handler
 export const player = new MidiPlayer.Player(
@@ -75,7 +76,7 @@ export function sendVolume(coil: CoilID, voice: ChannelID, volumePercent: number
             // Controller change command
             0xb0 | (voice - 1),
             // Volume change
-            7,
+            VOLUME_CC_KEY,
             // Actual volume (0-127)
             volumePercent * 127 / 100,
         ],

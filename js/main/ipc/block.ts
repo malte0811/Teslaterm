@@ -360,7 +360,7 @@ function sendBlocks(programs: Program[], connection: UD3Connection, newFormat: b
             }
         }
     }
-    sendNullBlock(connection, newFormat, maxID);
+    sendNullBlock(connection, newFormat, maxID + 1);
     programs.forEach((program, id) => {
         sendProgramHeader(id, program, connection, newFormat);
         program.maps.forEach((map) => sendMapEntry(map, connection, newFormat));

@@ -13,7 +13,7 @@ import {
     UD3State,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
-import {UIConfig} from "../../common/UIConfig";
+import {SyncedUIConfig} from "../../common/UIConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
@@ -41,7 +41,7 @@ export interface MainScreenProps {
     returnToConnect: () => any;
     coils: CoilID[];
     multicoil: boolean;
-    config: UIConfig;
+    config: SyncedUIConfig;
 }
 
 // TODO this is a hack. I'm not 100% sure why, but Terminal does not like open/dispose cycles
