@@ -35,8 +35,6 @@ export function stopMidiOutput() {
 async function processMidiFromPlayer(event: MidiPlayer.Event) {
     if (await playMidiEvent(event)) {
         media_state.progress = 100 - player.getSongPercentRemaining();
-    } else if (!forEachCoil(hasUD3Connection).includes(true)) {
-        stopMidiFile();
     }
     ipcs.misc.updateMediaInfo();
 }
@@ -51,12 +49,12 @@ const expectedByteCounts = {
     0xE: 3,
 };
 
-function getVarIntLength(byteArray, base) {
-    let currentByte = byteArray[base];
+function getVarIntLength(byteArray: number[], startByte: number) {
+    let currentByte = byteArray[startByte];
     let byteCount = 1;
 
     while (currentByte >= 128) {
-        currentByte = byteArray[base + byteCount];
+        currentByte = byteArray[startByte + byteCount];
         byteCount++;
     }
 
@@ -83,22 +81,33 @@ export function sendVolume(coil: CoilID, voice: ChannelID, volumePercent: number
     );
 }
 
+const lastStatusByTrack = new Map<number, number>();
+
 export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     received_event = true;
-    if (await maybeRedirectEvent(event)) {
-        return true;
-    }
+
     const trackObj = player.tracks[event.track - 1];
     // tslint:disable-next-line:no-string-literal
     const track: number[] = trackObj["data"];
     const startIndex = event.byteIndex + getVarIntLength(track, event.byteIndex);
-    const data: number[] = [track[startIndex]];
+    const firstByte = track[startIndex];
+    let argsStartIndex = startIndex;
+    if (firstByte >= 0x80) {
+        // If the first byte is less than 0x80, the MIDI file is using the "running status" feature where the first byte
+        // of a message can be skipped if it is the same as in the previous message.
+        lastStatusByTrack.set(event.track, firstByte);
+        ++argsStartIndex;
+    }
+    if (await maybeRedirectEvent(event)) {
+        return true;
+    }
+    const data: number[] = [lastStatusByTrack.get(event.track)];
     const len = expectedByteCounts[data[0] >> 4];
     if (!len) {
         return true;
     }
-    for (let i = 1; i < len; ++i) {
-        data.push(track[startIndex + i]);
+    for (let i = 0; i < len - 1; ++i) {
+        data.push(track[argsStartIndex + i]);
     }
     return playMidiData(data);
 }

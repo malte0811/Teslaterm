@@ -26,6 +26,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setMIDIProgramsByChannel: makeKey<Map<ChannelID, number>>('media-programs-by-channel'),
         setMediaChannels: makeKey<ChannelID[]>('media-channels'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
+        setSongList: makeKey<SongListData>('songlist'),
         setVolume: makeKey<[VolumeKey, VolumeUpdate]>('set-mixer-volume'),
     },
     connect: {
@@ -248,3 +249,9 @@ export interface ConnectionPreset {
 }
 
 export type ChannelID = number;
+
+export interface SongListData {
+    songs: string[];
+    current: number;
+}
+
