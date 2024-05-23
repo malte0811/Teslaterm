@@ -76,6 +76,7 @@ export class BehringerXTouch {
             localName: 'Teslaterm to XTouch',
             port: 5005,
         });
+        this.session.bundle = false;
         this.session.on('message', async (delta, data) => {
             const asPitchBend = decodePitchBend(data);
             if (asPitchBend) {

@@ -25,6 +25,8 @@ declare module 'rtpmidi' {
         getStreams(): Stream[];
 
         removeStream(stream: Stream): void;
+
+        bundle: boolean;
     }
 
     export interface Manager {
