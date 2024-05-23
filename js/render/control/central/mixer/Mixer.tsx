@@ -2,7 +2,7 @@ import React from "react";
 import {Button} from "react-bootstrap";
 import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
-import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../../../common/IPCConstantsToRenderer";
+import {ChannelID, IPC_CONSTANTS_TO_RENDERER, SongListData} from "../../../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../../../common/MediaTypes";
 import {TTConfig} from "../../../../common/TTConfig";
 import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap, VolumeUpdate} from "../../../../common/VolumeMap";
@@ -21,10 +21,11 @@ interface MixerState {
     volumes: VolumeMap;
     voiceProgram: Map<ChannelID, number>;
     channelNames: Map<ChannelID, string>;
-    currentLayer: MixerLayer;
+    currentLayer: MixerLayer | 'songList';
     channels: ChannelID[];
     availablePrograms: string[];
     programSettable: boolean;
+    songList?: SongListData;
 }
 
 export class Mixer extends TTComponent<MixerProps, MixerState> {
@@ -64,6 +65,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume,
             ([key, volume]) => this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)})),
         );
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.centralTab.setSongList, (songList) => this.setState({songList}));
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
             (state) => this.setState({programSettable: state.type === MediaFileType.midi}),
@@ -79,11 +81,13 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             );
         } else if (layer === 'voiceMaster') {
             sliders = this.makeChannelSliders(undefined);
+        } else if (layer === 'songList') {
+            sliders = this.makeSongListTab();
         } else {
             sliders = this.makeChannelSliders(layer);
         }
         return <div className={'tt-mixer'}>
-            <div className={'tt-mixer-border-box'}>
+            <div className={'tt-mixer-border-box'} style={{display: 'flex', flexDirection: 'row'}}>
                 {...sliders}
             </div>
             <div style={{flex: '1 0 auto'}}/>
@@ -97,10 +101,10 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 />
             </div>
             <div className={'tt-mixer-selector'}>
+                {this.state.songList && this.makeLayerButton('songList', 'Song List')}
                 {this.makeLayerButton('coilMaster', "By Coil")}
                 {this.makeLayerButton('voiceMaster', "By Channel")}
                 {...this.props.coils.map((coil) => this.makeLayerButton(coil.id, coil.name || 'Unknown'))}
-                {this.makeMediaCycleButtons()}
             </div>
         </div>;
     }
@@ -130,6 +134,24 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         });
     }
 
+    private makeSongListTab() {
+        const songlistData = this.state.songList;
+        const songs: React.JSX.Element[] = [];
+        songlistData.songs.forEach((song, i) => {
+            const props: React.CSSProperties = i !== songlistData.current ?
+                {padding: '1px'} :
+                {borderStyle: 'solid', borderWidth: '1px'};
+            songs.push(<div style={{
+                width: '100%',
+                ...props,
+            }}>{song}</div>);
+        });
+        return [
+            <div style={{marginRight: '10px'}}>{...songs}</div>,
+            <div>{this.makeMediaCycleButtons()}</div>,
+        ];
+    }
+
     private makeMixer(key: VolumeKey, title: string, program?: InstrumentChoice) {
         const state = this.state.volumes.getVolumeSetting(key);
         return <MixerColumn
@@ -142,7 +164,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         />;
     }
 
-    private makeLayerButton(layer: MixerLayer, text: string) {
+    private makeLayerButton(layer: MixerLayer | 'songList', text: string) {
         return <Button
             onClick={() => {
                 this.setState({currentLayer: layer});
@@ -154,18 +176,14 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
     }
 
     private makeMediaCycleButtons() {
-        if (this.props.ttConfig.mainMediaPath !== '') {
-            return <>
-                <Button onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: true})}>
-                    Next
-                </Button>
-                <Button
-                    onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: false})}>
-                    Prev
-                </Button>
-            </>;
-        } else {
-            return <></>;
-        }
+        return <>
+            <Button onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: true})}>
+                Next
+            </Button>
+            <Button
+                onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: false})}>
+                Prev
+            </Button>
+        </>;
     }
 }

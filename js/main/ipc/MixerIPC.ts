@@ -2,7 +2,7 @@ import fs from "fs";
 import * as path from "node:path";
 import {CoilID} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ChannelID, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {ChannelID, IPC_CONSTANTS_TO_RENDERER, SongListData} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
 import {MixerLayer, NUM_SPECIFIC_FADERS, VolumeKey, VolumeMap, VolumeUpdate} from "../../common/VolumeMap";
 import {forEachCoil, getCoilCommands, getPhysicalMixer, numCoils} from "../connection/connection";
@@ -21,8 +21,7 @@ export class MixerIPC {
     private readonly processIPC: MainIPC;
     private readonly changedCoilMasters = new Set<CoilID>();
     private readonly changedSpecificVolumes = new Map<ChannelID, Set<CoilID>>();
-    private readonly availableFiles: string[];
-    private fileIndex: number = 0;
+    private readonly songlist?: SongListData;
 
     constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
@@ -47,9 +46,10 @@ export class MixerIPC {
             },
         );
         if (config.mainMediaPath !== '') {
-            this.availableFiles = fs.readdirSync(config.mainMediaPath, {withFileTypes: true})
+            const files = fs.readdirSync(config.mainMediaPath, {withFileTypes: true})
                 .filter((entry) => entry.isFile())
                 .map((entry) => entry.name);
+            this.songlist = {songs: files, current: 0};
             processIPC.on(
                 IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, (choice) => this.cycleMediaFile(choice.next),
             );
@@ -90,6 +90,9 @@ export class MixerIPC {
         this.processIPC.send(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms, getUIConfig().syncedConfig.midiPrograms,
         );
+        if (this.songlist) {
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setSongList, this.songlist);
+        }
     }
 
     public sendFullState() {
@@ -139,12 +142,10 @@ export class MixerIPC {
     }
 
     public cycleMediaFile(forward: boolean) {
-        if (forward) {
-            this.fileIndex = (this.fileIndex + 1) % this.availableFiles.length;
-        } else {
-            this.fileIndex = (this.fileIndex + this.availableFiles.length - 1) % this.availableFiles.length;
-        }
+        const nonWrapped = this.songlist.current + (forward ? 1 : -1);
+        this.songlist.current = (nonWrapped + this.songlist.songs.length) % this.songlist.songs.length;
         this.loadSelectedFile();
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setSongList, this.songlist);
     }
 
     public updatePhysicalMixer() {
@@ -171,8 +172,8 @@ export class MixerIPC {
     }
 
     private loadSelectedFile() {
-        if (this.availableFiles) {
-            const fileName = this.availableFiles[this.fileIndex];
+        if (this.songlist) {
+            const fileName = this.songlist.songs[this.songlist.current];
             const filePath = path.join(config.mainMediaPath, fileName);
             const data = fs.readFileSync(filePath);
             loadMediaFile({contents: data, name: fileName})
