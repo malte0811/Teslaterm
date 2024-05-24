@@ -94,7 +94,7 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
 function getFileData() {
     let object: Partial<FullUIConfig> = (() => {
         try {
-            const json = convertArrayBufferToString(fs.readFileSync(FILENAME));
+            const json = fs.readFileSync(FILENAME, {encoding: 'utf-8'});
             return JSON.parse(json);
         } catch (x) {
             console.warn("Failed to read UI config:", x);
@@ -121,7 +121,7 @@ export function getUIConfig() {
 }
 
 function saveConfig() {
-    fs.writeFileSync(FILENAME, JSON.stringify(getUIConfig()));
+    fs.writeFileSync(FILENAME, JSON.stringify(getUIConfig(), undefined, 2));
 }
 
 export function setUIConfig(newConfig: Partial<SyncedUIConfig>) {
