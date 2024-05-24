@@ -49,7 +49,7 @@ const expectedByteCounts = {
     0xE: 3,
 };
 
-function getVarIntLength(byteArray: number[], startByte: number) {
+function getVarIntLength(byteArray: Uint8Array, startByte: number) {
     let currentByte = byteArray[startByte];
     let byteCount = 1;
 
@@ -88,7 +88,7 @@ export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
 
     const trackObj = player.tracks[event.track - 1];
     // tslint:disable-next-line:no-string-literal
-    const track: number[] = trackObj["data"];
+    const track: Uint8Array = trackObj["data"];
     const startIndex = event.byteIndex + getVarIntLength(track, event.byteIndex);
     const firstByte = track[startIndex];
     let argsStartIndex = startIndex;
@@ -98,9 +98,6 @@ export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
         lastStatusByTrack.set(event.track, firstByte);
         ++argsStartIndex;
     }
-    if (await maybeRedirectEvent(event)) {
-        return true;
-    }
     const data: number[] = [lastStatusByTrack.get(event.track)];
     const len = expectedByteCounts[data[0] >> 4];
     if (!len) {
@@ -109,7 +106,11 @@ export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     for (let i = 0; i < len - 1; ++i) {
         data.push(track[argsStartIndex + i]);
     }
-    return playMidiData(data);
+    if (await maybeRedirectEvent(event)) {
+        return true;
+    } else {
+        return playMidiData(data);
+    }
 }
 
 async function playMidiDataOn(coil: CoilID, data: number[] | Uint8Array) {
