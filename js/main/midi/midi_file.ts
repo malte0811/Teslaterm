@@ -48,7 +48,7 @@ function warnAndCleanMultivalues<K, T>(map: Map<K, T[]>, message: (key: K, count
 }
 
 export async function loadMidiFile(file: TransmittedFile) {
-    player.tempo = 120;
+    (player as any).defaultTempo = 120;
     player.loadArrayBuffer(file.contents);
     const uniqueChannels: number[] = [];
     const programsByChannel = new Map<ChannelID, number[]>();
