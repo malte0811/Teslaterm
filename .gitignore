@@ -8,3 +8,4 @@ dist/**
 config.ini
 tt-ui-config.json
 Teslaterm.wiki/**
+tsconfig.tsbuildinfo
