@@ -122,8 +122,6 @@ export class MixerIPC {
     public updateVolume(key: VolumeKey, update: VolumeUpdate, updateDefault: boolean) {
         this.volumes = this.volumes.with(key, update);
         this.markForUpdate(key);
-        this.updatePhysicalMixer();
-        this.syncFaderStatesToRenderer();
         if (updateDefault) {
             updateDefaultVolumes(media_state.title, key, update);
         }
@@ -193,6 +191,10 @@ export class MixerIPC {
     }
 
     private processVolumeUpdates() {
+        if (this.changedCoilMasters.size + this.changedSID.size + this.changedSpecificVolumes.size > 0) {
+            this.updatePhysicalMixer();
+            this.syncFaderStatesToRenderer();
+        }
         const promises: Array<Promise<any>> = [];
         for (const coil of this.changedCoilMasters) {
             const coilVolume = this.volumes.getCoilMasterFraction(coil) * UD3_MAX_VOLUME;
