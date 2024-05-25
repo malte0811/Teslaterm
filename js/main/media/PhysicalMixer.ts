@@ -153,6 +153,12 @@ export class BehringerXTouch {
             }
             this.setButton(FIRST_MUTE_NOTE + i, value.muted);
         });
+
+        const pitch = percentToFader(allFaders.masterVolumePercent);
+        if (allFaders.masterVolumePercent !== this.lastFaderState[8]) {
+            this.session.sendMessage(0, buildPitchBendMessage(8, pitch));
+            this.lastFaderState[8] = allFaders.masterVolumePercent;
+        }
     }
 
     public set7SegmentText(startDigit: number, value: string) {
@@ -181,72 +187,6 @@ export class BehringerXTouch {
 
             num ++;
         }
-    }
-
-    public setDisplay(id: number, topString: string, bottomString: string, backgroundColor: number) {
-        this.displayColors[id] = backgroundColor;
-
-        this.updateDisplayColors();
-
-        // set top display line
-        this.writeStringToLCD(id, true, topString);
-        this.writeStringToLCD(id, false, bottomString);
-    }
-
-    public updateDisplayColors() {
-        // sysex cmd 72: set all display colors?
-        let midiString = 'F00000661472'; // sysex header + devicecode (14 for xTouch) + setLCD command (12)
-
-        // generate display color commands
-        for (let i = 0; i < 8; i++) {
-            midiString += ('00' + this.displayColors[i].toString(16)).slice(-2);
-        }
-
-        // add sysex terminator
-        midiString += 'F7';
-
-        this.sendMidicommandFromHexString(midiString);
-
-        // send dummy noteoff... no idea why we'd need to do that though
-        this.sendMidicommandFromHexString('800000');
-    }
-
-    private writeStringToLCD(id: number, topNBottom: boolean, value: string) {
-        // generate a long string with the sysex command
-        let midiString = 'F00000661412'; // sysex header + devicecode (14 for xTouch) + setLCD command (12)
-
-        // set offset. each display has 7 chars, with a total of 56 on the top row
-        const offset: number = id * 7 + (topNBottom ? 0 : 56);
-        midiString += ('00' + offset.toString(16)).slice(-2);   // generate a single zero-padded hex value
-
-        // copy text
-        let lengthLimited = value.length;
-        if (lengthLimited + id > 56) { lengthLimited = 56 - id; }
-        for (let i = 0; i < lengthLimited; i++) {
-            midiString += ('00' + value.charCodeAt(i).toString(16)).slice(-2);
-        }
-
-        // add sysex terminator
-        midiString += 'F7';
-
-        // and finally send the command
-        this.sendMidicommandFromHexString(midiString);
-
-        // send dummy noteoff... no idea why we'd need to do that though
-        this.sendMidicommandFromHexString('800000');
-    }
-
-    private sendMidicommandFromHexString(cmd: string) {
-        const tokens = cmd.match(/[0-9a-z]{2}/gi);
-        const midiCommand = tokens.map(t => parseInt(t, 16));
-/*
-        let hex = '';
-        for (let i = 0; i < midiCommand.length ; i++) {
-            hex += ' ' + midiCommand[i].toString(16);
-        }
-        console.log("send message: \"" + hex + "\"");
-*/
-        this.session.sendMessage(0, midiCommand);
     }
 
     private set7SegmentValue(digit: number, value: string, dotOn: boolean) {

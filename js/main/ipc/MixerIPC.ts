@@ -15,7 +15,7 @@ import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConf
 import {MainIPC} from "./IPCProvider";
 import {BehringerXTouch} from "../media/PhysicalMixer";
 
-const UD3_MAX_VOLUME = 1 << 15 - 1;
+const UD3_MAX_VOLUME = (1 << 15) - 1;
 
 export class MixerIPC {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
@@ -114,10 +114,19 @@ export class MixerIPC {
     }
 
     public setVolumeFromPhysical(fader: number, update: VolumeUpdate) {
-        const key = this.getFaderStates().specificFaders[fader]?.key;
-        if (key) {
-            this.updateVolume(key, update, true);
+        // are we updating the master?
+        if (fader === 8) {
+            const key: VolumeKey = {coil: undefined, channel: undefined};
+            if (key) {
+                this.updateVolume(key, update, false);
+            }
+        } else {
+            const key = this.getFaderStates().specificFaders[fader]?.key;
+            if (key) {
+                this.updateVolume(key, update, true);
+            }
         }
+
     }
 
     public updateVolume(key: VolumeKey, update: VolumeUpdate, updateDefault: boolean) {
@@ -150,10 +159,9 @@ export class MixerIPC {
     }
 
     public updatePhysicalMixer() {
-        const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
         const mixer = getPhysicalMixer();
         if (mixer !== undefined) {
-            mixer.movePhysicalSliders(faders);
+            mixer.movePhysicalSliders(this.getFaderStates());
 
             switch (this.currentLayer) {
                 case 'voiceMaster':
@@ -166,17 +174,6 @@ export class MixerIPC {
                     mixer.set7SegmentText(0, 'C' + this.currentLayer);
                     break;
             }
-
-            mixer.setDisplay(0, 'test123', 'test345', 5);
-            mixer.setDisplay(1, 'test11251257845', 'test2', 5);
-            mixer.setDisplay(2, 'test1', 'test2', 4);
-            mixer.setDisplay(3, 'test1', 'test2', 3);
-
-
-            mixer.setDisplay(4, 'test1', 'test2', 6);
-            mixer.setDisplay(5, 'test1', 'test2', 3);
-            mixer.setDisplay(6, 'test1', 'test2', 1);
-            mixer.setDisplay(7, 'test1', 'test2', 5);
         }
     }
 
