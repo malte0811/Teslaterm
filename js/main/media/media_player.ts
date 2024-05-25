@@ -23,10 +23,10 @@ export function isSID(type: MediaFileType): boolean {
 }
 
 function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
-    ipcs.mixer.updateVolume({coil}, state.masterSetting);
+    ipcs.mixer.updateVolume({coil}, state.masterSetting, false);
     state.channelSettings.forEach((settings, channel) => {
         if (settings !== undefined) {
-            ipcs.mixer.updateVolume({coil, channel}, settings);
+            ipcs.mixer.updateVolume({coil, channel}, settings, false);
         }
     });
 }

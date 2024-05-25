@@ -50,11 +50,6 @@ export class VolumeMap {
         this.channelByFader = channelByFader || [0, 1, 2];
     }
 
-    public getIndividualVolume(key: VolumeKey) {
-        const setting = this.getVolumeSetting(key);
-        return setting.muted ? 0 : setting.volumePercent;
-    }
-
     public getCoilMasterFraction(coil: CoilID) {
         return this.getIndividualVolume({coil}) / 100 * this.getIndividualVolume({}) / 100;
     }
@@ -110,6 +105,22 @@ export class VolumeMap {
         return new VolumeMap(masterVolume, newCoilVolume, newVoiceVolume, newSpecificVolume, this.channelByFader);
     }
 
+    public getAllVolumeKeys() {
+        const keys: VolumeKey[] = [{}];
+        for (const coil of this.coilVolume.keys()) {
+            keys.push({coil});
+        }
+        for (const channel of this.voiceVolume.keys()) {
+            keys.push({channel});
+        }
+        for (const [coil, coilMap] of this.specificVolumes.entries()) {
+            for (const channel of coilMap.keys()) {
+                keys.push({channel, coil});
+            }
+        }
+        return keys;
+    }
+
     public getVolumeSetting(key: VolumeKey) {
         if (key.channel !== undefined && key.coil !== undefined) {
             return this.specificVolumes.get(key.coil)?.get(key.channel) || DEFAULT_VOLUME;
@@ -120,5 +131,14 @@ export class VolumeMap {
         } else {
             return {muted: false, volumePercent: this.masterVolume};
         }
+    }
+
+    public  withoutChannelSpecifics() {
+        return new VolumeMap(this.masterVolume, this.coilVolume);
+    }
+
+    private getIndividualVolume(key: VolumeKey) {
+        const setting = this.getVolumeSetting(key);
+        return setting.muted ? 0 : setting.volumePercent;
     }
 }

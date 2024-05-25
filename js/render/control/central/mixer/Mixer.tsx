@@ -95,7 +95,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
                 <MixerColumn
                     title={'Master'}
                     setValue={(val) => this.setVolume({}, {volumePercent: val})}
-                    value={this.state.volumes.getIndividualVolume({})}
+                    value={this.state.volumes.getVolumeSetting({}).volumePercent}
                     mute={MuteState.unavailable}
                     setMute={() => {}}
                 />

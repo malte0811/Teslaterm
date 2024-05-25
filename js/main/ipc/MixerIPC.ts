@@ -36,13 +36,13 @@ export class MixerIPC {
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.centralTab.setVolume,
             async ([key, volume]) => {
-                this.updateVolume(key, volume);
+                this.updateVolume(key, volume, true);
             },
         );
         processIPC.onAsync(
             IPC_CONSTANTS_TO_MAIN.centralTab.setVolume,
             async ([key, volume]) => {
-                this.updateVolume(key, volume);
+                this.updateVolume(key, volume, true);
             },
         );
         if (config.mainMediaPath !== '') {
@@ -115,16 +115,18 @@ export class MixerIPC {
             }
         })();
         if (key) {
-            this.updateVolume(key, update);
+            this.updateVolume(key, update, true);
         }
     }
 
-    public updateVolume(key: VolumeKey, update: VolumeUpdate) {
+    public updateVolume(key: VolumeKey, update: VolumeUpdate, updateDefault: boolean) {
         this.volumes = this.volumes.with(key, update);
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, update]);
         this.markForUpdate(key);
         this.updatePhysicalMixer();
-        updateDefaultVolumes(media_state.title, key, update);
+        if (updateDefault) {
+            updateDefaultVolumes(media_state.title, key, update);
+        }
     }
 
     public getVolumeMultiplier(coil: CoilID, channel: ChannelID) {
@@ -151,6 +153,19 @@ export class MixerIPC {
     public updatePhysicalMixer() {
         const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
         getPhysicalMixer()?.movePhysicalSliders(faders);
+    }
+
+    public resetBeforeSongLoad() {
+        this.programByVoice.clear();
+        this.nameByVoice.clear();
+        const allVolumeKeys = this.volumes.getAllVolumeKeys();
+        this.volumes = this.volumes.withoutChannelSpecifics();
+        this.sendFullState();
+        for (const key of allVolumeKeys) {
+            const volume = this.volumes.getVolumeSetting(key);
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume, [key, volume]);
+        }
+        this.updatePhysicalMixer();
     }
 
     private markForUpdate(changedKey: VolumeKey) {
