@@ -155,6 +155,7 @@ export class MixerIPC {
     public resetBeforeSongLoad() {
         this.programByVoice.clear();
         this.nameByVoice.clear();
+        this.volumes.getNondefaultChannelKeys().forEach((key) => this.markForUpdate(key));
         this.volumes = this.volumes.withoutChannelSpecifics();
         this.sendFullState();
         this.updatePhysicalMixer();

@@ -137,6 +137,25 @@ export class VolumeMap {
         return new VolumeMap(this.masterVolume, this.coilVolume, this.sidExtraVolumes);
     }
 
+    public getNondefaultChannelKeys() {
+        const keys: VolumeKey[] = [];
+        const addIfChanged = (key: VolumeKey) => {
+            const volume = this.getVolumeSetting(key);
+            if (volume.muted !== DEFAULT_VOLUME.muted || volume.volumePercent !== DEFAULT_VOLUME.volumePercent) {
+                keys.push(key);
+            }
+        };
+        for (const channel of this.voiceVolume.keys()) {
+            addIfChanged({channel});
+        }
+        for (const [coil, channels] of this.specificVolumes.entries()) {
+            for (const channel of this.voiceVolume.keys()) {
+                addIfChanged({coil, channel});
+            }
+        }
+        return keys;
+    }
+
     private getIndividualVolume(key: VolumeKey) {
         const setting = this.getVolumeSetting(key);
         return setting.muted ? 0 : setting.volumePercent;
