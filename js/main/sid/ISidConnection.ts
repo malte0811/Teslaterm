@@ -2,7 +2,9 @@ import {CoilID} from "../../common/constants";
 import {getOptionalUD3Connection} from "../connection/connection";
 
 export enum SidCommand {
-    setVolume,
+    setVolume = 0,
+    noiseVolume = 1,
+    hpvEnable = 2,
 }
 
 export interface ISidConnection {

@@ -63,7 +63,7 @@
     white-space: nowrap;
 }
 
-.tt-vertical-slider {
+.tt-vertical-slider-disabled, .tt-vertical-slider {
     writing-mode: vertical-rl;
     -webkit-appearance: none;
     width: 10px;
@@ -73,12 +73,19 @@
     border-radius: 5px;
 }
 
-.tt-vertical-slider::-webkit-slider-thumb {
+.tt-vertical-slider-disabled::-webkit-slider-thumb, .tt-vertical-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 30px;
     height: 20px;
     border-radius: 20%;
+}
+
+.tt-vertical-slider::-webkit-slider-thumb {
     background-color: #0d6efd;
+}
+
+.tt-vertical-slider-disabled::-webkit-slider-thumb {
+    background-color: #a0a0a0;
 }
 
 .tt-dot {

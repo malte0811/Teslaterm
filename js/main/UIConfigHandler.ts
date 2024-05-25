@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import {UD3ConnectionType} from "../common/constants";
 import {ChannelID, ConnectionPreset} from "../common/IPCConstantsToRenderer";
+import {VolumeKey, VolumeUpdate} from "../common/MixerTypes";
 import {AdvancedOptions} from "../common/Options";
 import {FullConnectionOptions, UD3ConnectionOptions} from "../common/SingleConnectionOptions";
 import {CoilMixerState, FullUIConfig, SavedMixerState, SyncedUIConfig} from "../common/UIConfig";
-import {VolumeKey, VolumeUpdate} from "../common/VolumeMap";
 import {getOptionalUD3Connection} from "./connection/connection";
 import {
     DEFAULT_SERIAL_PRODUCT,
@@ -146,6 +146,7 @@ export function getDefaultVolumes(mediaFile: string): SavedMixerState {
         channelPrograms: [],
         coilSettings: {},
         masterSettings: DEFAULT_COIL_MIXER_STATE,
+        sidSpecialSettings: {},
     };
 }
 
@@ -181,7 +182,9 @@ export function updateDefaultVolumes(mediaFile: string, key: VolumeKey, update: 
         return;
     }
     const newDefaults: SavedMixerState = {...getDefaultVolumes(mediaFile)};
-    if (key.coil === undefined) {
+    if (key === 'sidSpecial') {
+        newDefaults.sidSpecialSettings = {...newDefaults.sidSpecialSettings, ...update};
+    } else if (key.coil === undefined) {
         newDefaults.masterSettings = updateVolume(key.channel, newDefaults.masterSettings, update);
     } else {
         const coilName = getOptionalUD3Connection(key.coil)?.getUDName();

@@ -1,11 +1,16 @@
 import React from "react";
 import {Button} from "react-bootstrap";
-import {CoilID} from "../../../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../../common/IPCConstantsToMain";
-import {ChannelID, IPC_CONSTANTS_TO_RENDERER, SongListData} from "../../../../common/IPCConstantsToRenderer";
-import {MediaFileType} from "../../../../common/MediaTypes";
+import {FaderID, IPC_CONSTANTS_TO_RENDERER, SongListData} from "../../../../common/IPCConstantsToRenderer";
+import {
+    AllFaders,
+    DEFAULT_MIXER_LAYER,
+    DEFAULT_VOLUME,
+    FaderData,
+    MixerLayer,
+    VolumeUpdate,
+} from "../../../../common/MixerTypes";
 import {TTConfig} from "../../../../common/TTConfig";
-import {DEFAULT_MIXER_LAYER, MixerLayer, VolumeKey, VolumeMap, VolumeUpdate} from "../../../../common/VolumeMap";
 import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
@@ -18,13 +23,9 @@ export interface MixerProps {
 }
 
 interface MixerState {
-    volumes: VolumeMap;
-    voiceProgram: Map<ChannelID, number>;
-    channelNames: Map<ChannelID, string>;
+    faders: AllFaders;
     currentLayer: MixerLayer | 'songList';
-    channels: ChannelID[];
     availablePrograms: string[];
-    programSettable: boolean;
     songList?: SongListData;
 }
 
@@ -33,72 +34,41 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         super(props);
         this.state = {
             availablePrograms: [],
-            channelNames: new Map<ChannelID, string>(),
-            channels: [],
             currentLayer: DEFAULT_MIXER_LAYER,
-            programSettable: true,
-            voiceProgram: new Map<CoilID, number>(),
-            volumes: new VolumeMap(),
+            faders: {
+                masterVolumePercent: DEFAULT_VOLUME.volumePercent,
+                specificFaders: [],
+            },
         };
     }
 
     public componentDidMount() {
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setMediaChannels,
-            (voices) => this.setState({channels: voices}),
-        );
-        this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms,
             (availablePrograms) => this.setState({availablePrograms}),
         );
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIProgramsByChannel,
-            (voiceProgram) => this.setState({voiceProgram}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setMIDIChannelNames, (names) => this.setState({channelNames: names}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer, (layer) => this.setState({currentLayer: layer}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setVolume,
-            ([key, volume]) => this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)})),
+            IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer,
+            ([layer, faders]) => this.setState({currentLayer: layer, faders}),
         );
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.centralTab.setSongList, (songList) => this.setState({songList}));
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
-            (state) => this.setState({programSettable: state.type === MediaFileType.midi}),
-        );
     }
 
     public render() {
-        let sliders: React.JSX.Element[];
-        const layer = this.state.currentLayer;
-        if (layer === 'coilMaster') {
-            sliders = this.props.coils.map(
-                state => this.makeMixer({coil: state.id}, state.name || 'Unknown'),
-            );
-        } else if (layer === 'voiceMaster') {
-            sliders = this.makeChannelSliders(undefined);
-        } else if (layer === 'songList') {
-            sliders = this.makeSongListTab();
-        } else {
-            sliders = this.makeChannelSliders(layer);
-        }
+        const elements =  this.state.currentLayer === 'songList' ?
+            this.makeSongListTab() :
+            this.state.faders.specificFaders.map((state, i) => this.makeFader(state, i));
         return <div className={'tt-mixer'}>
             <div className={'tt-mixer-border-box'} style={{display: 'flex', flexDirection: 'row'}}>
-                {...sliders}
+                {...elements}
             </div>
             <div style={{flex: '1 0 auto'}}/>
             <div className={'tt-mixer-border-box'}>
-                <MixerColumn
-                    title={'Master'}
-                    setValue={(val) => this.setVolume({}, {volumePercent: val})}
-                    value={this.state.volumes.getVolumeSetting({}).volumePercent}
-                    mute={MuteState.unavailable}
-                    setMute={() => {}}
-                />
+                {this.makeFader({
+                    key: {},
+                    title: 'Master',
+                    volume: {volumePercent: this.state.faders.masterVolumePercent, muted: false},
+                }, -1, false)}
             </div>
             <div className={'tt-mixer-selector'}>
                 {this.state.songList && this.makeLayerButton('songList', 'Song List')}
@@ -109,29 +79,40 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         </div>;
     }
 
-    private setVolume(key: VolumeKey, volume: VolumeUpdate) {
-        this.setState((oldState) => ({volumes: oldState.volumes.with(key, volume)}));
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, [key, volume]);
+    private setVolume(fader: FaderID, volume: VolumeUpdate) {
+        if (fader >= 0) {
+            this.setFaderState(fader, (oldState) => ({volume: {...oldState.volume, ...volume}}));
+            processIPC.send(
+                IPC_CONSTANTS_TO_MAIN.centralTab.setVolume,
+                [this.state.faders.specificFaders[fader].key, volume],
+            );
+        } else if (volume.volumePercent !== undefined) {
+            this.setState((old) => ({
+                faders: {
+                    masterVolumePercent: volume.volumePercent,
+                    specificFaders: old.faders.specificFaders,
+                },
+            }));
+            processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setVolume, [{}, volume]);
+        }
     }
 
-    private setProgram(voice: ChannelID, program: number) {
+    private setFaderState(fader: FaderID, update: (old: Readonly<FaderData>) => Partial<FaderData>) {
         this.setState((oldState) => {
-            const newPrograms = new Map<ChannelID, number>(oldState.voiceProgram);
-            newPrograms.set(voice, program);
-            return {voiceProgram: newPrograms};
+            const newFaders = [...oldState.faders.specificFaders];
+            newFaders[fader] = {...newFaders[fader], ...update(newFaders[fader])};
+            return {
+                faders: {
+                    masterVolumePercent: oldState.faders.masterVolumePercent,
+                    specificFaders: newFaders,
+                },
+            };
         });
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, [voice, program]);
     }
 
-    private makeChannelSliders(coil?: CoilID) {
-        return this.state.channels.map((i) => {
-            const program: InstrumentChoice = {
-                available: this.state.availablePrograms,
-                currentChoice: this.state.voiceProgram.get(i) || 0,
-                setValue: (val) => this.setProgram(i, val),
-            };
-            return this.makeMixer({channel: i, coil}, this.state.channelNames.get(i) || `Channel ${i}`, program);
-        });
+    private setProgram(fader: FaderID, program: number) {
+        this.setFaderState(fader, () => ({programID: program}));
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, [fader, program]);
     }
 
     private makeSongListTab() {
@@ -152,15 +133,31 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         ];
     }
 
-    private makeMixer(key: VolumeKey, title: string, program?: InstrumentChoice) {
-        const state = this.state.volumes.getVolumeSetting(key);
+    private makeFader(data: FaderData | undefined, id: FaderID, allowMute: boolean = true) {
+        if (!data) {
+            return <MixerColumn
+                title={'Unavailable'}
+                setValue={() => {}}
+                value={0}
+                mute={MuteState.audible}
+                setMute={() => {}}
+                disabled={true}
+            />;
+        }
+        const programChoice: InstrumentChoice = data.programID !== undefined && {
+            available: this.state.availablePrograms,
+            currentChoice: data.programID,
+            setValue: (val) => this.setProgram(id, val),
+        };
         return <MixerColumn
-            title={title}
-            setValue={(volume) => this.setVolume(key, {volumePercent: volume})}
-            value={state.volumePercent}
-            mute={state.muted ? MuteState.muted : MuteState.audible}
-            setMute={(state) => this.setVolume(key, {muted: state === MuteState.muted})}
-            program={this.state.programSettable && program}
+            title={data.title}
+            setValue={(volume) => this.setVolume(id, {volumePercent: volume})}
+            value={data.volume.volumePercent}
+            mute={allowMute ? (data.volume.muted ? MuteState.muted : MuteState.audible) : MuteState.unavailable}
+            setMute={(state) => this.setVolume(id, {muted: state === MuteState.muted})}
+            program={programChoice}
+            muteSuffix={data.muteSuffix}
+            disabled={false}
         />;
     }
 

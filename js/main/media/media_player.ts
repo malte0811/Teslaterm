@@ -32,6 +32,9 @@ function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
 }
 
 function applyMixerState(state: SavedMixerState) {
+    if (state.sidSpecialSettings) {
+        ipcs.mixer.updateVolume('sidSpecial', state.sidSpecialSettings, false);
+    }
     applyCoilMixerState(undefined, state.masterSettings);
     for (const [coilName, settings] of Object.entries(state.coilSettings)) {
         const coil = findCoilByName(coilName);
