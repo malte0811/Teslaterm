@@ -19,7 +19,7 @@ const UD3_MAX_VOLUME = 1 << 15 - 1;
 export class MixerIPC {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
     private nameByVoice: Map<ChannelID, string> = new Map<ChannelID, string>();
-    private volumes: VolumeMap = new VolumeMap();
+    private readonly volumes: VolumeMap = new VolumeMap();
     private currentLayer: MixerLayer = 'coilMaster';
     private readonly processIPC: MainIPC;
     private readonly changedCoilMasters = new Set<CoilID>();
@@ -69,7 +69,7 @@ export class MixerIPC {
     }
 
     public setChannels(channelIDs: number[]) {
-        this.volumes = this.volumes.withChannelMap(channelIDs);
+        this.volumes.setChannelMap(channelIDs);
     }
 
     public setProgramForChannel(channel: ChannelID, program: number) {
@@ -120,7 +120,7 @@ export class MixerIPC {
     }
 
     public updateVolume(key: VolumeKey, update: VolumeUpdate, updateDefault: boolean) {
-        this.volumes = this.volumes.with(key, update);
+        this.volumes.applyVolumeUpdate(key, update);
         this.markForUpdate(key);
         if (updateDefault) {
             updateDefaultVolumes(media_state.title, key, update);
@@ -156,7 +156,7 @@ export class MixerIPC {
         this.programByVoice.clear();
         this.nameByVoice.clear();
         this.volumes.getNondefaultChannelKeys().forEach((key) => this.markForUpdate(key));
-        this.volumes = this.volumes.withoutChannelSpecifics();
+        this.volumes.clearChannelSpecifics();
         this.sendFullState();
         this.updatePhysicalMixer();
     }

@@ -122,7 +122,6 @@ export function getUIConfig() {
             if (configDirty) {
                 fs.writeFile(FILENAME, JSON.stringify(getUIConfig(), undefined, 2), () => {});
                 configDirty = false;
-                console.log('saved');
             }
         }, 5000);
     }

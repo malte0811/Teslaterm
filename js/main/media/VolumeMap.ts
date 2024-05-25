@@ -15,39 +15,21 @@ import {media_state} from "./media_player";
 
 export const NUM_SPECIFIC_FADERS = 8;
 
-function updateVolume<K>(map: Map<K, VolumeSetting> | undefined, key: K, update: VolumeUpdate) {
-    const newMapping = new Map<K, VolumeSetting>(map);
-    newMapping.set(key, {...DEFAULT_VOLUME, ...map?.get(key), ...update});
-    return newMapping;
+function applyVolumeUpdate<K>(map: Map<K, VolumeSetting>, key: K, update: VolumeUpdate) {
+    map.set(key, {...DEFAULT_VOLUME, ...map?.get(key), ...update});
 }
 
 export class VolumeMap {
     // All volumes in percent (0-100)
-    private readonly masterVolume: number;
-    private readonly coilVolume: Map<CoilID, VolumeSetting>;
-    private readonly voiceVolume: Map<ChannelID, VolumeSetting>;
-    private readonly specificVolumes: Map<CoilID, Map<ChannelID, VolumeSetting>>;
-    private readonly channelByFader: number[];
+    private masterVolume: number = DEFAULT_VOLUME.volumePercent;
+    private readonly coilVolume = new Map<CoilID, VolumeSetting>();
+    private readonly voiceVolume = new Map<ChannelID, VolumeSetting>();
+    private readonly specificVolumes = new Map<CoilID, Map<ChannelID, VolumeSetting>>();
+    private channelByFader: number[] = [0, 1, 2];
     // A bit of a hack:
     // - Volume is the noise volume
     // - Mute only refers to hypervoice, so muted=>no HPV, unmuted=>HPV
-    private readonly sidExtraVolumes: VolumeSetting;
-
-    public constructor(
-        masterVolume?: number,
-        coilVolume?: Map<CoilID, VolumeSetting>,
-        sidExtraVolumes?: VolumeSetting,
-        voiceVolume?: Map<ChannelID, VolumeSetting>,
-        specificVolumes?: Map<CoilID, Map<ChannelID, VolumeSetting>>,
-        channelByFader?: number[],
-    ) {
-        this.masterVolume = masterVolume !== undefined ? masterVolume : DEFAULT_VOLUME.volumePercent;
-        this.coilVolume = coilVolume || new Map<CoilID, VolumeSetting>();
-        this.voiceVolume = voiceVolume || new Map<ChannelID, VolumeSetting>();
-        this.specificVolumes = specificVolumes || new Map<CoilID, Map<ChannelID, VolumeSetting>>();
-        this.channelByFader = channelByFader || [0, 1, 2];
-        this.sidExtraVolumes = sidExtraVolumes || DEFAULT_VOLUME;
-    }
+    private sidExtraVolumes: VolumeSetting = DEFAULT_VOLUME;
 
     public getCoilMasterFraction(coil: CoilID) {
         return this.getIndividualVolume({coil}) / 100 * this.getIndividualVolume({}) / 100;
@@ -57,15 +39,8 @@ export class VolumeMap {
         return this.getIndividualVolume({coil, channel}) / 100 * this.getIndividualVolume({channel}) / 100;
     }
 
-    public withChannelMap(channelByFader: number[]) {
-        return new VolumeMap(
-            this.masterVolume,
-            this.coilVolume,
-            this.sidExtraVolumes,
-            this.voiceVolume,
-            this.specificVolumes,
-            channelByFader,
-        );
+    public setChannelMap(channelByFader: number[]) {
+        this.channelByFader = [...channelByFader];
     }
 
     public getFaderStates(
@@ -97,26 +72,21 @@ export class VolumeMap {
         return this.channelByFader;
     }
 
-    public with(key: VolumeKey, update: VolumeUpdate) {
-        let newSIDSettings = this.sidExtraVolumes;
-        let newCoilVolume = this.coilVolume;
-        let newVoiceVolume = this.voiceVolume;
-        const newSpecificVolume = new Map<CoilID, Map<ChannelID, VolumeSetting>>(this.specificVolumes);
-        let masterVolume = this.masterVolume;
+    public applyVolumeUpdate(key: VolumeKey, update: VolumeUpdate) {
         if (key === 'sidSpecial') {
-            newSIDSettings = {...newSIDSettings, ...update};
+            this.sidExtraVolumes = {...this.sidExtraVolumes, ...update};
         } else if (key.channel !== undefined && key.coil !== undefined) {
-            newSpecificVolume.set(key.coil, updateVolume(newSpecificVolume.get(key.coil), key.channel, update));
+            if (!this.specificVolumes.has(key.coil)) {
+                this.specificVolumes.set(key.coil, new Map<ChannelID, VolumeSetting>());
+            }
+            applyVolumeUpdate(this.specificVolumes.get(key.coil), key.channel, update);
         } else if (key.channel !== undefined) {
-            newVoiceVolume = updateVolume(newVoiceVolume, key.channel, update);
+            applyVolumeUpdate(this.voiceVolume, key.channel, update);
         } else if (key.coil !== undefined) {
-            newCoilVolume = updateVolume(newCoilVolume, key.coil, update);
-        } else {
-            masterVolume = update.volumePercent === undefined ? masterVolume : update.volumePercent;
+            applyVolumeUpdate(this.coilVolume, key.coil, update);
+        } else if (update.volumePercent !== undefined) {
+            this.masterVolume = update.volumePercent;
         }
-        return new VolumeMap(
-            masterVolume, newCoilVolume, newSIDSettings, newVoiceVolume, newSpecificVolume, this.channelByFader,
-        );
     }
 
     public getVolumeSetting(key: VolumeKey): VolumeSetting {
@@ -133,8 +103,9 @@ export class VolumeMap {
         }
     }
 
-    public withoutChannelSpecifics() {
-        return new VolumeMap(this.masterVolume, this.coilVolume, this.sidExtraVolumes);
+    public clearChannelSpecifics() {
+        this.specificVolumes.clear();
+        this.voiceVolume.clear();
     }
 
     public getNondefaultChannelKeys() {
