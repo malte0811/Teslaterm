@@ -120,7 +120,7 @@ export class VolumeMap {
             addIfChanged({channel});
         }
         for (const [coil, channels] of this.specificVolumes.entries()) {
-            for (const channel of this.voiceVolume.keys()) {
+            for (const channel of channels.keys()) {
                 addIfChanged({coil, channel});
             }
         }
