@@ -161,6 +161,14 @@ export class MixerIPC {
         this.updatePhysicalMixer();
     }
 
+    public sendVolumesTo(coil: CoilID) {
+        for (const channel of this.volumes.getChannelMap()) {
+            this.markForUpdate({coil, channel});
+        }
+        this.markForUpdate({coil});
+        this.markForUpdate('sidSpecial');
+    }
+
     private markForUpdate(changedKey: VolumeKey) {
         const addAffectedCoils = (coils: Set<CoilID>) => {
             if (changedKey === 'sidSpecial' || changedKey.coil === undefined) {
