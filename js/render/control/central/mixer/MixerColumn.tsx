@@ -21,6 +21,8 @@ export interface MixerColumnProps {
     program?: InstrumentChoice;
     mute: MuteState;
     setMute: (state: MuteState) => any;
+    muteSuffix?: string;
+    disabled: boolean;
 }
 
 export class MixerColumn extends TTComponent<MixerColumnProps, {}> {
@@ -30,12 +32,13 @@ export class MixerColumn extends TTComponent<MixerColumnProps, {}> {
                 {this.renderMuteButton()}
 
                 <input
-                    className={'tt-vertical-slider'}
+                    className={ this.props.disabled ? 'tt-vertical-slider-disabled' : 'tt-vertical-slider'}
                     type={'range'}
                     min={0}
                     max={100}
                     value={this.props.value}
                     onChange={(e) => this.props.setValue(e.target.valueAsNumber)}
+                    disabled={this.props.disabled}
                 />
 
                 {this.props.title}
@@ -82,9 +85,15 @@ export class MixerColumn extends TTComponent<MixerColumnProps, {}> {
                 return <Button
                     onClick={() => this.props.setMute(MuteState.audible)}
                     variant={'danger'}
-                >Unmute</Button>;
+                    disabled={this.props.disabled}
+                >Unmute{this.props.muteSuffix || ''}</Button>;
             case MuteState.audible:
-                return <Button onClick={() => this.props.setMute(MuteState.muted)}>Mute</Button>;
+                return <Button
+                    onClick={() => this.props.setMute(MuteState.muted)}
+                    disabled={this.props.disabled}
+                >
+                    Mute{this.props.muteSuffix || ''}
+                </Button>;
         }
     }
 }

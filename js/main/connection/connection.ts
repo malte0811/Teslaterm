@@ -102,6 +102,7 @@ export async function startConf(coil: CoilID) {
     await getUD3Connection(coil).setSynthByFiletype(media_state.type, false);
     await commands.resetKill();
     await commands.startTelemetry();
+    ipcs.mixer.sendVolumesTo(coil);
 }
 
 export async function disconnectFrom(coil: CoilID) {

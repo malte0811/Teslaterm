@@ -82,6 +82,7 @@ export async function loadMidiFile(file: TransmittedFile) {
         nameByChannel.set(channel, nameByTrack.get(track) || `Channel ${channel}`);
     }
     uniqueChannels.sort((a, b) => a - b);
+    ipcs.mixer.resetBeforeSongLoad();
     ipcs.mixer.setProgramsByVoice(programByChannel);
     ipcs.mixer.setChannelNames(nameByChannel);
     uniqueChannels.forEach((channel) => {
@@ -89,7 +90,7 @@ export async function loadMidiFile(file: TransmittedFile) {
             ipcs.mixer.updateVolume({channel}, {
                 muted: false,
                 volumePercent: volumeByChannel.get(channel),
-            });
+            }, false);
         }
     });
     ipcs.misc.updateMediaInfo();

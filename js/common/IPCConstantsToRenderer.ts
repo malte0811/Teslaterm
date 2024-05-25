@@ -1,10 +1,10 @@
 import {CoilID, coilSuffix, UD3AlarmLevel} from "./constants";
 import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
 import {MediaFileType, PlayerActivity} from './MediaTypes';
+import {AllFaders, MixerLayer} from "./MixerTypes";
 import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {TTConfig} from "./TTConfig";
 import {SyncedUIConfig} from "./UIConfig";
-import {MixerLayer, VolumeKey, VolumeUpdate} from "./VolumeMap";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -22,12 +22,8 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
         setAvailableMIDIPrograms: makeKey<string[]>('midi-programs'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
-        setMIDIChannelNames: makeKey<Map<ChannelID, string>>('name-by-channel'),
-        setMIDIProgramsByChannel: makeKey<Map<ChannelID, number>>('media-programs-by-channel'),
-        setMediaChannels: makeKey<ChannelID[]>('media-channels'),
-        setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
+        setMixerLayer: makeKey<[MixerLayer, AllFaders]>('set-mixer-layer'),
         setSongList: makeKey<SongListData>('songlist'),
-        setVolume: makeKey<[VolumeKey, VolumeUpdate]>('set-mixer-volume'),
     },
     connect: {
         connectionError: makeKey<string>('connection-error'),
@@ -249,6 +245,8 @@ export interface ConnectionPreset {
 }
 
 export type ChannelID = number;
+
+export type FaderID = number;
 
 export interface SongListData {
     songs: string[];

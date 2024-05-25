@@ -60,6 +60,7 @@ async function stopPlayingSID() {
 export async function loadSidFile(file: TransmittedFile) {
     const extension = path.extname(file.name).substring(1).toLowerCase();
     const name = path.basename(file.name);
+    ipcs.mixer.resetBeforeSongLoad();
     if (extension === "dmp") {
         current_sid_source = new DumpSidSource(file.contents);
         await media_state.loadFile(file, MediaFileType.sid_dmp, name, [0, 1, 2], startPlayingSID, stopPlayingSID);
@@ -77,7 +78,6 @@ export async function loadSidFile(file: TransmittedFile) {
     } else {
         throw new Error("Unknown extension " + extension);
     }
-    ipcs.mixer.setChannelNames(new Map<ChannelID, string>());
 }
 
 export function update() {

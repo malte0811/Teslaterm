@@ -1,7 +1,7 @@
 import {ConnectionPreset} from "./IPCConstantsToRenderer";
+import {VolumeSetting} from "./MixerTypes";
 import {AdvancedOptions} from "./Options";
 import {FullConnectionOptions} from "./SingleConnectionOptions";
-import {VolumeSetting} from "./VolumeMap";
 
 export interface SyncedUIConfig {
     connectionPresets: ConnectionPreset[];
@@ -21,6 +21,7 @@ export interface CoilMixerState {
 export interface SavedMixerState {
     coilSettings: { [coilName: string]: CoilMixerState; };
     masterSettings: CoilMixerState;
+    sidSpecialSettings: Partial<VolumeSetting>;
     channelPrograms: string[];
 }
 

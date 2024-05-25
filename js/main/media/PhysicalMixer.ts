@@ -1,11 +1,12 @@
 import {forEach} from "react-bootstrap/ElementChildren";
 import {manager, Session} from "rtpmidi";
 import {PlayerActivity} from "../../common/MediaTypes";
+import {AllFaders, MixerLayer} from "../../common/MixerTypes";
 import {PhysicalMixerConfig} from "../../common/Options";
-import {DEFAULT_MIXER_LAYER, MixerLayer, NUM_SPECIFIC_FADERS, VolumeSetting} from "../../common/VolumeMap";
 import {getCoils} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "./media_player";
+import {NUM_SPECIFIC_FADERS} from "./VolumeMap";
 
 // MIDI standard would be -8192 to 8191, but this is easier for this application
 const FADER_MAX = 16383;
@@ -137,15 +138,21 @@ export class BehringerXTouch {
         media_state.removeUpdateCallback(this.mediaUpdateCallback);
     }
 
-    public movePhysicalSliders(values: Map<number, VolumeSetting>) {
-        for (const [fader, value] of values) {
-            if (value.volumePercent !== this.lastFaderState[fader]) {
-                const pitch = percentToFader(value.volumePercent);
-                this.session.sendMessage(0, buildPitchBendMessage(fader, pitch));
-                this.lastFaderState[fader] = value.volumePercent;
-            }
-            this.setButton(FIRST_MUTE_NOTE + fader, value.muted);
+    public movePhysicalSliders(allFaders: AllFaders) {
+        while (allFaders.specificFaders.length < NUM_SPECIFIC_FADERS) {
+            allFaders.specificFaders.push(undefined);
         }
+        allFaders.specificFaders.length = NUM_SPECIFIC_FADERS;
+        allFaders.specificFaders.forEach((state, i) => {
+            // TODO also mark disabled channels somewhere else?
+            const value = state ? state.volume : {muted: true, volumePercent: 0};
+            if (value.volumePercent !== this.lastFaderState[i]) {
+                const pitch = percentToFader(value.volumePercent);
+                this.session.sendMessage(0, buildPitchBendMessage(i, pitch));
+                this.lastFaderState[i] = value.volumePercent;
+            }
+            this.setButton(FIRST_MUTE_NOTE + i, value.muted);
+        });
     }
 
     public set7SegmentText(startDigit: number, value: string) {
