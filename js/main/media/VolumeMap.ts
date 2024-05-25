@@ -135,17 +135,23 @@ export class VolumeMap {
     private getFadersForCoil(
         coil: CoilID | undefined, channelNames: Map<ChannelID, string>, channelPrograms?: Map<ChannelID, number>,
     ) {
+        const isSID = media_state.type === MediaFileType.sid_dmp || media_state.type === MediaFileType.sid_emulated;
         const result: FaderData[] = [];
-        for (const channel of this.channelByFader) {
-            const key = {coil, channel};
-            result.push({
-                key,
-                programID: channelPrograms ? channelPrograms.get(channel) : undefined,
-                title: channelNames.get(channel) || `Channel ${result.length}`,
-                volume: this.getVolumeSetting(key),
-            });
+        const channelOrder = isSID ? [0, 1, 2] : [1, 2, 3, 4, 5, 6, 7, 10];
+        for (const channel of channelOrder) {
+            if (this.channelByFader.includes(channel)) {
+                const key = {coil, channel};
+                result.push({
+                    key,
+                    programID: channelPrograms ? channelPrograms.get(channel) : undefined,
+                    title: channelNames.get(channel) || `Channel ${result.length}`,
+                    volume: this.getVolumeSetting(key),
+                });
+            } else {
+                result.push(undefined);
+            }
         }
-        if (media_state.type === MediaFileType.sid_dmp || media_state.type === MediaFileType.sid_emulated) {
+        if (isSID) {
             while (result.length < NUM_SPECIFIC_FADERS - 1) {
                 result.push(undefined);
             }
