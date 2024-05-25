@@ -12,6 +12,7 @@ import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getActiveSIDConnection, SidCommand} from "../sid/ISidConnection";
 import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
+import {BehringerXTouch} from "../media/PhysicalMixer";
 
 export class MixerIPC {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
@@ -150,29 +151,32 @@ export class MixerIPC {
 
     public updatePhysicalMixer() {
         const faders = this.volumes.getFaderStates(this.currentLayer, numCoils());
-        getPhysicalMixer()?.movePhysicalSliders(faders);
+        const mixer = getPhysicalMixer();
+        if (mixer !== undefined) {
+            mixer.movePhysicalSliders(faders);
 
-        /*getPhysicalMixer()?.setDisplay(0, 'test123', 'test345', 5);
-        getPhysicalMixer()?.setDisplay(1, 'test11251257845', 'test2', 5);
-        getPhysicalMixer()?.setDisplay(2, 'test1', 'test2', 4);
-        getPhysicalMixer()?.setDisplay(3, 'test1', 'test2', 3);
+            switch (this.currentLayer) {
+                case 'voiceMaster':
+                    mixer.set7SegmentText(0, 'CH');
+                    break;
+                case 'coilMaster':
+                    mixer.set7SegmentText(0, 'GC');
+                    break;
+                default:
+                    mixer.set7SegmentText(0, 'C' + this.currentLayer);
+                    break;
+            }
+
+            mixer.setDisplay(0, 'test123', 'test345', 5);
+            mixer.setDisplay(1, 'test11251257845', 'test2', 5);
+            mixer.setDisplay(2, 'test1', 'test2', 4);
+            mixer.setDisplay(3, 'test1', 'test2', 3);
 
 
-        getPhysicalMixer()?.setDisplay(4, 'test1', 'test2', 6);
-        getPhysicalMixer()?.setDisplay(5, 'test1', 'test2', 3);
-        getPhysicalMixer()?.setDisplay(6, 'test1', 'test2', 1);
-        getPhysicalMixer()?.setDisplay(7, 'test1', 'test2', 5);*/
-
-        switch (this.currentLayer) {
-            case 'voiceMaster':
-                getPhysicalMixer()?.set7SegmentText(0, 'CH');
-                break;
-            case 'coilMaster':
-                getPhysicalMixer()?.set7SegmentText(0, 'GC');
-                break;
-            default:
-                getPhysicalMixer()?.set7SegmentText(0, 'C' + this.currentLayer);
-                break;
+            mixer.setDisplay(4, 'test1', 'test2', 6);
+            mixer.setDisplay(5, 'test1', 'test2', 3);
+            mixer.setDisplay(6, 'test1', 'test2', 1);
+            mixer.setDisplay(7, 'test1', 'test2', 5);
         }
     }
 
@@ -222,6 +226,7 @@ export class MixerIPC {
 
     private async sendVolume(coil: number, channel: number) {
         const volumeFraction = this.volumes.getCoilVoiceMultiplier(coil, channel);
+        console.log("updating at " + Date.now());
         if (media_state.type === MediaFileType.midi) {
             await sendVolume(coil, channel, volumeFraction * 100);
         } else {
