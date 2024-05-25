@@ -112,21 +112,26 @@ function getFileData() {
     return object as FullUIConfig;
 }
 
+let configDirty: boolean = false;
+
 // TODO check usages, probably stop syncing bits of this in addition to the full thing
 export function getUIConfig() {
     if (!uiConfig) {
         uiConfig = getFileData();
+        setInterval(() => {
+            if (configDirty) {
+                fs.writeFile(FILENAME, JSON.stringify(getUIConfig(), undefined, 2), () => {});
+                configDirty = false;
+                console.log('saved');
+            }
+        }, 5000);
     }
     return uiConfig;
 }
 
-function saveConfig() {
-    fs.writeFileSync(FILENAME, JSON.stringify(getUIConfig(), undefined, 2));
-}
-
 export function setUIConfig(newConfig: Partial<SyncedUIConfig>) {
     uiConfig.syncedConfig = {...uiConfig.syncedConfig, ...newConfig};
-    saveConfig();
+    configDirty = true;
     ipcs.misc.syncUIConfig();
 }
 
@@ -193,8 +198,7 @@ export function updateDefaultVolumes(mediaFile: string, key: VolumeKey, update: 
         }
     }
     uiConfig.mixerStateBySong[mediaFile] = newDefaults;
-    // TODO save less aggressively (1 / second?)
-    saveConfig();
+    configDirty = true;
 }
 
 export function updateDefaultProgram(mediaFile: string, channel: ChannelID, programID: number) {
@@ -207,6 +211,6 @@ export function updateDefaultProgram(mediaFile: string, channel: ChannelID, prog
         newDefaults.channelPrograms = [...newDefaults.channelPrograms];
         newDefaults.channelPrograms[channel] = programName;
         uiConfig.mixerStateBySong[mediaFile] = newDefaults;
-        saveConfig();
+        configDirty = true;
     }
 }
