@@ -35,7 +35,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: dist/linux-unpacked
-          name: teslaterm-linux.zip
+          name: teslaterm-linux
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: dist/win-unpacked
-          name: teslaterm-windows.zip
+          name: teslaterm-windows
   create-release:
     name: Create release if required
     runs-on: ubuntu-20.04
@@ -74,7 +74,7 @@ jobs:
       - name: Download teslaterm-windows
         uses: actions/download-artifact@v4
         with:
-          name: teslaterm-windows.zip
+          name: teslaterm-windows
           path: windows
       - name: Re-zip Windows artifact
         working-directory: windows
@@ -82,7 +82,7 @@ jobs:
       - name: Download teslaterm-linux
         uses: actions/download-artifact@v4
         with:
-          name: teslaterm-linux.zip
+          name: teslaterm-linux
           path: linux
       - name: Re-zip Linux artifact
         working-directory: linux
