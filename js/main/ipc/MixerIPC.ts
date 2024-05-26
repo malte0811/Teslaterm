@@ -13,7 +13,6 @@ import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getActiveSIDConnection, SidCommand} from "../sid/ISidConnection";
 import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
-import {BehringerXTouch} from "../media/PhysicalMixer";
 
 const UD3_MAX_VOLUME = (1 << 15) - 1;
 

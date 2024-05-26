@@ -17,8 +17,13 @@ const PREV_BANK_KEY = 46;
 const NEXT_BANK_NOTE = 47;
 const STOP_NOTE = 93;
 const PLAY_NOTE = 94;
+
 const FIRST_MUTE_NOTE = 16;
-const LAST_MUTE_NOTE = 16 + NUM_SPECIFIC_FADERS - 1;
+const LAST_MUTE_NOTE = FIRST_MUTE_NOTE + NUM_SPECIFIC_FADERS - 1;
+
+const FIRST_SELECT_NOTE = 24;
+const LAST_SELECT_NOTE = FIRST_SELECT_NOTE + NUM_SPECIFIC_FADERS - 1;
+
 const PREV_SONG_NOTE = 98;
 const NEXT_SONG_NOTE = 99;
 
@@ -137,17 +142,16 @@ export class BehringerXTouch {
         }
         physicalFaders.length = NUM_SPECIFIC_FADERS;
         physicalFaders.push({muted: false, volumePercent: allFaders.masterVolumePercent});
-        physicalFaders.forEach((state, i) => {
-            // TODO also mark disabled channels somewhere else?
-            const value = state ? state : {muted: true, volumePercent: 0};
+        physicalFaders.forEach((rawValue, i) => {
+            const value = rawValue ? rawValue : {muted: false, volumePercent: 0};
             if (value.volumePercent !== this.lastFaderState[i]) {
                 const pitch = percentToFader(value.volumePercent);
                 this.session.sendMessage(0, buildPitchBendMessage(i, pitch));
                 this.lastFaderState[i] = value.volumePercent;
             }
-            const muteNote = FIRST_MUTE_NOTE + i;
-            if (muteNote <= LAST_MUTE_NOTE) {
-                this.setButton(muteNote, value.muted);
+            if (i < NUM_SPECIFIC_FADERS) {
+                this.setButton(FIRST_MUTE_NOTE + i, value.muted);
+                this.setButton(FIRST_SELECT_NOTE + i, rawValue !== undefined);
             }
         });
     }
