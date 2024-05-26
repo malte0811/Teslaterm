@@ -13,8 +13,9 @@ import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getActiveSIDConnection, SidCommand} from "../sid/ISidConnection";
 import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConfigHandler";
 import {MainIPC} from "./IPCProvider";
+import {BehringerXTouch} from "../media/PhysicalMixer";
 
-const UD3_MAX_VOLUME = 1 << 15 - 1;
+const UD3_MAX_VOLUME = (1 << 15) - 1;
 
 export class MixerIPC {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
@@ -113,10 +114,19 @@ export class MixerIPC {
     }
 
     public setVolumeFromPhysical(fader: number, update: VolumeUpdate) {
-        const key = this.getFaderStates().specificFaders[fader]?.key;
-        if (key) {
-            this.updateVolume(key, update, true);
+        // are we updating the master?
+        if (fader === 8) {
+            const key: VolumeKey = {coil: undefined, channel: undefined};
+            if (key) {
+                this.updateVolume(key, update, false);
+            }
+        } else {
+            const key = this.getFaderStates().specificFaders[fader]?.key;
+            if (key) {
+                this.updateVolume(key, update, true);
+            }
         }
+
     }
 
     public updateVolume(key: VolumeKey, update: VolumeUpdate, updateDefault: boolean) {
@@ -149,7 +159,22 @@ export class MixerIPC {
     }
 
     public updatePhysicalMixer() {
-        getPhysicalMixer()?.movePhysicalSliders(this.getFaderStates());
+        const mixer = getPhysicalMixer();
+        if (mixer !== undefined) {
+            mixer.movePhysicalSliders(this.getFaderStates());
+
+            switch (this.currentLayer) {
+                case 'voiceMaster':
+                    mixer.set7SegmentText(0, 'CH');
+                    break;
+                case 'coilMaster':
+                    mixer.set7SegmentText(0, 'GC');
+                    break;
+                default:
+                    mixer.set7SegmentText(0, 'C' + this.currentLayer);
+                    break;
+            }
+        }
     }
 
     public resetBeforeSongLoad() {
@@ -231,6 +256,7 @@ export class MixerIPC {
 
     private async sendVolume(coil: number, channel: number) {
         const volumeFraction = this.volumes.getCoilVoiceMultiplier(coil, channel);
+        console.log("updating at " + Date.now());
         if (media_state.type === MediaFileType.midi) {
             await sendVolume(coil, channel, volumeFraction * 100);
         } else {
