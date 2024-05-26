@@ -59,6 +59,7 @@ export function clearCoils() {
         extraConnections.close();
         extraConnections = undefined;
     }
+    nextCoilID = 0;
     // TODO clear e.g. SID caches
 }
 
