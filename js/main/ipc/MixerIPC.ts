@@ -8,7 +8,7 @@ import {MixerLayer, VolumeKey, VolumeUpdate} from "../../common/MixerTypes";
 import {forEachCoil, getCoilCommands, getPhysicalMixer} from "../connection/connection";
 import {config} from "../init";
 import {loadMediaFile, media_state} from "../media/media_player";
-import {VolumeMap} from "../media/VolumeMap";
+import {NUM_SPECIFIC_FADERS, VolumeMap} from "../media/VolumeMap";
 import {sendProgramChange, sendVolume} from "../midi/midi";
 import {getActiveSIDConnection, SidCommand} from "../sid/ISidConnection";
 import {getUIConfig, updateDefaultProgram, updateDefaultVolumes} from "../UIConfigHandler";
@@ -115,11 +115,8 @@ export class MixerIPC {
 
     public setVolumeFromPhysical(fader: number, update: VolumeUpdate) {
         // are we updating the master?
-        if (fader === 8) {
-            const key: VolumeKey = {coil: undefined, channel: undefined};
-            if (key) {
-                this.updateVolume(key, update, false);
-            }
+        if (fader === NUM_SPECIFIC_FADERS) {
+            this.updateVolume({}, update, false);
         } else {
             const key = this.getFaderStates().specificFaders[fader]?.key;
             if (key) {
@@ -162,18 +159,7 @@ export class MixerIPC {
         const mixer = getPhysicalMixer();
         if (mixer !== undefined) {
             mixer.movePhysicalSliders(this.getFaderStates());
-
-            switch (this.currentLayer) {
-                case 'voiceMaster':
-                    mixer.set7SegmentText(0, 'CH');
-                    break;
-                case 'coilMaster':
-                    mixer.set7SegmentText(0, 'GC');
-                    break;
-                default:
-                    mixer.set7SegmentText(0, 'C' + this.currentLayer);
-                    break;
-            }
+            mixer.updateLayer(this.currentLayer);
         }
     }
 
@@ -256,7 +242,6 @@ export class MixerIPC {
 
     private async sendVolume(coil: number, channel: number) {
         const volumeFraction = this.volumes.getCoilVoiceMultiplier(coil, channel);
-        console.log("updating at " + Date.now());
         if (media_state.type === MediaFileType.midi) {
             await sendVolume(coil, channel, volumeFraction * 100);
         } else {

@@ -1,4 +1,3 @@
-import {forEach} from "react-bootstrap/ElementChildren";
 import {manager, Session} from "rtpmidi";
 import {PlayerActivity} from "../../common/MediaTypes";
 import {AllFaders, MixerLayer} from "../../common/MixerTypes";
@@ -71,7 +70,6 @@ export class BehringerXTouch {
     // Index is MIDI note used to trigger the button
     private readonly lastButtonStates = new Map<number, boolean>();
     private readonly mediaUpdateCallback: (state: PlayerActivity) => any;
-    private displayColors: number[] = [0, 1, 2, 3, 4, 5, 6, 7];
 
     constructor(config: PhysicalMixerConfig) {
         this.config = config;
@@ -83,12 +81,11 @@ export class BehringerXTouch {
         this.session.bundle = false;
         this.session.on('message', async (delta, data) => {
             const asPitchBend = decodePitchBend(data);
+            const asButtonPress = decodeButtonPress(data);
             if (asPitchBend) {
                 const volumePercent = faderToPercent(asPitchBend.value);
                 ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel, {volumePercent});
-            }
-            const asButtonPress = decodeButtonPress(data);
-            if (asButtonPress) {
+            } else if (asButtonPress) {
                 const layers: MixerLayer[] = ['coilMaster', 'voiceMaster', ...getCoils()];
                 const currentIndex = layers.indexOf(ipcs.mixer.getCurrentLayer());
                 if (asButtonPress.key === PREV_BANK_KEY && currentIndex > 0) {
@@ -107,14 +104,9 @@ export class BehringerXTouch {
                 } else if (asButtonPress.key === NEXT_SONG_NOTE) {
                     ipcs.mixer.cycleMediaFile(true);
                 }
-            }
-
-            if (!asPitchBend && !asButtonPress) {
-                let hex = '';
-                for (let i = 0; i < data.length ; i++) {
-                    hex += ' ' + data[i].toString(16);
-                }
-                console.log("got unknown message: \"" + hex + "\"");
+            } else {
+                const hex = data.map((i) => i.toString(16)).join(' ');
+                console.log("got unknown message from Behringer: \"" + hex + "\"");
             }
         });
         this.session.on('controlMessage', () => this.lastMessageTime = Date.now());
@@ -139,31 +131,46 @@ export class BehringerXTouch {
     }
 
     public movePhysicalSliders(allFaders: AllFaders) {
-        while (allFaders.specificFaders.length < NUM_SPECIFIC_FADERS) {
-            allFaders.specificFaders.push(undefined);
+        const physicalFaders = allFaders.specificFaders.map((data) => data?.volume);
+        while (physicalFaders.length < NUM_SPECIFIC_FADERS) {
+            physicalFaders.push(undefined);
         }
-        allFaders.specificFaders.length = NUM_SPECIFIC_FADERS;
-        allFaders.specificFaders.forEach((state, i) => {
+        physicalFaders.length = NUM_SPECIFIC_FADERS;
+        physicalFaders.push({muted: false, volumePercent: allFaders.masterVolumePercent});
+        physicalFaders.forEach((state, i) => {
             // TODO also mark disabled channels somewhere else?
-            const value = state ? state.volume : {muted: true, volumePercent: 0};
+            const value = state ? state : {muted: true, volumePercent: 0};
             if (value.volumePercent !== this.lastFaderState[i]) {
                 const pitch = percentToFader(value.volumePercent);
                 this.session.sendMessage(0, buildPitchBendMessage(i, pitch));
                 this.lastFaderState[i] = value.volumePercent;
             }
-            this.setButton(FIRST_MUTE_NOTE + i, value.muted);
+            const muteNote = FIRST_MUTE_NOTE + i;
+            if (muteNote <= LAST_MUTE_NOTE) {
+                this.setButton(muteNote, value.muted);
+            }
         });
+    }
 
-        const pitch = percentToFader(allFaders.masterVolumePercent);
-        if (allFaders.masterVolumePercent !== this.lastFaderState[8]) {
-            this.session.sendMessage(0, buildPitchBendMessage(8, pitch));
-            this.lastFaderState[8] = allFaders.masterVolumePercent;
+    public updateLayer(currentLayer: MixerLayer) {
+        switch (currentLayer) {
+            case 'voiceMaster':
+                this.set7SegmentText(0, 'CH');
+                break;
+            case 'coilMaster':
+                this.set7SegmentText(0, 'GC');
+                break;
+            default:
+                this.set7SegmentText(0, 'C' + currentLayer);
+                break;
         }
     }
 
     public set7SegmentText(startDigit: number, value: string) {
         // is there even any data?
-        if (value.length === 0) { return; }
+        if (value.length === 0) {
+            return;
+        }
 
         // go through all chars of the string and send them
         let num: number = startDigit;
@@ -185,16 +192,20 @@ export class BehringerXTouch {
                 this.set7SegmentValue(num, char, false);
             }
 
-            num ++;
+            num++;
         }
     }
 
     private set7SegmentValue(digit: number, value: string, dotOn: boolean) {
         // is the digit valid? (0-11)
-        if (digit > 11)  { return; }
+        if (digit > 11) {
+            return;
+        }
 
         // is there even any char to display
-        if (value.length === 0)  { return; }
+        if (value.length === 0) {
+            return;
+        }
 
         // build midi message
 
