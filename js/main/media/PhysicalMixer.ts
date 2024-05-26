@@ -75,6 +75,7 @@ export class BehringerXTouch {
     // Index is MIDI note used to trigger the button
     private readonly lastButtonStates = new Map<number, boolean>();
     private readonly mediaUpdateCallback: (state: PlayerActivity) => any;
+    private commsReady: boolean = false;
 
     constructor(config: PhysicalMixerConfig) {
         this.config = config;
@@ -83,7 +84,6 @@ export class BehringerXTouch {
             localName: 'Teslaterm to XTouch',
             port: 5005,
         });
-        this.session.bundle = false;
         this.session.on('message', async (delta, data) => {
             const asPitchBend = decodePitchBend(data);
             const asButtonPress = decodeButtonPress(data);
@@ -123,6 +123,7 @@ export class BehringerXTouch {
         };
         media_state.addUpdateCallback(this.mediaUpdateCallback);
         this.session.on('streamAdded', () => setTimeout(() => {
+            this.commsReady = true;
             ipcs.mixer.updatePhysicalMixer();
             this.mediaUpdateCallback(media_state.state);
         }, 100));
@@ -136,6 +137,9 @@ export class BehringerXTouch {
     }
 
     public movePhysicalSliders(allFaders: AllFaders) {
+        if (!this.commsReady) {
+            return;
+        }
         const physicalFaders = allFaders.specificFaders.map((data) => data?.volume);
         while (physicalFaders.length < NUM_SPECIFIC_FADERS) {
             physicalFaders.push(undefined);
@@ -157,6 +161,9 @@ export class BehringerXTouch {
     }
 
     public updateLayer(currentLayer: MixerLayer) {
+        if (!this.commsReady) {
+            return;
+        }
         switch (currentLayer) {
             case 'voiceMaster':
                 this.set7SegmentText(0, 'CH');
@@ -226,7 +233,7 @@ export class BehringerXTouch {
     }
 
     private setButton(midiNote: number, light: boolean) {
-        if (light !== this.lastButtonStates.get(midiNote)) {
+        if (this.commsReady && light !== this.lastButtonStates.get(midiNote)) {
             this.session.sendMessage(0, buildButtonMessage(midiNote, light));
             this.lastButtonStates.set(midiNote, light);
         }
@@ -238,6 +245,7 @@ export class BehringerXTouch {
             this.lastMessageTime = now;
             this.lastButtonStates.clear();
             this.lastFaderState.length = 0;
+            this.commsReady = false;
             if (this.session.getStreams().length > 0) {
                 this.session.removeStream(this.session.getStreams()[0]);
             }
