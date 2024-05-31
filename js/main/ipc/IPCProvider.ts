@@ -51,7 +51,7 @@ export class MainIPC {
     public unregister(listener: IPCListenerRegistration) {
         ipcMain.off(listener.channel.channel, listener.electronCallback);
         const listeners = this.callbacks.get(listener.channel.channel);
-        delete listeners[listeners.indexOf(listener.directCallback)];
+        listeners.splice(listeners.indexOf(listener.directCallback), 1);
     }
 
     // TODO look at "all except" calls
