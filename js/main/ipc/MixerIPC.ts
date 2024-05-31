@@ -81,7 +81,7 @@ export class MixerIPC {
 
     public setProgramForFader(fader: FaderID, program: number) {
         const faderKey = this.getFaderStates().specificFaders[fader]?.key;
-        if (faderKey && faderKey !== 'sidSpecial' && faderKey.channel !== undefined) {
+        if (faderKey && faderKey.channel !== undefined && faderKey.channel !== 'sidSpecial') {
             this.setProgramForChannel(faderKey.channel, program);
         }
     }
@@ -176,21 +176,21 @@ export class MixerIPC {
             this.markForUpdate({coil, channel});
         }
         this.markForUpdate({coil});
-        this.markForUpdate('sidSpecial');
+        this.markForUpdate({coil, channel: 'sidSpecial'});
     }
 
     private markForUpdate(changedKey: VolumeKey) {
         const addAffectedCoils = (coils: Set<CoilID>) => {
-            if (changedKey === 'sidSpecial' || changedKey.coil === undefined) {
+            if (changedKey.coil === undefined) {
                 forEachCoil((coil) => coils.add(coil));
             } else {
                 coils.add(changedKey.coil);
             }
         };
-        if (changedKey === 'sidSpecial') {
-            addAffectedCoils(this.changedSID);
-        } else if (changedKey.channel === undefined) {
+        if (changedKey.channel === undefined) {
             addAffectedCoils(this.changedCoilMasters);
+        } else if (changedKey.channel === 'sidSpecial') {
+            addAffectedCoils(this.changedSID);
         } else {
             if (!this.changedSpecificVolumes.has(changedKey.channel)) {
                 this.changedSpecificVolumes.set(changedKey.channel, new Set<CoilID>());
@@ -220,8 +220,8 @@ export class MixerIPC {
             promises.push(getCoilCommands(coil).setParam('vol', coilVolume.toFixed(0)));
         }
         this.changedCoilMasters.clear();
-        const sidVolume = this.volumes.getVolumeSetting('sidSpecial');
         for (const coil of this.changedSID) {
+            const sidVolume = this.volumes.getCoilSIDVolume(coil);
             promises.push(getActiveSIDConnection(coil)?.sendCommand(
                 SidCommand.noiseVolume, 0, sidVolume.volumePercent / 100 * UD3_MAX_VOLUME,
             ));

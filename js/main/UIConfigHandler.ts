@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import {UD3ConnectionType} from "../common/constants";
 import {ChannelID, ConnectionPreset} from "../common/IPCConstantsToRenderer";
-import {VolumeKey, VolumeUpdate} from "../common/MixerTypes";
+import {VolumeChannel, VolumeKey, VolumeUpdate} from "../common/MixerTypes";
 import {AdvancedOptions} from "../common/Options";
 import {FullConnectionOptions, UD3ConnectionOptions} from "../common/SingleConnectionOptions";
 import {CoilMixerState, FullUIConfig, SavedMixerState, SyncedUIConfig} from "../common/UIConfig";
@@ -150,17 +150,17 @@ export function getDefaultVolumes(mediaFile: string): SavedMixerState {
         channelPrograms: [],
         coilSettings: {},
         masterSettings: DEFAULT_COIL_MIXER_STATE,
-        sidSpecialSettings: {},
     };
 }
 
 const DEFAULT_COIL_MIXER_STATE: CoilMixerState = {
     channelSettings: [],
     masterSetting: {},
+    sidSpecialSettings: {},
 };
 
 function updateVolume(
-    channel: number | undefined, oldSettings: Partial<CoilMixerState> | undefined, update: VolumeUpdate,
+    channel: VolumeChannel | undefined, oldSettings: Partial<CoilMixerState> | undefined, update: VolumeUpdate,
 ): CoilMixerState {
     if (!oldSettings) {
         oldSettings = {};
@@ -169,6 +169,13 @@ function updateVolume(
         return {
             channelSettings: oldSettings.channelSettings || [],
             masterSetting: {...oldSettings.masterSetting, ...update},
+            sidSpecialSettings: oldSettings.sidSpecialSettings,
+        };
+    } else if (channel === 'sidSpecial') {
+        return {
+            channelSettings: oldSettings.channelSettings || [],
+            masterSetting: {...oldSettings.masterSetting},
+            sidSpecialSettings: {...oldSettings.sidSpecialSettings, ...update},
         };
     } else {
         const newChannels = [...(oldSettings.channelSettings || [])];
@@ -177,6 +184,7 @@ function updateVolume(
         return {
             channelSettings: newChannels,
             masterSetting: oldSettings.masterSetting || {},
+            sidSpecialSettings: oldSettings.sidSpecialSettings,
         };
     }
 }
@@ -186,9 +194,7 @@ export function updateDefaultVolumes(mediaFile: string, key: VolumeKey, update: 
         return;
     }
     const newDefaults: SavedMixerState = {...getDefaultVolumes(mediaFile)};
-    if (key === 'sidSpecial') {
-        newDefaults.sidSpecialSettings = {...newDefaults.sidSpecialSettings, ...update};
-    } else if (key.coil === undefined) {
+    if (key.coil === undefined) {
         newDefaults.masterSettings = updateVolume(key.channel, newDefaults.masterSettings, update);
     } else {
         const coilName = getOptionalUD3Connection(key.coil)?.getUDName();

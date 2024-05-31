@@ -16,12 +16,12 @@ export interface SyncedUIConfig {
 export interface CoilMixerState {
     channelSettings: Array<Partial<VolumeSetting>>;
     masterSetting: Partial<VolumeSetting>;
+    sidSpecialSettings: Partial<VolumeSetting>;
 }
 
 export interface SavedMixerState {
     coilSettings: { [coilName: string]: CoilMixerState; };
     masterSettings: CoilMixerState;
-    sidSpecialSettings: Partial<VolumeSetting>;
     channelPrograms: string[];
 }
 

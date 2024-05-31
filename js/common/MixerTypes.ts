@@ -1,10 +1,12 @@
 import {CoilID} from "./constants";
 import {ChannelID} from "./IPCConstantsToRenderer";
 
-export type VolumeKey = {
+export type VolumeChannel = ChannelID | 'sidSpecial';
+
+export interface VolumeKey {
     coil?: CoilID;
-    channel?: ChannelID;
-} | 'sidSpecial';
+    channel?: VolumeChannel;
+}
 
 export type MixerLayer = CoilID | 'coilMaster' | 'voiceMaster';
 
