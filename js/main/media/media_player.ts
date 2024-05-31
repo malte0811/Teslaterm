@@ -9,7 +9,7 @@ import {
     forEachCoilAsync,
     getCoilCommands,
     getUD3Connection,
-    hasUD3Connection
+    hasUD3Connection,
 } from "../connection/connection";
 import {getUD3State} from "../connection/telemetry/UD3State";
 import {ipcs} from "../ipc/IPCProvider";
@@ -24,6 +24,7 @@ export function isSID(type: MediaFileType): boolean {
 
 function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
     ipcs.mixer.updateVolume({coil}, state.masterSetting, false);
+    ipcs.mixer.updateVolume({coil, channel: 'sidSpecial'}, state.sidSpecialSettings, false);
     state.channelSettings.forEach((settings, channel) => {
         if (settings !== undefined) {
             ipcs.mixer.updateVolume({coil, channel}, settings, false);
@@ -32,9 +33,6 @@ function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
 }
 
 function applyMixerState(state: SavedMixerState) {
-    if (state.sidSpecialSettings) {
-        ipcs.mixer.updateVolume('sidSpecial', state.sidSpecialSettings, false);
-    }
     applyCoilMixerState(undefined, state.masterSettings);
     for (const [coilName, settings] of Object.entries(state.coilSettings)) {
         const coil = findCoilByName(coilName);

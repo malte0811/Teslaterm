@@ -5,7 +5,7 @@ import {
     AllFaders,
     DEFAULT_VOLUME,
     FaderData,
-    MixerLayer,
+    MixerLayer, VolumeChannel,
     VolumeKey,
     VolumeSetting,
     VolumeUpdate,
@@ -15,21 +15,60 @@ import {media_state} from "./media_player";
 
 export const NUM_SPECIFIC_FADERS = 8;
 
-function applyVolumeUpdate<K>(map: Map<K, VolumeSetting>, key: K, update: VolumeUpdate) {
-    map.set(key, {...DEFAULT_VOLUME, ...map?.get(key), ...update});
-}
-
-export class VolumeMap {
-    // All volumes in percent (0-100)
-    private masterVolume: number = DEFAULT_VOLUME.volumePercent;
-    private readonly coilVolume = new Map<CoilID, VolumeSetting>();
-    private readonly voiceVolume = new Map<ChannelID, VolumeSetting>();
-    private readonly specificVolumes = new Map<CoilID, Map<ChannelID, VolumeSetting>>();
-    private channelByFader: number[] = [0, 1, 2];
+class CoilVolumes {
+    public masterVolume = DEFAULT_VOLUME;
+    public readonly voiceVolume = new Map<ChannelID, VolumeSetting>();
     // A bit of a hack:
     // - Volume is the noise volume
     // - Mute only refers to hypervoice, so muted=>no HPV, unmuted=>HPV
-    private sidExtraVolumes: VolumeSetting = DEFAULT_VOLUME;
+    public sidSettings = DEFAULT_VOLUME;
+
+    public updateChannel(channel: VolumeChannel, update: VolumeUpdate) {
+        const newVolume = {...this.getVolumeSetting(channel), ...update};
+        if (channel === undefined) {
+            this.masterVolume = newVolume;
+        } else if (channel === 'sidSpecial') {
+            this.sidSettings = newVolume;
+        } else {
+            this.voiceVolume.set(channel, newVolume);
+        }
+    }
+
+    public getVolumeSetting(channel: VolumeChannel): VolumeSetting {
+        if (channel === undefined) {
+            return this.masterVolume;
+        } else if (channel === 'sidSpecial') {
+            return this.sidSettings;
+        } else {
+            return this.voiceVolume.get(channel) || DEFAULT_VOLUME;
+        }
+    }
+
+    public clearChannelSpecifics() {
+        this.voiceVolume.clear();
+    }
+
+    public getNondefaultChannelKeys(): VolumeChannel[] {
+        const keys: VolumeChannel[] = [];
+        const addIfChanged = (key: VolumeChannel) => {
+            const volume = this.getVolumeSetting(key);
+            if (volume.muted !== DEFAULT_VOLUME.muted || volume.volumePercent !== DEFAULT_VOLUME.volumePercent) {
+                keys.push(key);
+            }
+        };
+        addIfChanged(undefined);
+        addIfChanged('sidSpecial');
+        for (const voice of this.voiceVolume.keys()) {
+            addIfChanged(voice);
+        }
+        return keys;
+    }
+}
+
+export class VolumeMap {
+    private readonly channelMasters = new CoilVolumes();
+    private readonly coilVolumes = new Map<CoilID, CoilVolumes>();
+    private channelByFader: number[] = [0, 1, 2];
 
     public getCoilMasterFraction(coil: CoilID) {
         return this.getIndividualVolume({coil}) / 100 * this.getIndividualVolume({}) / 100;
@@ -37,6 +76,15 @@ export class VolumeMap {
 
     public getCoilVoiceMultiplier(coil: CoilID, channel: ChannelID) {
         return this.getIndividualVolume({coil, channel}) / 100 * this.getIndividualVolume({channel}) / 100;
+    }
+
+    public getCoilSIDVolume(coil: CoilID): VolumeSetting {
+        const globalSetting = this.getVolumeSetting({channel: 'sidSpecial'});
+        const coilSetting = this.getVolumeSetting({coil, channel: 'sidSpecial'});
+        return {
+            muted: globalSetting.muted || coilSetting.muted,
+            volumePercent: globalSetting.volumePercent / 100 * coilSetting.volumePercent,
+        };
     }
 
     public setChannelMap(channelByFader: number[]) {
@@ -63,7 +111,7 @@ export class VolumeMap {
             }
         })();
         return {
-            masterVolumePercent: this.masterVolume,
+            masterVolumePercent: this.channelMasters.masterVolume.volumePercent,
             specificFaders,
         };
     }
@@ -73,58 +121,43 @@ export class VolumeMap {
     }
 
     public applyVolumeUpdate(key: VolumeKey, update: VolumeUpdate) {
-        if (key === 'sidSpecial') {
-            this.sidExtraVolumes = {...this.sidExtraVolumes, ...update};
-        } else if (key.channel !== undefined && key.coil !== undefined) {
-            if (!this.specificVolumes.has(key.coil)) {
-                this.specificVolumes.set(key.coil, new Map<ChannelID, VolumeSetting>());
+        if (key.coil === undefined) {
+            this.channelMasters.updateChannel(key.channel, update);
+        } else {
+            if (!this.coilVolumes.has(key.coil)) {
+                this.coilVolumes.set(key.coil, new CoilVolumes());
             }
-            applyVolumeUpdate(this.specificVolumes.get(key.coil), key.channel, update);
-        } else if (key.channel !== undefined) {
-            applyVolumeUpdate(this.voiceVolume, key.channel, update);
-        } else if (key.coil !== undefined) {
-            applyVolumeUpdate(this.coilVolume, key.coil, update);
-        } else if (update.volumePercent !== undefined) {
-            this.masterVolume = update.volumePercent;
+            this.coilVolumes.get(key.coil).updateChannel(key.channel, update);
         }
     }
 
     public getVolumeSetting(key: VolumeKey): VolumeSetting {
-        if (key === 'sidSpecial') {
-            return this.sidExtraVolumes;
-        } else if (key.channel !== undefined && key.coil !== undefined) {
-            return this.specificVolumes.get(key.coil)?.get(key.channel) || DEFAULT_VOLUME;
-        } else if (key.channel !== undefined) {
-            return this.voiceVolume.get(key.channel) || DEFAULT_VOLUME;
-        } else if (key.coil !== undefined) {
-            return this.coilVolume.get(key.coil) || DEFAULT_VOLUME;
+        if (key.coil === undefined) {
+            return this.channelMasters.getVolumeSetting(key.channel);
+        } else if (this.coilVolumes.has(key.coil)) {
+            return this.coilVolumes.get(key.coil).getVolumeSetting(key.channel);
         } else {
-            return {muted: false, volumePercent: this.masterVolume};
+            return DEFAULT_VOLUME;
         }
     }
 
     public clearChannelSpecifics() {
-        this.specificVolumes.clear();
-        this.voiceVolume.clear();
+        this.channelMasters.clearChannelSpecifics();
+        for (const coilMap of this.coilVolumes.values()) {
+            coilMap.clearChannelSpecifics();
+        }
     }
 
     public getNondefaultChannelKeys() {
-        const keys: VolumeKey[] = [];
-        const addIfChanged = (key: VolumeKey) => {
-            const volume = this.getVolumeSetting(key);
-            if (volume.muted !== DEFAULT_VOLUME.muted || volume.volumePercent !== DEFAULT_VOLUME.volumePercent) {
-                keys.push(key);
-            }
+        const result: VolumeKey[] = [];
+        const addFor = (coil: CoilID | undefined, volumes: CoilVolumes) => {
+            result.push(...volumes.getNondefaultChannelKeys().map((channel) => ({coil, channel})));
         };
-        for (const channel of this.voiceVolume.keys()) {
-            addIfChanged({channel});
+        addFor(undefined, this.channelMasters);
+        for (const [coil, settings] of this.coilVolumes) {
+            addFor(coil, settings);
         }
-        for (const [coil, channels] of this.specificVolumes.entries()) {
-            for (const channel of channels.keys()) {
-                addIfChanged({coil, channel});
-            }
-        }
-        return keys;
+        return result;
     }
 
     private getIndividualVolume(key: VolumeKey) {
@@ -152,14 +185,12 @@ export class VolumeMap {
             }
         }
         if (isSID) {
-            while (result.length < NUM_SPECIFIC_FADERS - 1) {
-                result.push(undefined);
-            }
+            const key: VolumeKey = {coil, channel: 'sidSpecial'};
             result.push({
-                key: 'sidSpecial',
+                key,
                 muteSuffix: ' HPV',
                 title: 'Noise volume',
-                volume: this.sidExtraVolumes,
+                volume: this.getVolumeSetting(key),
             });
         }
         return result;
