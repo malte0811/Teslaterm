@@ -24,7 +24,6 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         setSongList: makeKey<SongListData>('songlist'),
     },
     connect: {
-        connectionError: makeKey<string>('connection-error'),
         setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
         setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
     },

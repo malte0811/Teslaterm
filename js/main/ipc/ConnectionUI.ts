@@ -39,7 +39,6 @@ export class ConnectionUIIPC {
     }
 
     public sendConnectionError(coil: CoilID, error: string) {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.connect.connectionError, error);
         ipcs.coilMisc(coil).openToast('Connection Error', error, ToastSeverity.error, 'connect-error');
     }
 

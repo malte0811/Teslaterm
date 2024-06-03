@@ -29,12 +29,6 @@ export class Connecting implements IConnectionState {
         this.connection = connection;
         this.idleState = idleState;
         this.connect().catch((error) => {
-            ipcs.coilMisc(connection.getCoil()).openToast(
-                'Connection error',
-                this.removeErrorPrefixes(error + ''),
-                ToastSeverity.error,
-                'connection-error',
-            );
             ipcs.connectionUI.sendConnectionError(connection.getCoil(), this.removeErrorPrefixes(error + ''));
             console.log("While connecting: ", error);
             connection.releaseResources();

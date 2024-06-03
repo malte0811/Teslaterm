@@ -3,7 +3,7 @@ import {Button, Toast, ToastContainer} from "react-bootstrap";
 import {UD3ConnectionType} from "../../common/constants";
 import {InitialFRState, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {AvailableSerialPort, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
 import {
     SerialConnectionOptions,
@@ -97,13 +97,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
             error: '',
             showingError: false,
         };
-    }
-
-    public componentDidMount() {
-        super.componentDidMount();
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.connect.connectionError, (error) => this.setState({error, showingError: true}),
-        );
     }
 
     public render(): React.ReactNode {
