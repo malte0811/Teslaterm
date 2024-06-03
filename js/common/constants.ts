@@ -30,6 +30,7 @@ export const FEATURE_NOTELEMETRY = "notelemetry_supported";
 export const FEATURE_MINSID = "min_sid_support";
 export const FEATURE_PROTOCOL_VERSION = "protocol";
 export const LAST_SUPPORTED_PROTOCOL = 3.0;
+export const MIN_MULTICOIL_PROTOCOL = 3.0;
 
 // Connection types
 export enum UD3ConnectionType {

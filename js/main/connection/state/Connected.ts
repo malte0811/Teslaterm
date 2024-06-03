@@ -1,8 +1,9 @@
-import {CoilID, LAST_SUPPORTED_PROTOCOL} from "../../../common/constants";
+import {CoilID, LAST_SUPPORTED_PROTOCOL, MIN_MULTICOIL_PROTOCOL} from "../../../common/constants";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {SynthType} from "../../../common/MediaTypes";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
+import {isMulticoil} from "../connection";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Bootloading} from "./Bootloading";
 import {IConnectionState} from "./IConnectionState";
@@ -64,20 +65,36 @@ export class Connected implements IConnectionState {
             this.activeConnection.disconnect();
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
             return new Reconnecting(this.activeConnection, this.idleState);
-        } else if (this.activeConnection.getProtocolVersion() > LAST_SUPPORTED_PROTOCOL) {
-            console.log(`Protocol version is ${this.activeConnection.getProtocolVersion()}, last supported is ${LAST_SUPPORTED_PROTOCOL}`);
+        }
+        const remoteProtocolVersion = this.activeConnection.getProtocolVersion();
+        let disconnect = false;
+        if (remoteProtocolVersion > LAST_SUPPORTED_PROTOCOL) {
+            console.log(`Protocol version is ${remoteProtocolVersion}, last supported is ${LAST_SUPPORTED_PROTOCOL}`);
             ipcs.coilMisc(this.activeConnection.getCoil()).openToast(
                 'Unsupported protocol version',
                 'Please check for Teslaterm updates that support your UD3 version',
                 ToastSeverity.error,
                 'unsupported-protocol',
             );
-            this.activeConnection.disconnect();
+            disconnect = true;
+        } else if (isMulticoil() && remoteProtocolVersion < MIN_MULTICOIL_PROTOCOL) {
+            console.log(`Protocol version is ${remoteProtocolVersion}, multicoil requires at least ${MIN_MULTICOIL_PROTOCOL}`);
+            ipcs.coilMisc(this.activeConnection.getCoil()).openToast(
+                'Unsupported protocol version',
+                'Please check for updates to the UD3 firmware that support multicoil mode',
+                ToastSeverity.error,
+                'unsupported-protocol',
+            );
+            disconnect = true;
+        }
+        if (disconnect) {
+            this.activeConnection.disconnect()
+                .catch((e) => console.error('During version-based disconnect', e));
             ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
             return this.idleState;
+        } else {
+            return this;
         }
-
-        return this;
     }
 
     public tickSlow() {
