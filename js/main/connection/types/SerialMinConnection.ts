@@ -57,18 +57,18 @@ class MinSerialConnection extends MinConnection {
         this.serialPort.flush();
     }
 
-    public registerListener(listener: (data: Buffer) => void): void {
+    public getFTPAddress(): string | undefined {
+        return undefined;
+    }
+
+    protected registerListener(listener: (data: Buffer) => void): void {
         this.serialPort.addListener("data", listener);
     }
 
-    public send(data: MINDataBuffer, onError: (err) => void): void {
+    protected send(data: MINDataBuffer, onError: (err) => void): void {
         if (this.serialPort) {
             this.serialPort.write(data, onError);
         }
-    }
-
-    public getFTPAddress(): string | undefined {
-        return undefined;
     }
 }
 

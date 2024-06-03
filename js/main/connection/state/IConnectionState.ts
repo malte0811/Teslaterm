@@ -9,8 +9,6 @@ export interface IConnectionState {
 
     getActiveConnection(): UD3Connection | undefined;
 
-    getAutoTerminal(): TerminalHandle | undefined;
-
     tickFast(): IConnectionState;
 
     tickSlow(): void;

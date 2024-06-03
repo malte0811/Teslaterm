@@ -79,15 +79,11 @@ export class Connecting implements IConnectionState {
     public tickSlow() {
     }
 
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return this.connection.getAutoTerminalID();
-    }
-
     private async connect() {
         this.state = State.connecting;
         ipcs.sliders(this.connection.getCoil()).reinitState(isMulticoil());
         await this.connection.startTerminal(
-            this.getAutoTerminal(),
+            TerminalHandle.automatic,
             (data) => telemetry.receive_main(
                 this.connection.getCoil(),
                 data,

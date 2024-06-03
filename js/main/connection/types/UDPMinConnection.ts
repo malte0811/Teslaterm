@@ -1,9 +1,9 @@
+import * as dgram from 'dgram';
 import {CoilID} from "../../../common/constants";
 import {MINDataBuffer} from "../../min/MINConstants";
 import {createUDPSocket} from "../udp_helper";
 import {MinConnection} from "./MinConnection";
 import {UD3Connection} from "./UD3Connection";
-import * as dgram from 'dgram';
 
 class UDPMinConnection extends MinConnection {
     public readonly remotePort: number;
@@ -43,11 +43,11 @@ class UDPMinConnection extends MinConnection {
         }
     }
 
-    public registerListener(listener: (data: Buffer) => void): void {
-        this.socket.addListener("message", listener);
+    public getFTPAddress(): string | undefined {
+        return this.remoteAddress;
     }
 
-    public send(data: MINDataBuffer, onError: (err) => void): void {
+    protected send(data: MINDataBuffer, onError: (err) => void): void {
         try {
             this.socket.send(Buffer.of(...data), e => {
                 if (e) {
@@ -59,8 +59,8 @@ class UDPMinConnection extends MinConnection {
         }
     }
 
-    public getFTPAddress(): string | undefined {
-        return this.remoteAddress;
+    protected registerListener(listener: (data: Buffer) => void): void {
+        this.socket.addListener("message", listener);
     }
 }
 

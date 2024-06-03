@@ -3,7 +3,7 @@ import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
 import {getToRenderIPCPerCoil, PerCoilRenderIPCs} from "../../common/IPCConstantsToRenderer";
 import {getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {receive_main} from "../connection/telemetry";
-import {MainIPC} from "./IPCProvider";
+import {TerminalHandle} from "../connection/types/UD3Connection";
 import {TemporaryIPC} from "./TemporaryIPC";
 
 export class TerminalIPC {
@@ -20,7 +20,7 @@ export class TerminalIPC {
             try {
                 if (hasUD3Connection(coil)) {
                     const connection = getUD3Connection(coil);
-                    await connection.sendTelnet(Buffer.from(msg), connection.getManualTerminalID());
+                    await connection.sendTelnet(Buffer.from(msg), TerminalHandle.manual);
                 }
             } catch (x) {
                 console.log("Error while sending: ", x);
@@ -41,13 +41,13 @@ export class TerminalIPC {
     public async setupManualTerminal(): Promise<any> {
         const connection = getUD3Connection(this.coil);
         await connection.startTerminal(
-            connection.getManualTerminalID(),
+            TerminalHandle.manual,
             (d) => receive_main(this.coil, d, false, false),
         );
         if (connection.getFeatureValue(FEATURE_NOTELEMETRY) === "1") {
             await connection.sendTelnet(
                 Buffer.from("\rtterm notelemetry\rcls\r"),
-                connection.getManualTerminalID(),
+                TerminalHandle.manual,
             );
         }
     }

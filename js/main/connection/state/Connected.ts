@@ -109,10 +109,6 @@ export class Connected implements IConnectionState {
         }
     }
 
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return this.activeConnection.getAutoTerminalID();
-    }
-
     public async sendMIDI(data: Buffer) {
         await this.activeConnection.sendMidi(data);
         await this.activeConnection.setSynth(SynthType.MIDI, true);

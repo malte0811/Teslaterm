@@ -1,5 +1,6 @@
 import {CoilID} from "../../common/constants";
-import {getAutoTerminal, getConnectionState, getUD3Connection, hasUD3Connection} from "./connection";
+import {getConnectionState, getUD3Connection, hasUD3Connection} from "./connection";
+import {TerminalHandle} from "./types/UD3Connection";
 
 export class CommandInterface {
     private readonly coil: CoilID;
@@ -64,7 +65,7 @@ export class CommandInterface {
     public async sendCommand(c: string) {
         try {
             if (hasUD3Connection(this.coil)) {
-                await getUD3Connection(this.coil).sendTelnet(Buffer.from(c), getAutoTerminal(this.coil));
+                await getUD3Connection(this.coil).sendTelnet(Buffer.from(c), TerminalHandle.automatic);
             }
         } catch (x) {
             console.log("Error while sending: ", x);

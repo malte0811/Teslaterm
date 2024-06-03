@@ -169,10 +169,6 @@ export function getOptionalUD3Connection(coil: CoilID): UD3Connection | undefine
     return getConnectionState(coil).getActiveConnection();
 }
 
-export function getAutoTerminal(coil: CoilID): TerminalHandle | undefined {
-    return getConnectionState(coil).getAutoTerminal();
-}
-
 export function hasUD3Connection(coil: CoilID): boolean {
     const connectionState = getConnectionState(coil);
     return connectionState && connectionState.getActiveConnection() !== undefined;

@@ -33,14 +33,6 @@ export class Bootloading implements IConnectionState {
         }
     }
 
-    public getAutoTerminal(): TerminalHandle | undefined {
-        if (this.inBootloadMode) {
-            return undefined;
-        } else {
-            return this.connection.getAutoTerminalID();
-        }
-    }
-
     public getConnectionStatus(): ConnectionStatus {
         return ConnectionStatus.BOOTLOADING;
     }

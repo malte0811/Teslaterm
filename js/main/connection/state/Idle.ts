@@ -35,10 +35,6 @@ export class Idle implements IConnectionState {
         return undefined;
     }
 
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return undefined;
-    }
-
     public getConnectionStatus(): ConnectionStatus {
         return ConnectionStatus.IDLE;
     }

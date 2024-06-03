@@ -17,7 +17,10 @@ export function toCommandID(type: SynthType): number {
     throw new Error("Unknown synth type: " + type);
 }
 
-export type TerminalHandle = number;
+export enum TerminalHandle {
+    automatic,
+    manual,
+}
 
 export interface TerminalData {
     readonly callback: (data: Buffer) => void;
@@ -64,15 +67,7 @@ export abstract class UD3Connection {
 
     public abstract tick(): void;
 
-    public abstract isMultiTerminal(): boolean;
-
     public abstract getUDName(): string | undefined;
-
-    public getAutoTerminalID(): TerminalHandle {
-        return 0;
-    }
-
-    public abstract getManualTerminalID(): TerminalHandle;
 
     public getCoil() {
         return this.coil;

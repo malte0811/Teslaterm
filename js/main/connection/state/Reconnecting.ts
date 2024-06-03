@@ -22,10 +22,6 @@ export class Reconnecting implements IConnectionState {
         return undefined;
     }
 
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return undefined;
-    }
-
     public getConnectionStatus(): ConnectionStatus {
         return ConnectionStatus.RECONNECTING;
     }
