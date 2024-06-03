@@ -55,7 +55,7 @@ export class Idle implements IConnectionState {
     }
 
     private async createConnection(coil: CoilID): Promise<UD3Connection | undefined> {
-        resetAlarms();
+        resetAlarms(coil);
         const type = this.options.connectionType;
         switch (type) {
             case UD3ConnectionType.serial_plain:

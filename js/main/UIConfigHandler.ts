@@ -129,7 +129,6 @@ export function saveUIConfigNow() {
     }
 }
 
-// TODO check usages, probably stop syncing bits of this in addition to the full thing
 export function getUIConfig() {
     if (!uiConfig) {
         uiConfig = getFileData();

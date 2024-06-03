@@ -17,6 +17,7 @@ import {getFlightRecorder} from "./flightrecorder/FlightRecorder";
 import {Connected} from "./state/Connected";
 import {IConnectionState} from "./state/IConnectionState";
 import {Idle} from "./state/Idle";
+import {resetAllAlarms} from "./telemetry/Alarms";
 import {TerminalHandle, UD3Connection} from "./types/UD3Connection";
 
 const connectionState: Map<CoilID, IConnectionState> = new Map<CoilID, IConnectionState>();
@@ -60,6 +61,7 @@ export function clearCoils() {
         extraConnections = undefined;
     }
     nextCoilID = 0;
+    resetAllAlarms();
     // TODO clear e.g. SID caches
 }
 
