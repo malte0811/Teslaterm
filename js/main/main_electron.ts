@@ -1,6 +1,7 @@
 import {app, BrowserWindow} from "electron";
 import * as path from "path";
 import {init} from "./init";
+import {saveUIConfigNow} from "./UIConfigHandler";
 
 export let mainWindow: BrowserWindow;
 
@@ -45,3 +46,5 @@ app.on("activate", () => {
         createWindow();
     }
 });
+
+app.on('will-quit', saveUIConfigNow);

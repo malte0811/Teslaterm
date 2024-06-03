@@ -122,16 +122,18 @@ function getFileData() {
 
 let configDirty: boolean = false;
 
+export function saveUIConfigNow() {
+    if (configDirty) {
+        fs.writeFile(FILENAME, JSON.stringify(getUIConfig(), undefined, 2), () => {});
+        configDirty = false;
+    }
+}
+
 // TODO check usages, probably stop syncing bits of this in addition to the full thing
 export function getUIConfig() {
     if (!uiConfig) {
         uiConfig = getFileData();
-        setInterval(() => {
-            if (configDirty) {
-                fs.writeFile(FILENAME, JSON.stringify(getUIConfig(), undefined, 2), () => {});
-                configDirty = false;
-            }
-        }, 5000);
+        setInterval(saveUIConfigNow, 5000);
     }
     return uiConfig;
 }
