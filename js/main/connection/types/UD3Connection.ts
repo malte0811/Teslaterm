@@ -40,7 +40,7 @@ export abstract class UD3Connection {
 
     public abstract sendMidi(data: Buffer): Promise<void>;
 
-    public abstract sendVMSFrames(data: Buffer);
+    public abstract sendVMSFrame(frames: Buffer): Promise<void>;
 
     public abstract getSidConnection(): ISidConnection;
 

@@ -19,10 +19,8 @@ export abstract class MinConnection extends BootloadableConnection {
     private readonly sidConnection: UD3FormattedConnection;
     private mediaFramesForBatching: Buffer[] = [];
     private mediaFramesForBatchingSID: Buffer[] = [];
-    private vmsFramesForBatching: Buffer[] = [];
     private actualUDFeatures: Map<string, string>;
     private connectionsToSetTTerm: TerminalHandle[] = [];
-    private counter: number = 0;
     private udName: string = undefined;
     private sidMINChannel: number = UD3MinIDs.SID;
 
@@ -73,9 +71,9 @@ export abstract class MinConnection extends BootloadableConnection {
         this.terminalCallbacks.clear();
     }
 
-    public async sendVMSFrames(data: Buffer) {
+    public async sendVMSFrame(data: Buffer) {
         if (this.min_wrapper) {
-            this.vmsFramesForBatching.push(data);
+            await this.min_wrapper.enqueueFrame(UD3MinIDs.VMS, data);
         }
     }
 
@@ -138,13 +136,6 @@ export abstract class MinConnection extends BootloadableConnection {
             this.sidConnection.tick();
             this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, UD3MinIDs.MEDIA);
             this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, UD3MinIDs.SID);
-            if (this.counter > 20) {
-                this.counter = 0;
-                this.sendBufferedFrame(this.vmsFramesForBatching, UD3MinIDs.VMS);
-            } else {
-                this.counter++;
-            }
-
             this.min_wrapper.tick();
         }
     }
@@ -230,14 +221,6 @@ export abstract class MinConnection extends BootloadableConnection {
             }
             const frame = Buffer.concat(frameParts);
             this.min_wrapper.enqueueFrame(minID, frame).catch(err => {
-                console.log("Failed to send media packet: " + err);
-            });
-        }
-    }
-
-    private sendBufferedFrame(buf: Buffer[], minID: number) {
-        while (this.min_wrapper.get_relative_fifo_size() < 0.75 && buf.length > 0) {
-            this.min_wrapper.enqueueFrame(minID, buf.shift()).catch(err => {
                 console.log("Failed to send media packet: " + err);
             });
         }

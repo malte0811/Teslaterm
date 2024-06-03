@@ -33,8 +33,8 @@ class VMSDataMap {
 class VMSBuffer {
     private readonly buffer: ArrayBuffer;
     private readonly view: DataView;
+    private readonly littleEndian: boolean;
     private nextIndex: number = 0;
-    private littleEndian: boolean;
 
     public constructor(size: number, littleEndian: boolean) {
         this.buffer = new ArrayBuffer(size);
@@ -251,9 +251,9 @@ function prepareHeaderBuffer(newFormat: boolean) {
     return buffer;
 }
 
-function sendBlock(block: Block, connection: UD3Connection, newFormat: boolean) {
+function serializeBlock(block: Block, newFormat: boolean) {
     if (block.uid === -1) {
-        return;
+        return undefined;
     }
 
     const buf = prepareBlockBuffer(newFormat);
@@ -283,18 +283,18 @@ function sendBlock(block: Block, connection: UD3Connection, newFormat: boolean) 
     // new format uses period in milliseconds instead of microseconds
     buf.writeUint32(newFormat ? (block.periodUS / 1000) : (block.periodUS));
     buf.writeUint32(block.flags);
-    connection.sendVMSFrames(buf.getBuffer());
+    return buf.getBuffer();
 }
 
-function sendNullBlock(connection: UD3Connection, newFormat: boolean, nullID: number) {
+function buildNullBlock(newFormat: boolean, nullID: number) {
     const buffer = prepareBlockBuffer(newFormat);
     if (newFormat) {
         buffer.writeUint32(nullID);
     }
-    connection.sendVMSFrames(buffer.getBuffer());
+    return buffer.getBuffer();
 }
 
-function sendProgramHeader(programID: number, program: Program, connection: UD3Connection, newFormat: boolean) {
+function serializeProgramHeader(programID: number, program: Program, newFormat: boolean) {
     const buf = prepareHeaderBuffer(newFormat);
     if (newFormat) {
         buf.writeUint32(programID);
@@ -305,14 +305,14 @@ function sendProgramHeader(programID: number, program: Program, connection: UD3C
         buf.writeUint8(programID);
     }
     new TextEncoder().encode(program.name).forEach((c) => buf.writeUint8(c));
-    connection.sendVMSFrames(buf.getBuffer());
+    return buf.getBuffer();
 }
 
-function sendNullHeader(connection: UD3Connection, littleEndian: boolean) {
-    connection.sendVMSFrames(prepareHeaderBuffer(littleEndian).getBuffer());
+function buildNullHeader(littleEndian: boolean) {
+    return prepareHeaderBuffer(littleEndian).getBuffer();
 }
 
-function sendMapEntry(entry: BlockMap, connection: UD3Connection, littleEndian: boolean) {
+function serializeMapEntry(entry: BlockMap, littleEndian: boolean) {
     const buf = new VMSBuffer(11, littleEndian);
     buf.writeUint8(3);
     buf.writeUint8(entry.startNote);
@@ -340,32 +340,54 @@ function sendMapEntry(entry: BlockMap, connection: UD3Connection, littleEndian: 
     }
     buf.writeUint8(flag);
     buf.writeUint32(entry.startBlock);
-    connection.sendVMSFrames(buf.getBuffer());
+    return buf.getBuffer();
 }
 
-function sendFlush(connection: UD3Connection) {
-    const buf = new ArrayBuffer(1);
-    new DataView(buf).setUint8(0, 4);
-    connection.sendVMSFrames(Buffer.from(buf));
+function buildFlush() {
+    const buf = new VMSBuffer(1, false);
+    buf.writeUint8(4);
+    return buf.getBuffer();
 }
 
 function sendBlocks(programs: Program[], connection: UD3Connection, newFormat: boolean) {
     let maxID = 0;
+    const messages: Buffer[] = [];
     for (const program of programs) {
         for (const map of program.maps) {
             for (const block of map.blocks) {
-                sendBlock(block, connection, newFormat);
+                const buffer = serializeBlock(block, newFormat);
+                if (buffer) {
+                    messages.push(buffer);
+                }
                 maxID = Math.max(maxID, block.uid);
             }
         }
     }
-    sendNullBlock(connection, newFormat, maxID + 1);
+    messages.push(buildNullBlock(newFormat, maxID + 1));
     programs.forEach((program, id) => {
-        sendProgramHeader(id, program, connection, newFormat);
-        program.maps.forEach((map) => sendMapEntry(map, connection, newFormat));
+        messages.push(serializeProgramHeader(id, program, newFormat));
+        messages.push(...program.maps.map((map) => serializeMapEntry(map, newFormat)));
     });
-    sendNullHeader(connection, newFormat);
-    sendFlush(connection);
+    messages.push(buildNullHeader(newFormat));
+    messages.push(buildFlush());
+    sendVMSFramesToUD(connection, messages).catch((e) => {
+        ipcs.coilMisc(connection.getCoil())
+            .openToast('VMS error', 'Failed to transmit VMS frames, check log for details', ToastSeverity.error);
+        console.error('Sending VMS frames', e);
+    });
+}
+
+async function sendVMSFramesToUD(connection: UD3Connection, messages: Buffer[]) {
+    const showToast = (message: string) => {
+        ipcs.coilMisc(connection.getCoil()).openToast('VMS progress', message, ToastSeverity.info, 'vms-progress');
+    };
+    for (let i = 0; i < messages.length; ++i) {
+        if (i === 0 || i % 10 === 9) {
+            showToast(`Transmitting frame ${i + 1} of ${messages.length}`);
+        }
+        await connection.sendVMSFrame(messages[i]);
+    }
+    showToast(`Transmitted ${messages.length} frames`);
 }
 
 // Magic numbers

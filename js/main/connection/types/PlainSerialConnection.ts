@@ -54,7 +54,8 @@ export class PlainSerialConnection extends UD3Connection {
         }
     }
 
-    public async sendVMSFrames(data: Buffer) {
+    public async sendVMSFrame() {
+        throw new Error('VMS is not supported for plain serial connections');
     }
 
     public async sendDisconnectData(): Promise<void> {
