@@ -10,8 +10,24 @@ export interface NetSidConfig {
     readonly port: number;
 }
 
+export enum PhysicalMixerType {
+    none,
+    behringer_x_touch,
+}
+
+export const PHYSICAL_MIXER_TYPES = [PhysicalMixerType.none, PhysicalMixerType.behringer_x_touch];
+
+export function getMixerTypeName(type: PhysicalMixerType) {
+    switch (type) {
+        case PhysicalMixerType.none:
+            return 'None';
+        case PhysicalMixerType.behringer_x_touch:
+            return 'Behringer X-Touch';
+    }
+}
+
 export interface PhysicalMixerConfig {
-    enable: boolean;
+    type: PhysicalMixerType;
     ip: string;
     port: number;
 }

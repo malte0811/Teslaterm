@@ -38,6 +38,24 @@ export class FormHelper {
         );
     }
 
+    public makeLargeLabeledCheckbox(
+        rowLabel: string,
+        boxLabel: string,
+        enabled: boolean,
+        set: (val: boolean) => any,
+        ref?: React.RefObject<HTMLInputElement>,
+        keyPrefix?: string,
+    ) {
+        return (
+            <Form.Group as={Row} className={'tt-connect-form-row'} key={keyPrefix}>
+                <Form.Label style={({fontSize: 'large'})} column>{rowLabel}</Form.Label>
+                <Col sm={this.rightColumnWidth} style={{marginTop: 'auto'}}>
+                    {this.makeCheckbox(boxLabel, enabled, set, ref, keyPrefix)}
+                </Col>
+            </Form.Group>
+        );
+    }
+
     public makeString(
         label: string, current: string, set: (val: string) => any, type: string = 'text',
     ) {

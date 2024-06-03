@@ -2,7 +2,7 @@ import * as fs from "fs";
 import {UD3ConnectionType} from "../common/constants";
 import {ChannelID, ConnectionPreset} from "../common/IPCConstantsToRenderer";
 import {VolumeChannel, VolumeKey, VolumeUpdate} from "../common/MixerTypes";
-import {AdvancedOptions} from "../common/Options";
+import {AdvancedOptions, PhysicalMixerType} from "../common/Options";
 import {FullConnectionOptions, UD3ConnectionOptions} from "../common/SingleConnectionOptions";
 import {CoilMixerState, FullUIConfig, SavedMixerState, SyncedUIConfig} from "../common/UIConfig";
 import {getOptionalUD3Connection} from "./connection/connection";
@@ -11,7 +11,6 @@ import {
     DEFAULT_SERIAL_VENDOR,
     getDefaultSerialPortForConfig,
 } from "./connection/types/SerialCommon";
-import {convertArrayBufferToString} from "./helper";
 import {ipcs} from "./ipc/IPCProvider";
 
 
@@ -47,7 +46,7 @@ function makeDefaultAdvancedOptions(): AdvancedOptions {
     return {
         enableMIDIInput: false,
         midiOptions: {bonjourName: "Teslaterm", localName: "Teslaterm", port: 12001, runMidiServer: false},
-        mixerOptions: {enable: false, ip: 'localhost', port: 5004},
+        mixerOptions: {type: PhysicalMixerType.none, ip: 'localhost', port: 5004},
         netSidOptions: {enabled: false, port: 6581},
     };
 }
@@ -66,11 +65,20 @@ function fixConnectionPreset(
     };
 }
 
+function fixAdvancedOptions(config: Partial<AdvancedOptions>): AdvancedOptions {
+    const defaultConfig = makeDefaultAdvancedOptions();
+    const fixed: AdvancedOptions = {...defaultConfig, ...config};
+    fixed.mixerOptions = {...defaultConfig.mixerOptions, ...fixed.mixerOptions};
+    fixed.midiOptions = {...defaultConfig.midiOptions, ...fixed.midiOptions};
+    fixed.netSidOptions = {...defaultConfig.netSidOptions, ...fixed.netSidOptions};
+    return fixed;
+}
+
 function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
     if (object.connectionPresets === undefined) {
         object.connectionPresets = [];
     }
-    object.advancedOptions = {...makeDefaultAdvancedOptions(), ...object.advancedOptions};
+    object.advancedOptions = fixAdvancedOptions(object.advancedOptions);
     object.lastConnectOptions = fixConnectionOptions(object.lastConnectOptions);
     for (const preset of object.connectionPresets) {
         fixConnectionPreset(preset, object.lastConnectOptions, object.advancedOptions);

@@ -1,4 +1,4 @@
-import {AdvancedOptions} from "../../common/Options";
+import {AdvancedOptions, PhysicalMixerType} from "../../common/Options";
 import {BehringerXTouch} from "../media/PhysicalMixer";
 import {MidiServer} from "../midi/MidiServer";
 import {NetworkSIDServer} from "../sid/NetworkSIDServer";
@@ -16,8 +16,13 @@ export class ExtraConnections {
         if (options.netSidOptions.enabled) {
             this.sidServer = new NetworkSIDServer(options.netSidOptions.port);
         }
-        if (options.mixerOptions.enable) {
-            this.physicalMixer = new BehringerXTouch(options.mixerOptions);
+        switch (options.mixerOptions.type) {
+            case PhysicalMixerType.none:
+                this.physicalMixer = undefined;
+                break;
+            case PhysicalMixerType.behringer_x_touch:
+                this.physicalMixer = new BehringerXTouch(options.mixerOptions);
+                break;
         }
         this.multicoil = multicoil;
     }
