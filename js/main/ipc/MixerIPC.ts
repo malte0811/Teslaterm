@@ -96,19 +96,12 @@ export class MixerIPC {
         this.syncFaderStatesToRenderer();
     }
 
-    public sendAvailablePrograms() {
-        this.processIPC.send(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms, getUIConfig().syncedConfig.midiPrograms,
-        );
-        if (this.songlist) {
-            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setSongList, this.songlist);
-        }
-    }
-
     public sendFullState() {
         this.setChannels(this.volumes.getChannelMap());
         this.setProgramsByVoice(this.programByVoice);
-        this.sendAvailablePrograms();
+        if (this.songlist) {
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setSongList, this.songlist);
+        }
         this.syncFaderStatesToRenderer();
     }
 

@@ -31,7 +31,6 @@ export const IPC_CONSTANTS_TO_MAIN = {
     },
     connect: {
         connect: makeKey<SingleConnectionOptions>('connect-to-ud3'),
-        getPresets: makeKey<undefined>('get-connect-presets'),
         multiconnect: makeKey<MultiConnectionOptions>('connect-to-multiple-ud3'),
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
         setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),

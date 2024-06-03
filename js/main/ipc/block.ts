@@ -133,7 +133,6 @@ export function loadVMS(file: TransmittedFile) {
         });
         ipcs.mixer.setProgramsByVoice(new Map<ChannelID, number>());
         setUIConfig({midiPrograms: programs.map((p) => p.name)});
-        ipcs.mixer.sendAvailablePrograms();
     } catch (e) {
         ipcs.misc.openGenericToast('VMS', "Failed to load blocks: " + e, ToastSeverity.error);
         console.error(e);

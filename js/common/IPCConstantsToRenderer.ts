@@ -20,7 +20,6 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     alarmList: makeKey<UD3Alarm[]>('alarms'),
     centralTab: {
         informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
-        setAvailableMIDIPrograms: makeKey<string[]>('midi-programs'),
         setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
         setMixerLayer: makeKey<[MixerLayer, AllFaders]>('set-mixer-layer'),
         setSongList: makeKey<SongListData>('songlist'),
@@ -29,7 +28,6 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         connectionError: makeKey<string>('connection-error'),
         setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
         setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
-        syncPresets: makeKey<ConnectionPreset[]>('sync-connect-sesets'),
     },
     flightRecorder: {
         fullList: makeKey<{events: ParsedEvent[], initial: InitialFRState}>('fr-event-list'),

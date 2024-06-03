@@ -20,12 +20,12 @@ export interface MixerProps {
     darkMode: boolean;
     coils: CoilState[];
     ttConfig: TTConfig;
+    availablePrograms: string[];
 }
 
 interface MixerState {
     faders: AllFaders;
     currentLayer: MixerLayer | 'songList';
-    availablePrograms: string[];
     songList?: SongListData;
 }
 
@@ -33,7 +33,6 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
     public constructor(props: MixerProps) {
         super(props);
         this.state = {
-            availablePrograms: [],
             currentLayer: DEFAULT_MIXER_LAYER,
             faders: {
                 masterVolumePercent: DEFAULT_VOLUME.volumePercent,
@@ -43,10 +42,6 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
     }
 
     public componentDidMount() {
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.centralTab.setAvailableMIDIPrograms,
-            (availablePrograms) => this.setState({availablePrograms}),
-        );
         this.addIPCListener(
             IPC_CONSTANTS_TO_RENDERER.centralTab.setMixerLayer,
             ([layer, faders]) => this.setState({currentLayer: layer, faders}),
@@ -145,7 +140,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             />;
         }
         const programChoice: InstrumentChoice = data.programID !== undefined && {
-            available: this.state.availablePrograms,
+            available: this.props.availablePrograms,
             currentChoice: data.programID,
             setValue: (val) => this.setProgram(id, val),
         };

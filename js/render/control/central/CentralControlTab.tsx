@@ -58,6 +58,7 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                     darkMode={this.props.config.darkMode}
                     coils={this.props.coils}
                     ttConfig={this.props.ttConfig}
+                    availablePrograms={this.props.config.midiPrograms}
                 />
                 <Toasts {...this.props.toasts}/>
             </div>

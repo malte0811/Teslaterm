@@ -31,7 +31,7 @@ interface CentralTelemetryState {
 }
 
 export class TelemetryOverview extends TTComponent<CentralTelemetryProps, CentralTelemetryState> {
-    constructor(props) {
+    constructor(props: CentralTelemetryProps) {
         super(props);
         this.state = {
             allAvailableTelemetry: [],

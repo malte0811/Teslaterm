@@ -129,6 +129,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 setMainOptions={setOptions}
                 connecting={this.props.connecting}
                 darkMode={this.props.config.darkMode}
+                presets={this.props.config.connectionPresets}
             />
             {this.makeDarkmodeToggle()}
             {this.makeToast()}

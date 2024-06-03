@@ -1,9 +1,8 @@
 import {Button, ButtonGroup, Form} from "react-bootstrap";
 import {CONNECTION_TYPE_DESCS, UD3ConnectionType} from "../../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ConnectionPreset, IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {ConnectionPreset} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
-import {TTConfig} from "../../common/TTConfig";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
 import {areOptionsValid, MergedConnectionOptions, toSingleOptions} from "./ConnectScreen";
@@ -16,10 +15,10 @@ export interface PresetsProps {
     setMainAdvanced: (opts: Partial<AdvancedOptions>) => any;
     connecting: boolean;
     darkMode: boolean;
+    presets: ConnectionPreset[];
 }
 
 interface PresetsState {
-    presets: ConnectionPreset[];
     newEntryName: string;
     inMulticonnect: boolean;
 }
@@ -51,19 +50,13 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
         this.state = {
             inMulticonnect: false,
             newEntryName: '',
-            presets: [],
         };
     }
 
-    public componentDidMount() {
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.connect.syncPresets, (presets) => this.setState({presets}));
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.getPresets, undefined);
-    }
-
     public render() {
-        const presetList = this.state.presets.length > 0 && (
+        const presetList = this.props.presets.length > 0 && (
             <div className={'tt-preset-list'}>
-                {this.state.presets.map((preset) => this.makePresetEntry(preset))}
+                {this.props.presets.map((preset) => this.makePresetEntry(preset))}
             </div>
         );
         return (
@@ -72,11 +65,11 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 {presetList}
                 <Button
                     onClick={() => this.setState({inMulticonnect: true})}
-                    disabled={this.state.presets.length === 0}
+                    disabled={this.props.presets.length === 0}
                 >Multiconnect</Button>
                 <MulticonnectPopup
                     darkMode={this.props.darkMode}
-                    presets={this.state.presets}
+                    presets={this.props.presets}
                     visible={this.state.inMulticonnect}
                     close={() => this.setState({inMulticonnect: false})}
                     advanced={this.props.mainAdvanced}
@@ -99,7 +92,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.connect, preset.options);
         };
         const deletePreset = () => {
-            const newPresets = this.state.presets.filter((cp) => cp !== preset);
+            const newPresets = this.props.presets.filter((cp) => cp !== preset);
             processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, newPresets);
         };
         return <div
@@ -119,7 +112,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
     private makeNewEntryField() {
         const realName = this.state.newEntryName.trim();
         const canAdd = realName.length > 0 &&
-            this.state.presets.filter(preset => preset.name === realName).length === 0 &&
+            this.props.presets.filter(preset => preset.name === realName).length === 0 &&
             areOptionsValid(this.props.mainOptions);
         return <Form className={'tt-side-aligned'} onSubmit={e => e.preventDefault()}>
             <Form.Control
@@ -145,7 +138,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 advanced: this.props.mainAdvanced,
             },
         };
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, [...this.state.presets, newPreset]);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, [...this.props.presets, newPreset]);
         this.setState({newEntryName: ''});
     }
 }
