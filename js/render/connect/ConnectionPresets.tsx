@@ -45,7 +45,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
         return description;
     }
 
-    constructor(props) {
+    constructor(props: PresetsProps) {
         super(props);
         this.state = {
             inMulticonnect: false,
@@ -66,7 +66,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 <Button
                     onClick={() => this.setState({inMulticonnect: true})}
                     disabled={this.props.presets.length === 0}
-                >Multiconnect</Button>
+                >"Show" mode (Multiconnect)</Button>
                 <MulticonnectPopup
                     darkMode={this.props.darkMode}
                     presets={this.props.presets}
