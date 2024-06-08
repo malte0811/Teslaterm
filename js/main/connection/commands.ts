@@ -1,5 +1,5 @@
 import {CoilID} from "../../common/constants";
-import {getConnectionState, getUD3Connection, hasUD3Connection} from "./connection";
+import {getConnectionState, getOptionalUD3Connection} from "./connection";
 import {TerminalHandle} from "./types/UD3Connection";
 
 export class CommandInterface {
@@ -59,14 +59,13 @@ export class CommandInterface {
     }
 
     public async setTransientEnabled(enable: boolean) {
+        getOptionalUD3Connection(this.coil)?.clearLastSynth();
         await this.sendCommand('tr ' + (enable ? 'start' : 'stop') + '\r');
     }
 
     public async sendCommand(c: string) {
         try {
-            if (hasUD3Connection(this.coil)) {
-                await getUD3Connection(this.coil).sendTelnet(Buffer.from(c), TerminalHandle.automatic);
-            }
+            await getOptionalUD3Connection(this.coil)?.sendTelnet(Buffer.from(c), TerminalHandle.automatic);
         } catch (x) {
             console.log("Error while sending: ", x);
         }

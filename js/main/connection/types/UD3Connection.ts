@@ -117,5 +117,9 @@ export abstract class UD3Connection {
         }
     }
 
+    public clearLastSynth() {
+        this.lastSynthType = undefined;
+    }
+
     protected abstract setSynthImpl(type: SynthType): Promise<void>;
 }
