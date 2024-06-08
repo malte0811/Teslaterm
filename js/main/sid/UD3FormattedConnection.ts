@@ -29,7 +29,10 @@ export class UD3FormattedConnection implements ISidConnection {
     }
 
     public flush(): Promise<void> {
-        this.lastQueuedFrameTime = this.lastSentFrameTime = microtime.now() + 500e3;
+        // Offset is only here to make sure we do not get "frame is in the past" warnings from the UD3. The actual
+        // start offset is handled in flushAllSID! Note that this offset has to be smaller than the start offset,
+        // otherwise the first few frames (the difference) are dropped.
+        this.lastQueuedFrameTime = this.lastSentFrameTime = microtime.now() + 10e3;
         return this.flushCallback();
     }
 

@@ -39,15 +39,13 @@ export function shouldQueueSIDFrames() {
 }
 
 export function queueSIDFrame(frame: SidFrame) {
-    if (nextFrameTime < microtime.now()) {
-        nextFrameTime = microtime.now() + 100e3;
-    }
     queuedFutureFrames.push({data: frame.data, time: nextFrameTime});
     nextFrameTime += frame.delayMicrosecond;
 }
 
 export async function flushAllSID() {
     queuedFutureFrames = [];
+    nextFrameTime = microtime.now() + 50e3;
     await forEachCoilAsync(async (coil) => {
         await getActiveSIDConnection(coil)?.flush();
     });
