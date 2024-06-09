@@ -104,12 +104,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             // only one file, not a script
             await FileUploadIPC.uploadFile(files[0]);
         } else {
-            // Multiple files or a JS file => compress and treat as script
-            let scriptName = MainScreen.findScriptName(files);
-            if (!scriptName) {
-                return;
-            }
-            scriptName = scriptName.substring(0, scriptName.length - 2) + "zip";
+            // Multiple files or a JS file => send compressed; let main process work out what it is
             const zip = new JSZip();
             // Not actually possible here!
             // tslint:disable-next-line:prefer-for-of
@@ -118,7 +113,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                 zip.file(file.name, await file.arrayBuffer());
             }
             const zipContent = await zip.generateAsync({type: "uint8array"});
-            FileUploadIPC.upload(scriptName, zipContent);
+            FileUploadIPC.upload('multiple-files.zip', zipContent);
         }
     }
 
@@ -278,21 +273,5 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             darkMode: this.props.config.darkMode,
             toasts: getToasts(this.state.toasts, (coil) => this.getCoilStatus(coil).name, coil),
         };
-    }
-
-    private static findScriptName(files: FileList) {
-        let scriptName: string;
-        for (let i = 0; i < files.length; ++i) {
-            const file = files[i].name;
-            if (file.endsWith(".js")) {
-                if (scriptName) {
-                    // More than one script => Not able to run
-                    return undefined;
-                } else {
-                    scriptName = file;
-                }
-            }
-        }
-        return scriptName;
     }
 }

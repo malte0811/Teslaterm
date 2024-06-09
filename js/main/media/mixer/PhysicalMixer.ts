@@ -1,11 +1,11 @@
 import {manager, Session} from "rtpmidi";
-import {PlayerActivity} from "../../common/MediaTypes";
-import {AllFaders, MixerLayer} from "../../common/MixerTypes";
-import {PhysicalMixerConfig} from "../../common/Options";
-import {getCoils} from "../connection/connection";
-import {ipcs} from "../ipc/IPCProvider";
-import {media_state} from "./media_player";
-import {NUM_SPECIFIC_FADERS} from "./VolumeMap";
+import {PlayerActivity} from "../../../common/MediaTypes";
+import {AllFaders, MixerLayer} from "../../../common/MixerTypes";
+import {PhysicalMixerConfig, PhysicalMixerType} from "../../../common/Options";
+import {getCoils} from "../../connection/connection";
+import {media_state} from "../media_player";
+import {NUM_SPECIFIC_FADERS} from "../VolumeMap";
+import {MixerState} from "./MixerState";
 
 // MIDI standard would be -8192 to 8191, but this is easier for this application
 const FADER_MAX = 16383;
@@ -66,7 +66,13 @@ function percentToFader(percent: number) {
     return percent * FADER_MAX / PERCENT_MAX;
 }
 
-export class BehringerXTouch {
+export interface PhysicalMixer {
+    close(): void;
+    movePhysicalSliders(allFaders: AllFaders): void;
+    updateLayer(currentLayer: MixerLayer): void;
+}
+
+class BehringerXTouch implements PhysicalMixer {
     private readonly session: Session;
     private readonly config: PhysicalMixerConfig;
     private readonly reconnectTimer: NodeJS.Timeout;
@@ -75,10 +81,12 @@ export class BehringerXTouch {
     // Index is MIDI note used to trigger the button
     private readonly lastButtonStates = new Map<number, boolean>();
     private readonly mediaUpdateCallback: (state: PlayerActivity) => any;
+    private readonly mixerLogic: MixerState;
     private commsReady: boolean = false;
 
-    constructor(config: PhysicalMixerConfig) {
+    constructor(config: PhysicalMixerConfig, mixerLogic: MixerState) {
         this.config = config;
+        this.mixerLogic = mixerLogic;
         this.session = manager.createSession({
             bonjourName: 'Teslaterm to XTouch',
             localName: 'Teslaterm to XTouch',
@@ -89,25 +97,25 @@ export class BehringerXTouch {
             const asButtonPress = decodeButtonPress(data);
             if (asPitchBend) {
                 const volumePercent = faderToPercent(asPitchBend.value);
-                ipcs.mixer.setVolumeFromPhysical(asPitchBend.channel, {volumePercent});
+                this.mixerLogic.setVolumeFromPhysical(asPitchBend.channel, {volumePercent});
             } else if (asButtonPress) {
                 const layers: MixerLayer[] = ['coilMaster', 'voiceMaster', ...getCoils()];
-                const currentIndex = layers.indexOf(ipcs.mixer.getCurrentLayer());
+                const currentIndex = layers.indexOf(this.mixerLogic.getCurrentLayer());
                 if (asButtonPress.key === PREV_BANK_KEY && currentIndex > 0) {
-                    ipcs.mixer.setLayer(layers[currentIndex - 1]);
+                    this.mixerLogic.setLayer(layers[currentIndex - 1]);
                 } else if (asButtonPress.key === NEXT_BANK_NOTE && currentIndex < layers.length - 1) {
-                    ipcs.mixer.setLayer(layers[currentIndex + 1]);
+                    this.mixerLogic.setLayer(layers[currentIndex + 1]);
                 } else if (asButtonPress.key === PLAY_NOTE) {
                     await media_state.startPlaying();
                 } else if (asButtonPress.key === STOP_NOTE) {
                     media_state.stopPlaying();
                 } else if (asButtonPress.key >= FIRST_MUTE_NOTE && asButtonPress.key <= LAST_MUTE_NOTE) {
                     const fader = asButtonPress.key - FIRST_MUTE_NOTE;
-                    ipcs.mixer.setVolumeFromPhysical(fader, {muted: !this.lastButtonStates.get(asButtonPress.key)});
+                    this.mixerLogic.setVolumeFromPhysical(fader, {muted: !this.lastButtonStates.get(asButtonPress.key)});
                 } else if (asButtonPress.key === PREV_SONG_NOTE) {
-                    ipcs.mixer.cycleMediaFile(false);
+                    this.mixerLogic.cycleMediaFile(false);
                 } else if (asButtonPress.key === NEXT_SONG_NOTE) {
-                    ipcs.mixer.cycleMediaFile(true);
+                    this.mixerLogic.cycleMediaFile(true);
                 }
             } else {
                 const hex = data.map((i) => i.toString(16)).join(' ');
@@ -124,7 +132,7 @@ export class BehringerXTouch {
         media_state.addUpdateCallback(this.mediaUpdateCallback);
         this.session.on('streamAdded', () => setTimeout(() => {
             this.commsReady = true;
-            ipcs.mixer.updatePhysicalMixer();
+            this.mixerLogic.updatePhysicalMixer();
             this.mediaUpdateCallback(media_state.state);
         }, 100));
         this.connect();
@@ -177,7 +185,7 @@ export class BehringerXTouch {
         }
     }
 
-    public set7SegmentText(startDigit: number, value: string) {
+    private set7SegmentText(startDigit: number, value: string) {
         // is there even any data?
         if (value.length === 0) {
             return;
@@ -256,4 +264,23 @@ export class BehringerXTouch {
     private connect() {
         this.session.connect({port: this.config.port, address: this.config.ip});
     }
+}
+
+class NullMixer implements PhysicalMixer {
+    public close() {
+    }
+
+    public movePhysicalSliders(allFaders: AllFaders) {
+    }
+
+    public updateLayer(currentLayer: MixerLayer) {
+    }
+}
+
+export function makeMixer(config: PhysicalMixerConfig, logic: MixerState): PhysicalMixer {
+    switch (config.type) {
+        case PhysicalMixerType.behringer_x_touch:
+            return new BehringerXTouch(config, logic);
+    }
+    return new NullMixer();
 }

@@ -1,6 +1,6 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {forEachCoil, getOptionalUD3Connection} from "../connection/connection";
+import {forEachCoil, getMixer, getOptionalUD3Connection} from "../connection/connection";
 import {UD3Connection} from "../connection/types/UD3Connection";
 import {setUIConfig} from "../UIConfigHandler";
 import {ipcs} from "./IPCProvider";
@@ -131,7 +131,7 @@ export function loadVMS(file: TransmittedFile) {
                 sendBlocks(programs, connection, connection.getProtocolVersion() >= 3.0);
             }
         });
-        ipcs.mixer.setProgramsByVoice(new Map<ChannelID, number>());
+        getMixer()?.setProgramsByVoice(new Map<ChannelID, number>());
         setUIConfig({midiPrograms: programs.map((p) => p.name)});
     } catch (e) {
         ipcs.misc.openGenericToast('VMS', "Failed to load blocks: " + e, ToastSeverity.error);

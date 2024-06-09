@@ -63,21 +63,7 @@ export class Script {
         }
     }
 
-    public static async create(zipData: ArrayBuffer): Promise<Script | null> {
-        const loadedZip: JSZip = await JSZip.loadAsync(zipData);
-
-        let scriptName = null;
-        for (const name of Object.keys(loadedZip.files)) {
-            if (name.endsWith(".js")) {
-                if (scriptName) {
-                    throw new Error("Multiple scripts in zip: " + scriptName + " and " + name);
-                }
-                scriptName = name;
-            }
-        }
-        if (scriptName == null) {
-            throw new Error("Did not find script in zip file!");
-        }
+    public static async create(loadedZip: JSZip, scriptName: string): Promise<Script | null> {
         const script = await loadedZip.file(scriptName).async("string");
         const ret = new Script(loadedZip, script);
         for (const entry of ret.queue) {

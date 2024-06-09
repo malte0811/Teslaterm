@@ -1,8 +1,7 @@
 import * as path from "path";
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity, SynthType} from "../../common/MediaTypes";
-import {forEachCoil, forEachCoilAsync, getConnectedCoils, getUD3Connection} from "../connection/connection";
+import {forEachCoil, forEachCoilAsync, getConnectedCoils, getMixer, getUD3Connection} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkAllTransientDisabled, isSID, media_state} from "../media/media_player";
 import * as microtime from "../microtime";
@@ -58,18 +57,19 @@ async function stopPlayingSID() {
 export async function loadSidFile(file: TransmittedFile) {
     const extension = path.extname(file.name).substring(1).toLowerCase();
     const name = path.basename(file.name);
-    ipcs.mixer.resetBeforeSongLoad();
+    getMixer()?.resetBeforeSongLoad();
     if (extension === "dmp") {
         current_sid_source = new DumpSidSource(file.contents);
-        await media_state.loadFile(file, MediaFileType.sid_dmp, name, [0, 1, 2], startPlayingSID, stopPlayingSID);
+        getMixer()?.setChannels([0, 1, 2]);
+        await media_state.loadFile(file, MediaFileType.sid_dmp, name, startPlayingSID, stopPlayingSID);
     } else if (extension === "sid") {
         const source_emulated = new EmulationSidSource(file.contents);
         current_sid_source = source_emulated;
+        getMixer()?.setChannels([0, 1, 2]);
         await media_state.loadFile(
             file,
             MediaFileType.sid_emulated,
             source_emulated.sid_info.title,
-            [0, 1, 2],
             startPlayingSID,
             stopPlayingSID,
         );

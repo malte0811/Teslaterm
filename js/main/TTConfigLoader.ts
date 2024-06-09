@@ -156,14 +156,8 @@ export function loadConfig(filename: string): TTConfig {
         "Default values for features of the UD3. These values will only be used if the UD3 does not specify " +
         "the correct values to use.",
     );
-    const miscSection = config.getOrCreateSection(
-        'misc', 'Only temporarily in this config, will be moved to UI config in the future',
-    );
     const ttConfig: TTConfig = {
         defaultUDFeatures: readSectionFromMap<string>(defaultUDFeatures, udFeaturesInConfig, changed),
-        mainMediaPath: miscSection.getOrWrite(
-            'mainMediaPath', '', changed, 'Path for media files to cycle through in mixer',
-        ),
         udConfigPages: readSectionFromMap<number>(defaultUDConfigPages, udconfig, changed),
     };
     if (changed.changed) {

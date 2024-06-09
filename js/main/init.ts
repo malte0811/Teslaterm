@@ -1,4 +1,5 @@
 import {TTConfig} from "../common/TTConfig";
+import {getMixer} from "./connection/connection";
 import * as connection from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
 import * as IPC from "./ipc/IPCProvider";
@@ -23,6 +24,7 @@ function tick200() {
 
 function tick100() {
     ipcs.tick100();
+    getMixer()?.tick100();
 }
 
 function tick20() {

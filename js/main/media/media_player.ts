@@ -7,7 +7,7 @@ import {CoilMixerState, SavedMixerState} from "../../common/UIConfig";
 import {
     findCoilByName,
     forEachCoilAsync,
-    getCoilCommands,
+    getCoilCommands, getMixer,
     getUD3Connection,
     hasUD3Connection,
 } from "../connection/connection";
@@ -23,11 +23,11 @@ export function isSID(type: MediaFileType): boolean {
 }
 
 function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
-    ipcs.mixer.updateVolume({coil}, state.masterSetting, false);
-    ipcs.mixer.updateVolume({coil, channel: 'sidSpecial'}, state.sidSpecialSettings, false);
+    getMixer()?.updateVolume({coil}, state.masterSetting, false);
+    getMixer()?.updateVolume({coil, channel: 'sidSpecial'}, state.sidSpecialSettings, false);
     state.channelSettings.forEach((settings, channel) => {
         if (settings !== undefined) {
-            ipcs.mixer.updateVolume({coil, channel}, settings, false);
+            getMixer()?.updateVolume({coil, channel}, settings, false);
         }
     });
 }
@@ -44,7 +44,7 @@ function applyMixerState(state: SavedMixerState) {
         if (programName !== undefined) {
             const programID = getUIConfig().syncedConfig.midiPrograms.indexOf(programName);
             if (programID >= 0) {
-                ipcs.mixer.setProgramForChannel(channel, programID);
+                getMixer()?.setProgramForChannel(channel, programID);
             }
         }
     });
@@ -88,7 +88,6 @@ export class PlayerState {
         file: TransmittedFile,
         type: MediaFileType,
         title: string,
-        voices: number[],
         startCallback?: () => Promise<void>,
         stopCallback?: () => void,
     ) {
@@ -98,11 +97,9 @@ export class PlayerState {
         this.startCallback = startCallback;
         this.stopCallback = stopCallback;
         this.progress = 0;
-        this.voices = voices;
         const prefix = type === MediaFileType.midi ? 'MIDI file: ' : "SID file: ";
         ipcs.menu.setMediaName(prefix + title);
         ipcs.misc.updateMediaInfo();
-        ipcs.mixer.setChannels(this.voices);
         await forEachCoilAsync(async (coil) => {
             if (hasUD3Connection(coil)) {
                 await getUD3Connection(coil).setSynthByFiletype(type, false);
@@ -183,7 +180,7 @@ export async function checkAllTransientDisabled() {
 }
 
 export function isMediaFile(filename: string): boolean {
-    const extension = path.extname(filename).substr(1).toLowerCase();
+    const extension = path.extname(filename).substring(1).toLowerCase();
     return extension === "mid" || extension === "sid" || extension === "dmp";
 }
 
@@ -191,7 +188,7 @@ export async function loadMediaFile(file: TransmittedFile): Promise<void> {
     if (media_state.state === PlayerActivity.playing) {
         media_state.stopPlaying();
     }
-    const extension = path.extname(file.name).substr(1).toLowerCase();
+    const extension = path.extname(file.name).substring(1).toLowerCase();
     if (extension === "mid") {
         await loadMidiFile(file);
     } else if (extension === "dmp" || extension === "sid") {

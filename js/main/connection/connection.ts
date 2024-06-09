@@ -9,7 +9,7 @@ import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
 import {media_state} from "../media/media_player";
-import {BehringerXTouch} from "../media/PhysicalMixer";
+import {MixerState} from "../media/mixer/MixerState";
 import {setLastConnectionOptions, setUIConfig} from "../UIConfigHandler";
 import {CommandInterface} from "./commands";
 import {ExtraConnections} from "./ExtraConnections";
@@ -65,8 +65,8 @@ export function clearCoils() {
     // TODO clear e.g. SID caches
 }
 
-export function getPhysicalMixer(): BehringerXTouch | undefined {
-    return extraConnections?.getPhysicalMixer();
+export function getMixer(): MixerState | undefined {
+    return extraConnections?.getMixer();
 }
 
 export function isMulticoil(): boolean | undefined {
@@ -105,7 +105,7 @@ export async function startConf(coil: CoilID) {
     await getUD3Connection(coil).setSynthByFiletype(media_state.type, false);
     await commands.resetKill();
     await commands.startTelemetry();
-    ipcs.mixer.sendVolumesTo(coil);
+    getMixer()?.sendVolumesTo(coil);
 }
 
 export async function disconnectFrom(coil: CoilID) {

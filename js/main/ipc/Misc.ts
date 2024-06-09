@@ -6,7 +6,7 @@ import {
     ToastSeverity,
     UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
-import {forEachCoil} from "../connection/connection";
+import {forEachCoil, getMixer} from "../connection/connection";
 import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
 import {media_state} from "../media/media_player";
@@ -97,7 +97,7 @@ export class CommonMiscIPC {
         );
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
             forEachCoil(sendCoilSync);
-            ipcs.mixer.sendFullState();
+            getMixer()?.sendFullState();
         });
     }
 

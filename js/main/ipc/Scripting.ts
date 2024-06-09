@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
@@ -40,10 +41,10 @@ export class ScriptingIPC {
         }
     }
 
-    public async loadScript(file: TransmittedFile) {
+    public async loadScript(data: JSZip, jsName: string) {
         try {
-            this.currentScript = await Script.create(file.contents);
-            ipcs.menu.setScriptName(file.name);
+            this.currentScript = await Script.create(data, jsName);
+            ipcs.menu.setScriptName(jsName);
         } catch (e) {
             ipcs.misc.openGenericToast('Script', "Failed to load script: " + e, ToastSeverity.error, 'failed-script-load');
             console.log(e);

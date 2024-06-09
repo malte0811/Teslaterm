@@ -1,9 +1,10 @@
 import {TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
-import {isMulticoil} from "../connection/connection";
+import {getMixer, isMulticoil} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
+import {MixerState} from "../media/mixer/MixerState";
 import {player, startCurrentMidiFile, stopMidiFile, VOLUME_CC_KEY} from "./midi";
 
 // TODO for some reason MidiPlayer::getEvents() is a 2-dim array despite the signature?
@@ -47,9 +48,7 @@ function warnAndCleanMultivalues<K, T>(map: Map<K, T[]>, message: (key: K, count
     return result;
 }
 
-export async function loadMidiFile(file: TransmittedFile) {
-    (player as any).defaultTempo = 120;
-    player.loadArrayBuffer(file.contents);
+function updateMixer(mixer: MixerState) {
     const uniqueChannels: number[] = [];
     const programsByChannel = new Map<ChannelID, number[]>();
     const volumesByChannel = new Map<ChannelID, number[]>();
@@ -82,23 +81,32 @@ export async function loadMidiFile(file: TransmittedFile) {
         nameByChannel.set(channel, nameByTrack.get(track) || `Channel ${channel}`);
     }
     uniqueChannels.sort((a, b) => a - b);
-    ipcs.mixer.resetBeforeSongLoad();
-    ipcs.mixer.setProgramsByVoice(programByChannel);
-    ipcs.mixer.setChannelNames(nameByChannel);
+    mixer.resetBeforeSongLoad();
+    mixer.setProgramsByVoice(programByChannel);
+    mixer.setChannelNames(nameByChannel);
+    mixer.setChannels(uniqueChannels);
     uniqueChannels.forEach((channel) => {
         if (volumeByChannel.has(channel)) {
-            ipcs.mixer.updateVolume({channel}, {
+            mixer.updateVolume({channel}, {
                 muted: false,
                 volumePercent: volumeByChannel.get(channel),
             }, false);
         }
     });
+}
+
+export async function loadMidiFile(file: TransmittedFile) {
+    (player as any).defaultTempo = 120;
+    player.loadArrayBuffer(file.contents);
+    const mixer = getMixer();
+    if (mixer) {
+        updateMixer(mixer);
+    }
     ipcs.misc.updateMediaInfo();
     await media_state.loadFile(
         file,
         MediaFileType.midi,
         file.name.substring(0, file.name.length - 4),
-        uniqueChannels,
         startCurrentMidiFile,
         stopMidiFile,
     );
