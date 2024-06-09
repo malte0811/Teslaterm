@@ -15,6 +15,7 @@ import {processIPC} from "../../../ipc/IPCProvider";
 import {TTComponent} from "../../../TTComponent";
 import {CoilState} from "../../MainScreen";
 import {InstrumentChoice, MixerColumn, MuteState} from "./MixerColumn";
+import {Playlist} from "./Playlist";
 
 export interface MixerProps {
     darkMode: boolean;
@@ -51,7 +52,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
 
     public render() {
         const elements =  this.state.currentLayer === 'songList' ?
-            this.makeSongListTab() :
+            [<Playlist {...this.state.songList}/>] :
             this.state.faders.specificFaders.map((state, i) => this.makeFader(state, i));
         return <div className={'tt-mixer'}>
             <div className={'tt-mixer-border-box'} style={{display: 'flex', flexDirection: 'row'}}>
@@ -110,24 +111,6 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
         processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.setMIDIProgramOverride, [fader, program]);
     }
 
-    private makeSongListTab() {
-        const songlistData = this.state.songList;
-        const songs: React.JSX.Element[] = [];
-        songlistData.songs.forEach((song, i) => {
-            const props: React.CSSProperties = i !== songlistData.current ?
-                {padding: '1px'} :
-                {borderStyle: 'solid', borderWidth: '1px'};
-            songs.push(<div style={{
-                width: '100%',
-                ...props,
-            }}>{song}</div>);
-        });
-        return [
-            <div style={{marginRight: '10px'}}>{...songs}</div>,
-            <div>{this.makeMediaCycleButtons()}</div>,
-        ];
-    }
-
     private makeFader(data: FaderData | undefined, id: FaderID, allowMute: boolean = true) {
         if (!data) {
             return <MixerColumn
@@ -165,17 +148,5 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             style={{width: '100%'}}
             disabled={this.state.currentLayer === layer}
         >{text}</Button>;
-    }
-
-    private makeMediaCycleButtons() {
-        return <>
-            <Button onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: true})}>
-                Next
-            </Button>
-            <Button
-                onClick={() => processIPC.send(IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, {next: false})}>
-                Prev
-            </Button>
-        </>;
     }
 }

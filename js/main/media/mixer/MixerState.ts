@@ -141,6 +141,11 @@ export class MixerState {
         ipcs.mixer.sendSongList(this.playlist.getSyncState());
     }
 
+    public async setPlaylistIndex(choice: number) {
+        await this.playlist.setIndex(choice);
+        ipcs.mixer.sendSongList(this.playlist.getSyncState());
+    }
+
     public close() {
         this.physicalMixer.close();
     }

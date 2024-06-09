@@ -30,7 +30,11 @@ export class Playlist {
 
     public async cycle(forward: boolean) {
         const nonWrapped = this.currentSong + (forward ? 1 : -1);
-        this.currentSong = (nonWrapped + this.songs.length) % this.songs.length;
+        await this.setIndex((nonWrapped + this.songs.length) % this.songs.length);
+    }
+
+    public async setIndex(index: number) {
+        this.currentSong = index;
         await this.loadSelectedFile();
     }
 

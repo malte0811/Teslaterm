@@ -20,8 +20,8 @@ export const IPC_CONSTANTS_TO_MAIN = {
         setCentralTelemetry: makeKey<string[]>('set-central-telemetry'),
         setMIDIProgramOverride: makeKey<[FaderID, number]>('set-program-override'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
+        setPlaylistIndex: makeKey<number>('playlist-index'),
         setVolume: makeKey<[VolumeKey, VolumeUpdate]>('set-volume'),
-        switchMediaFile: makeKey<{next: boolean}>('switch-file'),
     },
     clearCoils: makeKey<undefined>('clear-coils'),
     commands: {

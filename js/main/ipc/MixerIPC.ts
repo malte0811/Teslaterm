@@ -30,7 +30,8 @@ export class MixerIPC {
             },
         );
         processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.centralTab.switchMediaFile, (choice) => getMixer()?.cycleMediaFile(choice.next),
+            IPC_CONSTANTS_TO_MAIN.centralTab.setPlaylistIndex,
+            (choice) => getMixer()?.setPlaylistIndex(choice),
         );
     }
 
