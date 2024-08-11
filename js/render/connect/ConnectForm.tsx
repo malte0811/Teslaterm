@@ -102,7 +102,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         }
         return <div className={'tt-connect-form'}>
             <TTDropdown
-                title={CONNECTION_TYPE_DESCS.get(currentType)}
+                title={'Connection type: ' + CONNECTION_TYPE_DESCS.get(currentType)}
                 darkMode={this.props.darkMode}
             >
                 {possibleTypes}
@@ -137,7 +137,7 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         const auto = options.autoconnect;
         const formElements = [
             this.helper.makeCheckbox(
-                "Autoconnect", auto, autoconnect => this.props.setOptions({autoconnect}), this.firstFieldRef,
+                "Connect by vendor/product", auto, autoconnect => this.props.setOptions({autoconnect}), this.firstFieldRef,
             ),
         ];
         if (options.autoconnect) {
