@@ -26,11 +26,7 @@ export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, 
             ipcs.terminal(coil).print(s);
         }
     };
-    const handleFrame = (frame: TelemetryFrame) => {
-        if (onAutoTerminal) {
-            sendTelemetryFrame(frame, coil, initializing);
-        }
-    };
+    const handleFrame = (frame: TelemetryFrame) => sendTelemetryFrame(frame, coil, initializing);
 
     const buf = new Uint8Array(data);
     getOrCreateChannel(coil, onAutoTerminal).processBytes(buf, print, handleFrame);
