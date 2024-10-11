@@ -144,7 +144,8 @@ function parseVMSToStructuredMap(data: Uint8Array) {
     const lines = Buffer.from(data)
         .toString('utf8')
         .replace(/[\t,\u0000]*/g, '')
-        .split('\r\n');
+        .replace('\r', '')
+        .split('\n');
     const toplevel = new VMSDataMap();
     const currentStack: VMSDataMap[] = [toplevel];
     for (const line of lines) {
