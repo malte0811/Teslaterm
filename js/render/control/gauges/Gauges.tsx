@@ -52,6 +52,10 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
             this.setState((oldState) => {
                 const newGauges: GaugeProps[] = [...oldState.gauges];
                 for (const [id, value] of Object.entries(update.values)) {
+                    if (!newGauges[id]) {
+                        console.warn(`Invalid gauge ${id}`);
+                        continue;
+                    }
                     const config = newGauges[id].config;
                     newGauges[id] = {value, config, darkMode: this.props.darkMode};
                 }
