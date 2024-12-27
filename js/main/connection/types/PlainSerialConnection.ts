@@ -68,16 +68,10 @@ export class PlainSerialConnection extends UD3Connection {
     }
 
     public resetWatchdog(): void {
-        this.sendAsync(Buffer.of(0xF0, 0x0F, 0));
-        // this.sendAsync(Buffer.of(0x07));
+        // NOP
     }
 
-    public sendMidi(data: Buffer): Promise<void> {
-        if (data.length < 3) {
-            data = Buffer.concat([data, Buffer.alloc(3 - data.length, 0)]);
-        }
-        console.assert(data[0] >= 0x80);
-        return this.sendAsync(data);
+    public async sendMidi(data: Buffer): Promise<void> {
     }
 
     public async sendTelnet(data: Buffer): Promise<void> {
