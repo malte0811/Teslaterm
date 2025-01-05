@@ -55,7 +55,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         );
     }
 
-    private makeTabs(): JSX.Element {
+    private makeTabs(): React.JSX.Element {
         const optionsByTab: IndexedOption[][] = [];
         this.state.current.map((opt, index) => {
             const tab = this.props.ttConfig.udConfigPages.get(opt.name) || 0;
@@ -71,7 +71,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         );
     }
 
-    private makeOptionsTab(tabIndex: number, options: IndexedOption[]): JSX.Element {
+    private makeOptionsTab(tabIndex: number, options: IndexedOption[]): React.JSX.Element {
         const title = TAB_NAMES[tabIndex] || 'Unknown';
         return (
             <Tab title={title} key={tabIndex} eventKey={tabIndex} tabClassName={this.props.darkMode && 'tt-dark-tabs'}>
@@ -82,7 +82,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         );
     }
 
-    private makeOption(option: IndexedOption): JSX.Element {
+    private makeOption(option: IndexedOption): React.JSX.Element {
         return (
             <Form.Group as={Row} key={option.index}>
                 <Form.Label column={'sm'}>{option.option.name}</Form.Label>

@@ -96,7 +96,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeWarningItem<T>(
-        items: JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T,
+        items: React.JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T,
     ) {
         items.push(<Dropdown.Item
             as={Button}

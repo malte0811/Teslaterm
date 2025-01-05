@@ -1,8 +1,6 @@
 import JSZip from "jszip";
 import React from "react";
 import {Button, ButtonToolbar, Col, Modal, Nav, OverlayTrigger, Row, Tab, Tooltip} from "react-bootstrap";
-import * as xterm from "xterm";
-import {FitAddon} from "xterm-addon-fit";
 import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
@@ -44,15 +42,7 @@ export interface MainScreenProps {
     config: SyncedUIConfig;
 }
 
-// TODO this is a hack. I'm not 100% sure why, but Terminal does not like open/dispose cycles
-export interface TerminalRef {
-    terminal?: xterm.Terminal;
-    fitter: FitAddon;
-}
-
 export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState> {
-    private readonly terminal = new Map<CoilID, TerminalRef>();
-
     constructor(props: any) {
         super(props);
         this.state = {
@@ -220,15 +210,8 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     private renderSingleTab(coil: CoilID, type: 'single-coil' | 'combined'): React.ReactNode {
-        if (!this.terminal.has(coil)) {
-            this.terminal.set(coil, {
-                fitter: new FitAddon(),
-                terminal: undefined,
-            });
-        }
         const coilStatus = this.getCoilStatus(coil);
         return <SingleCoilTab
-            terminal={this.terminal.get(coil)}
             allowInteraction={coilStatus.connection === ConnectionStatus.CONNECTED}
             ttConfig={this.props.ttConfig}
             connectionStatus={coilStatus.connection}
@@ -241,7 +224,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         />;
     }
 
-    private makeScriptPopup(): JSX.Element {
+    private makeScriptPopup(): React.JSX.Element {
         const confirm = (ok: boolean) => {
             processIPC.send(
                 IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny,

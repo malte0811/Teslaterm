@@ -105,7 +105,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         }
     }
 
-    private makeTabContents(): JSX.Element {
+    private makeTabContents(): React.JSX.Element {
         return <div className={'tt-tabs-body'}>
             <Tab.Content>
                 <Tab.Pane eventKey={0} className={'tt-tabs-body-inner'} key={0}>
@@ -116,7 +116,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         </div>;
     }
 
-    private makeControlledContent(index: number): JSX.Element {
+    private makeControlledContent(index: number): React.JSX.Element {
         const key = index + 1;
         return <Tab.Pane eventKey={key} className={'tt-tabs-body-inner'} key={key}>
             {
@@ -128,7 +128,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         </Tab.Pane>;
     }
 
-    private makeTabRow(): JSX.Element {
+    private makeTabRow(): React.JSX.Element {
         return <div className={'tt-tabs-top'}>
             <Nav variant="tabs">
                 <Nav.Item key={0}>
@@ -141,7 +141,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         </div>;
     }
 
-    private makeControlledTab(index: number): JSX.Element {
+    private makeControlledTab(index: number): React.JSX.Element {
         const tabKey = index + 1;
         const removeTab = (ev) => {
             ev.stopPropagation();
@@ -159,7 +159,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         </Nav.Item>;
     }
 
-    private makeMainScope(): JSX.Element {
+    private makeMainScope(): React.JSX.Element {
         const realTraces = this.state.traces.filter(t => t !== undefined);
         return <div className={'tt-scope'}>
             <MediaProgress {...this.state.media}/>

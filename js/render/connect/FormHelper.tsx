@@ -89,7 +89,7 @@ export class FormHelper {
         );
     }
 
-    public makeIntField(label: string, current: number, set: (val: number) => any): JSX.Element {
+    public makeIntField(label: string, current: number, set: (val: number) => any): React.JSX.Element {
         return this.makeString(label, current.toString(), val => set(Number.parseInt(val, 10)), 'number');
     }
 
@@ -99,7 +99,7 @@ export class FormHelper {
         set: (newVal: string) => any,
         suggestions: string[],
         ref?: React.RefObject<HTMLInputElement>,
-    ): JSX.Element {
+    ): React.JSX.Element {
         return <Form.Group as={Row} className={'tt-connect-form-row'} key={label}>
             <Form.Label column>{label}</Form.Label>
             <Col sm={this.rightColumnWidth}>

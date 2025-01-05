@@ -5,7 +5,6 @@ import {TTConfig} from "../../common/TTConfig";
 import {SyncedUIConfig} from "../../common/UIConfig";
 import {TTComponent} from "../TTComponent";
 import {Gauges} from "./gauges/Gauges";
-import {TerminalRef} from "./MainScreen";
 import {MenuBar} from "./menu/Menu";
 import {Oscilloscope} from "./scope/Oscilloscope";
 import {Sliders} from "./sliders/Sliders";
@@ -19,7 +18,6 @@ export type TabControlLevelBase<Single, Central> =
 export type TabControlLevel = TabControlLevelBase<{ coil: CoilID }, {}>;
 
 export interface SingleCoilTabProps {
-    terminal: TerminalRef;
     allowInteraction: boolean;
     ttConfig: TTConfig;
     connectionStatus: ConnectionStatus;
@@ -61,7 +59,6 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                             />
                         </div>
                         <Terminal
-                            terminal={this.props.terminal}
                             disabled={!this.props.allowInteraction}
                             coil={this.props.coil}
                         />

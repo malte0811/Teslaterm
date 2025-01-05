@@ -1,5 +1,4 @@
 import JSZip from "jszip";
-import {Simulate} from "react-dom/test-utils";
 import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {getCoils, getMixer, isMulticoil, startBootloading} from "../connection/connection";
