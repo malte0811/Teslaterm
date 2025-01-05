@@ -4,6 +4,7 @@ import {FlightEventType} from "../../../common/FlightRecorderTypes";
 import {SynthType} from "../../../common/MediaTypes";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {getFlightRecorder} from "../flightrecorder/FlightRecorder";
+import {connectSerialPort} from "./SerialMinConnection";
 import {toCommandID, UD3Connection} from "./UD3Connection";
 
 export class PlainSerialConnection extends UD3Connection {
@@ -17,31 +18,14 @@ export class PlainSerialConnection extends UD3Connection {
         this.port = port;
     }
 
-    public connect(): Promise<void> {
-        return new Promise<void>((res, rej) => {
-            this.serialPort = new SerialPort(
-                {
-                    baudRate: this.baudrate,
-                    path: this.port,
-                }, (e: Error | null) => {
-                    if (e) {
-                        console.log("Not connecting, ", e);
-                        rej(e);
-                    } else {
-                        this.serialPort.on('data', (data: Buffer) => {
-                            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_from_ud3, data);
-                            for (const terminal of this.terminalCallbacks.values()) {
-                                terminal.callback(data);
-                            }
-                        });
-                        res();
-                    }
-                });
-        })
-            .catch((e) => {
-                this.releaseResources();
-                throw e;
-            });
+    public async connect(): Promise<void> {
+        this.serialPort = await connectSerialPort(this.port, this.baudrate);
+        this.serialPort.on('data', (data: Buffer) => {
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_from_ud3, data);
+            for (const terminal of this.terminalCallbacks.values()) {
+                terminal.callback(data);
+            }
+        });
     }
 
     public releaseResources() {

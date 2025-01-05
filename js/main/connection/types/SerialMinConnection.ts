@@ -16,29 +16,8 @@ class MinSerialConnection extends MinConnection {
     }
 
     public async connect(): Promise<void> {
-        return new Promise<void>((res, rej) => {
-            this.serialPort = new SerialPort(
-                {
-                    baudRate: this.baudrate,
-                    path: this.port,
-                }, (e: Error | null) => {
-                    if (e) {
-                        console.log("Not connecting, ", e);
-                        rej(e);
-                    } else {
-                        this.serialPort.on("error", err => console.log(err));
-                        res();
-                    }
-                });
-        })
-            .then(() => super.connect())
-            .catch((e) => {
-                if (this.serialPort && this.serialPort.isOpen) {
-                    this.serialPort.close();
-                    this.serialPort.destroy();
-                }
-                throw e;
-            });
+        this.serialPort = await connectSerialPort(this.port, this.baudrate);
+        await super.connect();
     }
 
     public releaseResources() {
@@ -74,5 +53,21 @@ class MinSerialConnection extends MinConnection {
 
 export function createMinSerialConnection(coil: CoilID, port: string, baudrate: number): UD3Connection {
     return new MinSerialConnection(coil, port, baudrate);
+}
+
+export function connectSerialPort(path: string, baudRate: number): Promise<SerialPort> {
+    return new Promise<SerialPort>((res, rej) => {
+        const port = new SerialPort(
+            {baudRate, path},
+            (e: Error | null) => {
+                if (e) {
+                    console.trace("Not connecting, ", e);
+                    rej(e);
+                } else {
+                    port.on("error", (err) => console.error(err));
+                    res(port);
+                }
+            });
+    });
 }
 
