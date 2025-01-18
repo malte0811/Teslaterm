@@ -65,6 +65,7 @@
 
 .tt-vertical-slider-disabled, .tt-vertical-slider {
     writing-mode: vertical-rl;
+    direction: rtl;
     -webkit-appearance: none;
     width: 10px;
     flex: 1 0 auto;
