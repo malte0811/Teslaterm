@@ -97,7 +97,7 @@ export class App extends TTComponent<{}, TopLevelState> {
             return <ConnectScreen
                 config={this.state.config}
                 connecting={false/*TODO*/}
-                setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setDarkMode, newVal)}
+                setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setUIConfig, {darkMode: newVal})}
                 openFlightRecording={(data) => this.setState({
                     flightEvents: data,
                     screen: TopScreen.flight_recording,

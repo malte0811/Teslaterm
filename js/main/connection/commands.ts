@@ -1,5 +1,6 @@
 import {CoilID} from "../../common/constants";
 import {UD3_MAX_VOLUME} from "../media/mixer/MixerState";
+import {UD3_MAX_VOLUME} from "../media/mixer/MixerState";
 import {getOptionalUD3Connection} from "./connection";
 import {TerminalHandle} from "./types/UD3Connection";
 
@@ -67,6 +68,11 @@ export class CommandInterface {
     public async setTransientEnabled(enable: boolean) {
         getOptionalUD3Connection(this.coil)?.clearLastSynth();
         await this.sendCommand('tr ' + (enable ? 'start' : 'stop') + '\r');
+    }
+
+    public async singlePulse(ontime: number, volumePercent: number) {
+        const volumeUD3 = Math.floor(UD3_MAX_VOLUME * (volumePercent / 100));
+        await this.sendCommand(`oneshot ${ontime} ${volumeUD3}\r`);
     }
 
     public async sendCommand(c: string) {

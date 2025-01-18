@@ -2,6 +2,7 @@ import {MixerLayer, VolumeKey, VolumeUpdate} from "./MixerTypes";
 import {MultiConnectionOptions, SingleConnectionOptions} from './SingleConnectionOptions';
 import {CoilID, coilSuffix} from "./constants";
 import {ConnectionPreset, FaderID} from "./IPCConstantsToRenderer";
+import {SyncedUIConfig} from "./UIConfig";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -17,7 +18,6 @@ export const IPC_CONSTANTS_TO_MAIN = {
     centralTab: {
         requestCentralTelemetrySync: makeKey<undefined>('central-telemetry-sync'),
         requestTelemetryNames: makeKey<undefined>('request-telemetry-names'),
-        setCentralTelemetry: makeKey<string[]>('set-central-telemetry'),
         setMIDIProgramOverride: makeKey<[FaderID, number]>('set-program-override'),
         setMixerLayer: makeKey<MixerLayer>('set-mixer-layer'),
         setPlaylistIndex: makeKey<number>('playlist-index'),
@@ -33,7 +33,6 @@ export const IPC_CONSTANTS_TO_MAIN = {
         connect: makeKey<SingleConnectionOptions>('connect-to-ud3'),
         multiconnect: makeKey<MultiConnectionOptions>('connect-to-multiple-ud3'),
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
-        setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),
     },
     loadFile: makeKey<DroppedFile[]>('load-file'),
     loadFlightRecording: makeKey<number[]>('load-flight-recording'),
@@ -48,7 +47,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         startScript: makeKey<undefined>('start-script'),
         stopScript: makeKey<undefined>('stop-script'),
     },
-    setDarkMode: makeKey<boolean>('setDarkMode'),
+    setUIConfig: makeKey<Partial<SyncedUIConfig>>('set-ui-config'),
     sliders: {
         setBPS: makeKey<number>('slider-set-bps'),
         setBurstOfftime: makeKey<number>('slider-set-burst-offtime'),

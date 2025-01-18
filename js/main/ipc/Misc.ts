@@ -84,13 +84,7 @@ export class CommonMiscIPC {
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (msg) => {
             playMidiData(msg);
         });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (darkMode) => {
-            setUIConfig({darkMode});
-        });
-        this.processIPC.on(
-            IPC_CONSTANTS_TO_MAIN.centralTab.setCentralTelemetry,
-            (newTelemetryNames) => setUIConfig({centralTelemetry: newTelemetryNames}),
-        );
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setUIConfig, setUIConfig);
         this.processIPC.on(
             IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
             () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),

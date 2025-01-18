@@ -9,9 +9,10 @@ import {
     forEachCoilAsync,
     getCoilCommands, getMixer,
     getUD3Connection,
-    hasUD3Connection,
+    hasUD3Connection, isMulticoil,
 } from "../connection/connection";
 import {getUD3State} from "../connection/telemetry/UD3State";
+import {sleep} from "../helper";
 import {ipcs} from "../ipc/IPCProvider";
 import {loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
@@ -48,6 +49,24 @@ function applyMixerState(state: SavedMixerState) {
             }
         }
     });
+}
+
+async function doPrecount() {
+    const precountOptions = getUIConfig().syncedConfig.showmodeOptions.precount;
+    if (!(isMulticoil() && precountOptions.enabled)) {
+        return;
+    }
+    for (let i = 0; i < precountOptions.numBeats; ++i) {
+        await forEachCoilAsync(async (coil) => {
+            if (!hasUD3Connection(coil)) {
+                return;
+            }
+            const ontime = precountOptions.ontimePercent / 100 * ipcs.sliders(coil).ontime;
+            const volume = precountOptions.volumePercent * getMixer().getCoilVolumeMultiplier(coil);
+            await getCoilCommands(coil).singlePulse(ontime, volume);
+        });
+        await sleep(precountOptions.delayMs);
+    }
 }
 
 export class PlayerState {
@@ -123,6 +142,7 @@ export class PlayerState {
             );
             return;
         }
+        await doPrecount();
         if (this.startCallback) {
             await this.startCallback();
         }

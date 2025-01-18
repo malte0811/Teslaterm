@@ -99,6 +99,10 @@ export class MixerState {
         return this.volumes.getCoilVoiceMultiplier(coil, channel);
     }
 
+    public getCoilVolumeMultiplier(coil: CoilID) {
+        return this.volumes.getCoilMasterFraction(coil);
+    }
+
     public getCurrentLayer() {
         return this.currentLayer;
     }

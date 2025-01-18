@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import React from "react";
-import {Button, ButtonToolbar, Col, Modal, Nav, OverlayTrigger, Row, Tab, Tooltip} from "react-bootstrap";
+import {Button, ButtonGroup, ButtonToolbar, Col, Modal, Nav, OverlayTrigger, Row, Tab, Tooltip} from "react-bootstrap";
 import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
@@ -15,7 +15,8 @@ import {SyncedUIConfig} from "../../common/UIConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
-import {CentralControlTab} from "./central/CentralControlTab";
+import {CentralControlTab} from "./showmode/CentralControlTab";
+import {ShowSettingsDialog} from "./showmode/ShowSettingsDialog";
 import {SingleCoilTab} from "./SingleCoilTab";
 import {addToast, getToasts, makeToastRemover, ToastManager, ToastUpdater} from "./ToastManager";
 import {ToastsProps} from "./Toasts";
@@ -32,6 +33,7 @@ interface MainScreenState {
     scriptPopupShown: boolean;
     coilStates: Map<CoilID, CoilState>;
     toasts: ToastManager;
+    showShowSettings: boolean;
 }
 
 export interface MainScreenProps {
@@ -49,6 +51,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             coilStates: new Map<CoilID, CoilState>(),
             scriptPopup: {confirmationID: 0, message: "", title: undefined},
             scriptPopupShown: false,
+            showShowSettings: false,
             toasts: {allToasts: [], nextIndex: 0},
         };
     }
@@ -116,7 +119,10 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                                 <Nav variant={'tabs'}>
                                     {...tabs}
                                 </Nav>
-                                {this.makeCloseButton()}
+                                <ButtonGroup>
+                                    {this.makeShowSettingsButton()}
+                                    {this.makeCloseButton()}
+                                </ButtonGroup>
                             </ButtonToolbar>
                         </Row>
                         <Row className={'tt-coil-tab-main'}>
@@ -142,6 +148,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
                         </Row>
                     </Col>
                     {this.makeScriptPopup()}
+                    {this.makeShowSettingsPopup()}
                 </Tab.Container>
             </div>
         );
@@ -193,6 +200,12 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         }
     }
 
+    private makeShowSettingsButton() {
+        return <Button variant={'info'} onClick={() => this.setState({showShowSettings: true})}>
+            Settings
+        </Button>;
+    }
+
     private getCoilStatus(coil: CoilID, state?: MainScreenState) {
         return (state || this.state).coilStates.get(coil) ||
             {connection: ConnectionStatus.IDLE, id: coil, ud: UD3State.DEFAULT_STATE};
@@ -234,6 +247,15 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         </Modal>;
     }
 
+    private makeShowSettingsPopup(): React.JSX.Element {
+        return <ShowSettingsDialog
+            visible={this.state.showShowSettings}
+            darkMode={this.props.config.darkMode}
+            close={() => this.setState({showShowSettings: false})}
+            globalShowSettings={this.props.config.showmodeOptions}
+        />;
+    }
+
     private toastUpdater(): ToastUpdater {
         return (update) => this.setState((state) => ({...state, toasts: update(state.toasts)}));
     }
@@ -241,7 +263,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     private toastsForCoil(coil?: CoilID): ToastsProps {
         return {
             closeToast: makeToastRemover(this.toastUpdater()),
-            toasts: getToasts(this.state.toasts, (coil) => this.getCoilStatus(coil).name, coil),
+            toasts: getToasts(this.state.toasts, (c) => this.getCoilStatus(c).name, coil),
         };
     }
 }

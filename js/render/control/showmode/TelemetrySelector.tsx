@@ -56,8 +56,8 @@ export class TelemetrySelector extends TTComponent<TelemetrySelectorProps, Telem
 
     private setAndClose() {
         processIPC.send(
-            IPC_CONSTANTS_TO_MAIN.centralTab.setCentralTelemetry,
-            this.props.availableNames.filter((_, i) => this.state.selected[i]),
+            IPC_CONSTANTS_TO_MAIN.setUIConfig,
+            {centralTelemetry: this.props.availableNames.filter((_, i) => this.state.selected[i])},
         );
         this.close();
     }
