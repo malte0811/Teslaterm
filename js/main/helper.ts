@@ -74,6 +74,6 @@ export async function withTimeout<T>(base: Promise<T>, timeout: number, name?: s
     });
 }
 
-export async function sleep(delay: number): Promise<void> {
-    return new Promise<void>((res) => setTimeout(res, delay));
+export async function sleep(delayMs: number): Promise<void> {
+    return new Promise<void>((res) => setTimeout(res, delayMs));
 }

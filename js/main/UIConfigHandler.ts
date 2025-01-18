@@ -96,6 +96,18 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
             "Bells", "wannabe Guitar", "Drum Map", "SortOf Organ", "80s Synth",
         ];
     }
+    if (object.showmodeOptions === undefined) {
+        // TODO check if these are OK settings!
+        object.showmodeOptions = {
+            precount: {
+                delayMs: 500,
+                enabled: false,
+                numBeats: 3,
+                ontimePercent: 50,
+                volumePercent: 20,
+            },
+        };
+    }
     return object as SyncedUIConfig;
 }
 

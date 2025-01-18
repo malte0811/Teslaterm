@@ -93,7 +93,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
         };
         const deletePreset = () => {
             const newPresets = this.props.presets.filter((cp) => cp !== preset);
-            processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, newPresets);
+            processIPC.send(IPC_CONSTANTS_TO_MAIN.setUIConfig, {connectionPresets: newPresets});
         };
         return <div
             className={'tt-side-aligned tt-connect-preset'}
@@ -138,7 +138,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 advanced: this.props.mainAdvanced,
             },
         };
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.connect.setPresets, [...this.props.presets, newPreset]);
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.setUIConfig, {connectionPresets: [...this.props.presets, newPreset]});
         this.setState({newEntryName: ''});
     }
 }

@@ -3,6 +3,17 @@ import {VolumeSetting} from "./MixerTypes";
 import {AdvancedOptions} from "./Options";
 import {FullConnectionOptions} from "./SingleConnectionOptions";
 
+export interface PrecountSettings {
+    enabled: boolean;
+    volumePercent: number;
+    ontimePercent: number;
+    delayMs: number;
+    numBeats: number;
+}
+export interface ShowModeOptions {
+    precount: PrecountSettings;
+}
+
 export interface SyncedUIConfig {
     connectionPresets: ConnectionPreset[];
     darkMode: boolean;
@@ -11,6 +22,7 @@ export interface SyncedUIConfig {
 
     lastConnectOptions: FullConnectionOptions;
     advancedOptions: AdvancedOptions;
+    showmodeOptions: ShowModeOptions;
 }
 
 export interface CoilMixerState {

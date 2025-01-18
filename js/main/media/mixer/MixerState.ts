@@ -14,7 +14,7 @@ import {NUM_SPECIFIC_FADERS, VolumeMap} from "../VolumeMap";
 import {makeMixer, PhysicalMixer} from "./PhysicalMixer";
 import {Playlist} from "./Playlist";
 
-const UD3_MAX_VOLUME = (1 << 15) - 1;
+export const UD3_MAX_VOLUME = (1 << 15) - 1;
 
 export class MixerState {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
@@ -97,6 +97,10 @@ export class MixerState {
 
     public getVolumeMultiplier(coil: CoilID, channel: ChannelID) {
         return this.volumes.getCoilVoiceMultiplier(coil, channel);
+    }
+
+    public getCoilVolumeMultiplier(coil: CoilID) {
+        return this.volumes.getCoilMasterFraction(coil);
     }
 
     public getCurrentLayer() {
