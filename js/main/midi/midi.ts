@@ -2,11 +2,12 @@ import * as MidiPlayer from "midi-player-js";
 import {CoilID} from "../../common/constants";
 import {ChannelID} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
-import {forEachCoil, forEachCoilAsync, getConnectionState, hasUD3Connection} from "../connection/connection";
+import {forEachCoilAsync, getConnectionState, isMulticoil} from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
+import {getUIConfig} from "../UIConfigHandler";
 import {maybeRedirectEvent} from "./MidiRedirector";
 
 export const kill_msg = Buffer.of(0xB0, 0x78, 0x00);
@@ -18,6 +19,40 @@ export const player = new MidiPlayer.Player(
 );
 
 export async function startCurrentMidiFile() {
+    if (isMulticoil() && getUIConfig().syncedConfig.showmodeOptions.skipInitialSilence) {
+        let firstNoteOn = Infinity;
+        for (const track of player.tracks) {
+            for (const event of track.events) {
+                if (event.tick >= firstNoteOn) {
+                    break;
+                }
+                if (event.name === 'Note on') {
+                    firstNoteOn = event.tick;
+                }
+            }
+        }
+        const earlyEvents: MidiPlayer.Event[] = [];
+        for (const track of player.tracks) {
+            for (const event of track.events) {
+                if (event.tick >= firstNoteOn) {
+                    break;
+                }
+                earlyEvents.push(event);
+            }
+        }
+        earlyEvents.sort((e1, e2) => e1.tick - e2.tick);
+        for (const event of earlyEvents) {
+            await processMidiFromPlayer(event);
+            if (event.name === 'Set Tempo') {
+                console.log(JSON.stringify(event));
+                player.tempo = event.data;
+                // This is a private member, we cannot set it in another way
+                // tslint:disable-next-line:no-string-literal
+                player['defaultTempo'] = event.data;
+            }
+        }
+        player.skipToTick(firstNoteOn);
+    }
     player.play();
     ipcs.misc.updateMediaInfo();
 }

@@ -106,6 +106,7 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
                 ontimePercent: 50,
                 volumePercent: 20,
             },
+            skipInitialSilence: false,
         };
     }
     return object as SyncedUIConfig;
