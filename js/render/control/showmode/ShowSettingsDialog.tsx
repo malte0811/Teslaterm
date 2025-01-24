@@ -49,11 +49,21 @@ export class ShowSettingsDialog extends TTComponent<ShowSettingsProps, ShowSetti
 
     private buildForm() {
         const settings = this.getSettings();
-        const tooltip = (<Tooltip>
+        const precountTooltip = (<Tooltip>
             Before starting a song, fire a few individual pulses to synchronize with e.g. a performer in a Faraday suit.
         </Tooltip>);
+        const startSilenceTooltip = (<Tooltip>
+            Some MIDI files start with a few seconds of silence. This can be skipped to improve synchronization.
+        </Tooltip>);
         return <>
-            <OverlayTrigger overlay={tooltip} placement={'bottom'}>
+            <OverlayTrigger overlay={startSilenceTooltip} placement={'bottom'}>
+                <FormCheck
+                    checked={settings.skipInitialSilence}
+                    onChange={() => this.setSettings({skipInitialSilence: !settings.skipInitialSilence})}
+                    label={'Skip initial silence in MIDI'}
+                />
+            </OverlayTrigger>
+            <OverlayTrigger overlay={precountTooltip} placement={'bottom'}>
                 <FormCheck
                     checked={settings.precount.enabled}
                     onChange={() => this.setSettings({

@@ -12,6 +12,7 @@ export interface PrecountSettings {
 }
 export interface ShowModeOptions {
     precount: PrecountSettings;
+    skipInitialSilence: boolean;
 }
 
 export interface SyncedUIConfig {
