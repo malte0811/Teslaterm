@@ -6,7 +6,7 @@ import {MixerLayer, VolumeChannel, VolumeKey, VolumeUpdate} from "../../../commo
 import {PhysicalMixerConfig} from "../../../common/Options";
 import {forEachCoil, getCoilCommands} from "../../connection/connection";
 import {ipcs} from "../../ipc/IPCProvider";
-import {sendProgramChange, sendVolume} from "../../midi/midi";
+import {sendProgramChange, sendVolume} from "../../midi/MidiComms";
 import {getActiveSIDConnection, SidCommand} from "../../sid/ISidConnection";
 import {updateDefaultProgram, updateDefaultVolumes} from "../../UIConfigHandler";
 import {media_state} from "../media_player";

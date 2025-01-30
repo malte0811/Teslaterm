@@ -10,7 +10,7 @@ import {forEachCoil, getMixer} from "../connection/connection";
 import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
 import {media_state} from "../media/media_player";
-import {playMidiData} from "../midi/midi";
+import {playMidiData} from "../midi/MidiComms";
 import {getUIConfig, setUIConfig} from "../UIConfigHandler";
 import {ipcs, MainIPC} from "./IPCProvider";
 import {TemporaryIPC} from "./TemporaryIPC";
@@ -82,7 +82,7 @@ export class CommonMiscIPC {
             this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.ttConfig, config);
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (msg) => {
-            playMidiData(msg);
+            playMidiData(msg).catch((e) => console.error('Playing MIDI from renderer', e));
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setUIConfig, setUIConfig);
         this.processIPC.on(

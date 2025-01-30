@@ -3,7 +3,6 @@ import {getMixer} from "./connection/connection";
 import * as connection from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
 import * as IPC from "./ipc/IPCProvider";
-import * as midi from "./midi/midi";
 import * as sid from "./sid/sid";
 import {loadConfig} from "./TTConfigLoader";
 
@@ -29,7 +28,6 @@ function tick100() {
 
 function tick20() {
     sid.update();
-    midi.update();
 }
 
 function tick10() {

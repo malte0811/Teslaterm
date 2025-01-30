@@ -1,3 +1,5 @@
+import {MidiData} from "midi-file";
+import * as MidiManager from "midi-file";
 import {DroppedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
@@ -5,16 +7,10 @@ import {getMixer, isMulticoil} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {media_state} from "../media/media_player";
 import {MixerState} from "../media/mixer/MixerState";
-import {player, startCurrentMidiFile, stopMidiFile, VOLUME_CC_KEY} from "./midi";
+import {startCurrentMidiFile, stopMidiFile} from "./MidiComms";
+import {VOLUME_CC_KEY} from "./MidiMessages";
 
-// TODO for some reason MidiPlayer::getEvents() is a 2-dim array despite the signature?
-function fixBrokenArray<T>(reallyTwoDimArray: T[]): T[] {
-    const result: T[] = [];
-    for (const subarray of reallyTwoDimArray) {
-        result.push(...(subarray as unknown as T[]));
-    }
-    return result;
-}
+export let currentMidiFile: MidiData;
 
 function addValue<K, T>(map: Map<K, T[]>, key: K, value: T) {
     if (!map.has(key)) {
@@ -54,24 +50,26 @@ function updateMixer(mixer: MixerState) {
     const volumesByChannel = new Map<ChannelID, number[]>();
     const namesByTrack = new Map<number, string[]>();
     const tracksByChannel = new Map<ChannelID, number[]>();
-    for (const event of fixBrokenArray(player.getEvents())) {
-        if (event.name === 'Sequence/Track Name') {
-            addValue(namesByTrack, event.track, event.string);
-        }
-        if (event.channel !== undefined) {
-            if (!uniqueChannels.includes(event.channel)) {
-                uniqueChannels.push(event.channel);
+    currentMidiFile.tracks.forEach((track, trackArrayIndex) => {
+        for (const event of track) {
+            if (event.type === 'trackName') {
+                // TODO +1 on track idx?
+                addValue(namesByTrack, trackArrayIndex, event.text);
             }
-            if (event.track !== undefined) {
-                addValue(tracksByChannel, event.channel, event.track);
+            if ('channel' in event) {
+                if (!uniqueChannels.includes(event.channel)) {
+                    uniqueChannels.push(event.channel);
+                }
+                // TODO ditto on idx
+                addValue(tracksByChannel, event.channel, trackArrayIndex);
             }
-            if (event.name === 'Program Change') {
-                addValue(programsByChannel, event.channel, event.value);
-            } else if (event.name === 'Controller Change' && event.number === VOLUME_CC_KEY) {
+            if (event.type === 'programChange') {
+                addValue(programsByChannel, event.channel, event.programNumber);
+            } else if (event.type === 'controller' && event.controllerType === VOLUME_CC_KEY) {
                 addValue(volumesByChannel, event.channel, event.value * (100 / 127));
             }
         }
-    }
+    });
     const nameByTrack = warnAndCleanMultivalues(namesByTrack, (t, n) => `Have ${n} names for track ${t}`);
     const trackByChannel = warnAndCleanMultivalues(tracksByChannel, (k, n) => `${n} tracks access channel ${k}`);
     const programByChannel = warnAndCleanMultivalues(programsByChannel, (k, n) => `Channel ${k} has ${n} programs`);
@@ -96,8 +94,7 @@ function updateMixer(mixer: MixerState) {
 }
 
 export async function loadMidiFile(file: DroppedFile) {
-    (player as any).defaultTempo = 120;
-    player.loadArrayBuffer(new Uint8Array(file.bytes));
+    currentMidiFile = MidiManager.parseMidi(new Uint8Array(file.bytes));
     const mixer = getMixer();
     if (mixer) {
         updateMixer(mixer);

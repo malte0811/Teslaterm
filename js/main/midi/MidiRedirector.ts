@@ -1,11 +1,12 @@
-import * as MidiPlayer from "midi-player-js";
+import {MidiEvent} from "midi-file";
 import {ChannelID} from "../../common/IPCConstantsToRenderer";
-import {forEachCoilAsync, getMixer} from "../connection/connection";
-import {sendProgramChange, sendVolume, VOLUME_CC_KEY} from "./midi";
+import {forEachCoilAsync, getMixer, isMulticoil} from "../connection/connection";
+import {sendProgramChange, sendVolume} from "./MidiComms";
+import {VOLUME_CC_KEY} from "./MidiMessages";
 
 async function maybeRedirectProgramChange(channel: ChannelID): Promise<boolean> {
     const programOverride = getMixer()?.getProgramFor(channel);
-    if (programOverride !== undefined) {
+    if (isMulticoil() && programOverride !== undefined) {
         await sendProgramChange(channel, programOverride);
         return true;
     } else {
@@ -27,10 +28,10 @@ async function redirectVolumeChange(channel: ChannelID): Promise<boolean> {
     }
 }
 
-export async function maybeRedirectEvent(event: MidiPlayer.Event): Promise<boolean> {
-    if (event.name === 'Program Change') {
+export async function maybeRedirectEvent(event: MidiEvent): Promise<boolean> {
+    if (event.type === 'programChange') {
         return maybeRedirectProgramChange(event.channel);
-    } else if (event.name === 'Controller Change' && event.number === VOLUME_CC_KEY) {
+    } else if (event.type === 'controller' && event.controllerType === VOLUME_CC_KEY) {
         return redirectVolumeChange(event.channel);
     } else {
         return false;
