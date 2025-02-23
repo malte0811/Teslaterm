@@ -14,38 +14,50 @@ import {
 import {getUD3State} from "../connection/telemetry/UD3State";
 import {sleep} from "../helper";
 import {ipcs} from "../ipc/IPCProvider";
-import {loadMidiFile} from "../midi/midi_file";
+import {clearMidiFile, loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
-import {loadSidFile} from "../sid/sid";
-import {getDefaultVolumes, getUIConfig} from "../UIConfigHandler";
+import {clearSidFile, loadSidFile} from "../sid/sid";
+import {getDefaultVolumes, getUIConfig, overwriteStoredMixerState} from "../UIConfigHandler";
+import {MixerState} from "./mixer/MixerState";
 
 export function isSID(type: MediaFileType): boolean {
     return type === MediaFileType.sid_dmp || type === MediaFileType.sid_emulated;
 }
 
-function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
-    getMixer()?.updateVolume({coil}, state.masterSetting, false);
-    getMixer()?.updateVolume({coil, channel: 'sidSpecial'}, state.sidSpecialSettings, false);
+function applyCoilMixerState(mixer: MixerState, coil: CoilID | undefined, state: CoilMixerState) {
+    mixer.updateVolume({coil}, state.masterSetting, false);
+    mixer.updateVolume({coil, channel: 'sidSpecial'}, state.sidSpecialSettings, false);
     state.channelSettings.forEach((settings, channel) => {
         if (settings !== undefined) {
-            getMixer()?.updateVolume({coil, channel}, settings, false);
+            mixer.updateVolume({coil, channel}, settings, false);
         }
     });
 }
 
-function applyMixerState(state: SavedMixerState) {
-    applyCoilMixerState(undefined, state.masterSettings);
-    for (const [coilName, settings] of Object.entries(state.coilSettings)) {
+function applyMixerState(state: LoadedMixerState) {
+    const mixer = getMixer();
+    if (!mixer) { return; }
+    mixer.resetBeforeSongLoad();
+    mixer.setChannels(state.channels.map((c) => c.id));
+    const channelNames = new Map<ChannelID, string>();
+    const channelPrograms = new Map<ChannelID, number>();
+    for (const channel of state.channels) {
+        channelNames.set(channel.id, channel.name || `Channel ${channel.id}`);
+    }
+    mixer.setChannelNames(channelNames);
+    mixer.setProgramsByVoice(channelPrograms);
+    applyCoilMixerState(mixer, undefined, state.faders.masterSettings);
+    for (const [coilName, settings] of Object.entries(state.faders.coilSettings)) {
         const coil = findCoilByName(coilName);
         if (coil !== undefined) {
-            applyCoilMixerState(coil, settings);
+            applyCoilMixerState(mixer, coil, settings);
         }
     }
-    state.channelPrograms.forEach((programName, channel) => {
+    state.faders.channelPrograms.forEach((programName, channel) => {
         if (programName !== undefined) {
             const programID = getUIConfig().syncedConfig.midiPrograms.indexOf(programName);
             if (programID >= 0) {
-                getMixer()?.setProgramForChannel(channel, programID);
+                mixer.setProgramForChannel(channel, programID);
             }
         }
     });
@@ -67,6 +79,11 @@ async function doPrecount() {
         });
         await sleep(precountOptions.delayMs);
     }
+}
+
+export interface LoadedMixerState {
+    faders: SavedMixerState;
+    channels: Array<{id: number, name?: string}>;
 }
 
 export class PlayerState {
@@ -106,8 +123,9 @@ export class PlayerState {
         file: DroppedFile,
         type: MediaFileType,
         title: string,
-        startCallback?: () => Promise<void>,
-        stopCallback?: () => void,
+        startCallback: () => Promise<void>,
+        stopCallback: () => void,
+        adjustMixerState: (baseState: SavedMixerState) => LoadedMixerState,
     ) {
         this.titleInt = title;
         this.typeInt = type;
@@ -123,7 +141,10 @@ export class PlayerState {
                 await getUD3Connection(coil).setSynthByFiletype(type, false);
             }
         });
-        applyMixerState(getDefaultVolumes(title));
+        const mixerBaseState = structuredClone(getDefaultVolumes(title));
+        const loadedState = adjustMixerState(mixerBaseState);
+        applyMixerState(loadedState);
+        overwriteStoredMixerState(this.title, loadedState.faders);
     }
 
     public async startPlaying(): Promise<void> {
@@ -143,9 +164,7 @@ export class PlayerState {
             return;
         }
         await doPrecount();
-        if (this.startCallback) {
-            await this.startCallback();
-        }
+        await this.startCallback();
         this.setState(PlayerActivity.playing);
     }
 
@@ -154,9 +173,7 @@ export class PlayerState {
             ipcs.misc.openGenericToast("Media", "No media file is currently playing", ToastSeverity.info, "media");
             return;
         }
-        if (this.stopCallback) {
-            this.stopCallback();
-        }
+        this.stopCallback();
         this.setState(PlayerActivity.idle);
         ipcs.misc.updateMediaInfo();
         scripting.onMediaStopped();
@@ -209,8 +226,10 @@ export async function loadMediaFile(file: DroppedFile): Promise<void> {
     }
     const extension = path.extname(file.name).substring(1).toLowerCase();
     if (extension === "mid") {
+        clearSidFile();
         await loadMidiFile(file);
     } else if (extension === "dmp" || extension === "sid") {
+        clearMidiFile();
         await loadSidFile(file);
     } else {
         ipcs.misc.openGenericToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');

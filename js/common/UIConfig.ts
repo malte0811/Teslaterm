@@ -13,6 +13,7 @@ export interface PrecountSettings {
 export interface ShowModeOptions {
     precount: PrecountSettings;
     skipInitialSilence: boolean;
+    saveMixerToMIDI: boolean;
 }
 
 export interface SyncedUIConfig {

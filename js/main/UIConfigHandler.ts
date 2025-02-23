@@ -12,6 +12,7 @@ import {
     getDefaultSerialPortForConfig,
 } from "./connection/types/SerialCommon";
 import {ipcs} from "./ipc/IPCProvider";
+import {writeMidiWithMixerState} from "./midi/midi_file";
 
 
 let uiConfig: FullUIConfig | undefined;
@@ -106,6 +107,7 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
                 ontimePercent: 50,
                 volumePercent: 20,
             },
+            saveMixerToMIDI: false,
             skipInitialSilence: false,
         };
     }
@@ -139,6 +141,10 @@ export function saveUIConfigNow() {
     if (configDirty) {
         fs.writeFile(FILENAME, JSON.stringify(getUIConfig(), undefined, 2), () => {});
         configDirty = false;
+        if (getUIConfig().syncedConfig.showmodeOptions.saveMixerToMIDI) {
+            writeMidiWithMixerState()
+                .catch((e) => console.error('Failed to save mixer settings to MIDI', e));
+        }
     }
 }
 
@@ -224,7 +230,11 @@ export function updateDefaultVolumes(mediaFile: string, key: VolumeKey, update: 
             newDefaults.coilSettings[coilName] = updateVolume(key.channel, newDefaults.coilSettings[coilName], update);
         }
     }
-    uiConfig.mixerStateBySong[mediaFile] = newDefaults;
+    overwriteStoredMixerState(mediaFile, newDefaults);
+}
+
+export function overwriteStoredMixerState(mediaFile: string, data: SavedMixerState) {
+    uiConfig.mixerStateBySong[mediaFile] = data;
     configDirty = true;
 }
 

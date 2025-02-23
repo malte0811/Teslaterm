@@ -1,4 +1,4 @@
-import {Button, FormCheck, Modal, OverlayTrigger, Tooltip} from "react-bootstrap";
+import {Button, Form, FormCheck, Modal, OverlayTrigger, Tooltip} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {PrecountSettings, ShowModeOptions} from "../../../common/UIConfig";
 import {processIPC} from "../../ipc/IPCProvider";
@@ -55,19 +55,25 @@ export class ShowSettingsDialog extends TTComponent<ShowSettingsProps, ShowSetti
         const startSilenceTooltip = (<Tooltip>
             Some MIDI files start with a few seconds of silence. This can be skipped to improve synchronization.
         </Tooltip>);
+        // TODO tooltip for MIDI mixer save
         return <>
             <OverlayTrigger overlay={startSilenceTooltip} placement={'bottom'}>
-                <FormCheck
+                <Form.Check
                     checked={settings.skipInitialSilence}
-                    onChange={() => this.setSettings({skipInitialSilence: !settings.skipInitialSilence})}
+                    onChange={(ev) => this.setSettings({skipInitialSilence: ev.target.checked})}
                     label={'Skip initial silence in MIDI'}
                 />
             </OverlayTrigger>
+            <Form.Check
+                checked={settings.saveMixerToMIDI}
+                onChange={(ev) => this.setSettings({saveMixerToMIDI: ev.target.checked})}
+                label={'Save Mixer data to MIDI files'}
+            />
             <OverlayTrigger overlay={precountTooltip} placement={'bottom'}>
-                <FormCheck
+                <Form.Check
                     checked={settings.precount.enabled}
-                    onChange={() => this.setSettings({
-                        precount: {...settings.precount, enabled: !settings.precount.enabled},
+                    onChange={(ev) => this.setSettings({
+                        precount: {...settings.precount, enabled: ev.target.checked},
                     })}
                     label={'Enable precount'}
                 />

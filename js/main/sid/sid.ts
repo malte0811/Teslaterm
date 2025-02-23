@@ -1,16 +1,17 @@
 import * as path from "path";
 import {DroppedFile} from "../../common/IPCConstantsToMain";
 import {MediaFileType, PlayerActivity, SynthType} from "../../common/MediaTypes";
+import {SavedMixerState} from "../../common/UIConfig";
 import {forEachCoil, forEachCoilAsync, getConnectedCoils, getMixer, getUD3Connection} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
-import {checkAllTransientDisabled, isSID, media_state} from "../media/media_player";
+import {checkAllTransientDisabled, isSID, LoadedMixerState, media_state} from "../media/media_player";
 import * as microtime from "../microtime";
 import {getActiveSIDConnection} from "./ISidConnection";
 import {AbsoluteSIDFrame, ISidSource, SidFrame} from "./sid_api";
 import {DumpSidSource} from "./sid_dump";
 import {EmulationSidSource} from "./sid_emulated";
 
-let current_sid_source: ISidSource | null = null;
+let current_sid_source: ISidSource | undefined = undefined;
 let queuedFutureFrames: AbsoluteSIDFrame[] = [];
 let nextFrameTime = 0;
 
@@ -54,28 +55,42 @@ async function stopPlayingSID() {
     await loadSidFile(media_state.currentFile);
 }
 
+function adjustMixerSID(baseState: SavedMixerState): LoadedMixerState {
+    const channel = (i) => ({id: i});
+    return {
+        channels: [channel(0), channel(1), channel(2)],
+        faders: baseState,
+    };
+}
+
 export async function loadSidFile(file: DroppedFile) {
     const extension = path.extname(file.name).substring(1).toLowerCase();
     const name = path.basename(file.name);
-    getMixer()?.resetBeforeSongLoad();
     if (extension === "dmp") {
         current_sid_source = new DumpSidSource(file.bytes);
-        getMixer()?.setChannels([0, 1, 2]);
-        await media_state.loadFile(file, MediaFileType.sid_dmp, name, startPlayingSID, stopPlayingSID);
+        await media_state.loadFile(
+            file, MediaFileType.sid_dmp, name, startPlayingSID, stopPlayingSID, adjustMixerSID,
+        );
     } else if (extension === "sid") {
         const source_emulated = new EmulationSidSource(file.bytes);
         current_sid_source = source_emulated;
-        getMixer()?.setChannels([0, 1, 2]);
         await media_state.loadFile(
             file,
             MediaFileType.sid_emulated,
             source_emulated.sid_info.title,
             startPlayingSID,
             stopPlayingSID,
+            adjustMixerSID,
         );
     } else {
         throw new Error("Unknown extension " + extension);
     }
+}
+
+export function clearSidFile() {
+    current_sid_source = undefined;
+    queuedFutureFrames = [];
+    nextFrameTime = 0;
 }
 
 export function update() {

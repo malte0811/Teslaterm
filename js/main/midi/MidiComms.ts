@@ -31,7 +31,11 @@ export async function startCurrentMidiFile() {
 }
 
 export function stopMidiFile() {
+    if (!activeMidiPlayer) {
+        return;
+    }
     activeMidiPlayer.stop();
+    activeMidiPlayer = undefined;
     stopMidiOutput();
     scripting.onMediaStopped();
 }

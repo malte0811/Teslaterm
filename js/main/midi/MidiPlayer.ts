@@ -11,7 +11,6 @@ class PlayerTrack {
         this.nextEventIndex = 0;
     }
 
-    // TODO delay is the time since the *previous* event
     public ticksToNextEvent(currentTick: number) {
         if (this.nextEventIndex >= this.events.length) {
             return undefined;
