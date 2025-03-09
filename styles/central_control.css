@@ -35,7 +35,6 @@
     /*Align sliders with telemetry of corresponding coils*/
     padding-left: 1lh;
     padding-bottom: 5px;
-    overflow-x: auto;
 }
 
 .tt-mixer-selector {
@@ -61,6 +60,12 @@
     border-style: solid;
     border-width: 1px;
     white-space: nowrap;
+}
+
+.tt-mixer-many-sliders {
+    overflow-x: auto;
+    display: flex;
+    flex-direction: row;
 }
 
 .tt-vertical-slider-disabled, .tt-vertical-slider {

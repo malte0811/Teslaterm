@@ -118,7 +118,7 @@ function applyMixerStateFromMIDI(state: SavedMixerState, midi: MidiData) {
     const masterState = state.masterSettings;
     masterState.masterSetting = {
         ...masterState.masterSetting,
-        ...midiData.channelVolumes,
+        ...midiData.masterVolume,
     };
     midiData.channelVolumes.forEach((settings, channel) => {
         if (settings) {

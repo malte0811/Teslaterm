@@ -54,7 +54,7 @@ export class Mixer extends TTComponent<MixerProps, MixerState> {
             [<Playlist {...this.state.songList}/>] :
             this.state.faders.specificFaders.map((state, i) => this.makeFader(state, i));
         return <div className={'tt-mixer'}>
-            <div className={'tt-mixer-border-box'} style={{display: 'flex', flexDirection: 'row'}}>
+            <div className={'tt-mixer-border-box tt-mixer-many-sliders'}>
                 {...elements}
             </div>
             <div style={{flex: '1 0 auto'}}/>
