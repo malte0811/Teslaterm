@@ -1,15 +1,22 @@
-import {Client} from "basic-ftp";
-import * as net from "net";
-import {promisify} from "util";
+import {CoilID} from "../../../common/constants";
+import {DroppedFile} from "../../../common/IPCConstantsToMain";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {sleep, withTimeout} from "../../helper";
+import {sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {Bootloader} from "../bootloader/bootloader";
-import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
+import {uploadFibernetFirmware, uploadUD3FirmwareFTP} from "../bootloader/FibernetFTP";
+import {getCoils, getConnectionState, setConnectionState} from "../connection";
+import {UD3Connection} from "../types/UD3Connection";
+import {Connected} from "./Connected";
 import {IConnectionState} from "./IConnectionState";
 import {Idle} from "./Idle";
 import {Reconnecting} from "./Reconnecting";
+
+export enum FirmwareFiletype {
+    ud3 = 'cyacd',
+    fibernet = 'hex',
+}
 
 export class Bootloading implements IConnectionState {
     private readonly connection: BootloadableConnection;
@@ -18,7 +25,7 @@ export class Bootloading implements IConnectionState {
     private inBootloadMode: boolean = false;
 
     constructor(
-        connection: BootloadableConnection, idleState: Idle, file: Uint8Array,
+        connection: BootloadableConnection, idleState: Idle, file: number[],
     ) {
         this.connection = connection;
         this.idleState = idleState;
@@ -55,11 +62,11 @@ export class Bootloading implements IConnectionState {
     public tickSlow() {
     }
 
-    private async bootload(file: Uint8Array) {
+    private async bootload(file: number[]) {
         try {
             const ftpAddress = this.connection.getFTPAddress();
             if (ftpAddress !== undefined) {
-                await this.bootloadFTP(file, ftpAddress);
+                await uploadUD3FirmwareFTP(ftpAddress, file);
             } else {
                 await this.bootloadDirectly(file);
             }
@@ -72,7 +79,7 @@ export class Bootloading implements IConnectionState {
         }
     }
 
-    private async bootloadDirectly(file: Uint8Array) {
+    private async bootloadDirectly(file: number[]) {
         const terminal = ipcs.terminal(this.coil);
         // Ignore result: The UD3 won't ACK this command since it immediately goes into bootloader mode
         this.connection.commands().sendCommand('\rbootloader\r').catch(() => {});
@@ -81,7 +88,7 @@ export class Bootloading implements IConnectionState {
         const ldr = new Bootloader();
         await ldr.loadCyacd(file);
         this.connection.enterBootloaderMode((data) => {
-            ldr.onDataReceived(data);
+            ldr.onDataReceived([...data]);
         });
         this.inBootloadMode = true;
         terminal.println("Connecting to bootloader...");
@@ -104,43 +111,46 @@ export class Bootloading implements IConnectionState {
         await ldr.connectAndProgram();
     }
 
-    private async getConnectingSocket(localPort: number) {
-        return new Promise<net.Socket>((res, rej) => {
-            const server = new net.Server((socket) => {
-                res(socket);
-                server.close();
-            });
-            server.on('error', rej);
-            server.listen(localPort);
-        });
-    }
-
-    private async bootloadFTP(file: Uint8Array, remoteAddress: string) {
-        const ftpClient = new Client();
-        await ftpClient.access({
-            host: remoteAddress,
-            // Both of these are currently ignored by Fibernet
-            password: 'ignored',
-            user: 'ignored',
-        });
-
-        // The FTP library does not support active mode, the FTP server in FiberNet does not support passive mode. So we
-        // have to write our own rudimentary active mode logic.
-        const dataPort = ftpClient.ftp.socket.localPort + 1;
-        const addressForPort = ftpClient.ftp.socket.localAddress.replace(/\./g, ',');
-        await ftpClient.send(`PORT ${addressForPort},${Math.floor(dataPort / 256)},${dataPort % 256}`);
-
-        const remoteImageName = 'image.cyacd';
-        const dataSocketPromise = this.getConnectingSocket(dataPort);
-        await ftpClient.send(`STOR ${remoteImageName}`);
-        const dataSocket = await withTimeout(dataSocketPromise, 1000, 'Waiting for data connection');
-        await promisify((cb: () => any) => dataSocket.end(file, cb))();
-
-        await ftpClient.send(`FLASH ${remoteImageName}`);
-        ftpClient.close();
-    }
-
     private get coil() {
         return this.connection.getCoil();
+    }
+}
+
+function bootloaderToast(desc: string, severity: ToastSeverity = ToastSeverity.error) {
+    ipcs.misc.openGenericToast('Bootloader', desc, severity);
+}
+
+function startBootloading(coil: CoilID, coilState: Connected, cyacd: number[]) {
+    const newConnection = coilState.startBootloading(cyacd);
+    if (newConnection) {
+        setConnectionState(coil, newConnection);
+    } else {
+        bootloaderToast("Connection does not support bootloading");
+    }
+}
+
+export async function handleBootloaderFileDrop(type: FirmwareFiletype, file: DroppedFile) {
+    const coils = [...getCoils()];
+    if (coils.length !== 1) {
+        bootloaderToast("Bootloading not supported in multicoil mode");
+        return;
+    }
+    const coilState = getConnectionState(coils[0]);
+    if (!(coilState instanceof Connected)) {
+        bootloaderToast('Need to be connected to a coil to run bootloader');
+        return;
+    }
+    if (type === FirmwareFiletype.fibernet) {
+        const connection = coilState.getActiveConnection();
+        if (connection instanceof BootloadableConnection && connection.getFTPAddress()) {
+            bootloaderToast('Starting Fibernet firmware update', ToastSeverity.info);
+            await uploadFibernetFirmware(connection, file.bytes);
+            bootloaderToast('Updated Fibernet firmware, reconnecting', ToastSeverity.info);
+            setConnectionState(coils[0], coilState.makeConnectionLostState());
+        } else {
+            bootloaderToast('Not a fibernet connection?');
+        }
+    } else {
+        startBootloading(coils[0], coilState, file.bytes);
     }
 }

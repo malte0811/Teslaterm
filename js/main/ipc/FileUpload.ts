@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import {DroppedFile, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {getCoils, getMixer, isMulticoil, startBootloading} from "../connection/connection";
+import {getMixer, isMulticoil} from "../connection/connection";
+import {FirmwareFiletype, handleBootloaderFileDrop} from "../connection/state/Bootloading";
 import {isMediaFile} from "../media/media_player";
 import * as media_player from "../media/media_player";
 import {loadVMS} from "./block";
@@ -17,23 +17,8 @@ export class FileUploadIPC {
             if (scriptName !== undefined) {
                 await ipcs.scripting.loadScript(loadedZip, scriptName);
             }
-        } else if (extension === "cyacd") {
-            const coils = [...getCoils()];
-            if (coils.length !== 1) {
-                ipcs.misc.openGenericToast(
-                    'Bootloader',
-                    "Bootloading not supported in multicoil mode",
-                    ToastSeverity.error,
-                    'bootload-multicoil',
-                );
-            } else if (!startBootloading(coils[0], file.bytes)) {
-                ipcs.coilMisc(coils[0]).openToast(
-                    'Bootloader',
-                    "Connection does not support bootloading",
-                    ToastSeverity.error,
-                    'bootload-not-supported',
-                );
-            }
+        } else if (extension === FirmwareFiletype.ud3 || extension === FirmwareFiletype.fibernet) {
+            await handleBootloaderFileDrop(extension, file);
         } else if (extension === "mcf") {
             loadVMS(file);
         } else {

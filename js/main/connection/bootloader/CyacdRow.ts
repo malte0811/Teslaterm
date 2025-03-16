@@ -3,16 +3,16 @@ export class CyacdRow {
     public readonly arrayId: number;
     public readonly cyRowId: number;
     public readonly crc: number;
-    public readonly bytes: Uint8Array;
+    public readonly bytes: number[];
 
     constructor(line: string, humanRowID: number) {
         this.arrayId = parseInt(line.substr(1, 2), 16);
         this.cyRowId = parseInt(line.substr(3, 4), 16);
         const size = parseInt(line.substr(7, 4), 16);
         const data = line.substring(11, line.length - 2);
-        this.bytes = new Uint8Array(size);
+        this.bytes = [];
         for (let byte = 0; byte < size; ++byte) {
-            this.bytes[byte] = parseInt(data.substr(2 * byte, 2), 16);
+            this.bytes.push(parseInt(data.substr(2 * byte, 2), 16));
         }
         let payloadSum = 0;
         for (const b of this.bytes) {

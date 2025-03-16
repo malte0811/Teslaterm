@@ -29,7 +29,7 @@ export class Bootloader {
     public cyacdRows: CyacdRow[];
     public info_cb: (info: string) => void;
     public progress_cb: (progress: number) => void;
-    public write_cb: (data: Uint8Array) => Promise<void>;
+    public write_cb: (data: number[]) => Promise<void>;
     public receive_buffer: number[];
     public chunk_size: number;
 
@@ -42,7 +42,7 @@ export class Bootloader {
         this.chunk_size = 128;
     }
 
-    public async onDataReceived(raw_data: Uint8Array) {
+    public async onDataReceived(raw_data: number[]) {
         for (const byte of raw_data) {
             this.receive_buffer.push(byte);
             if (this.receive_buffer.length > 6 && byte === PACKET_END) {
@@ -81,7 +81,7 @@ export class Bootloader {
         this.progress_cb = cb_func;
     }
 
-    public set_write_cb(cb_func: (data: Uint8Array) => Promise<void>) {
+    public set_write_cb(cb_func: (data: number[]) => Promise<void>) {
         this.write_cb = cb_func;
     }
 
@@ -89,8 +89,8 @@ export class Bootloader {
         this.info_cb = cb_func;
     }
 
-    public async loadCyacd(data: Uint8Array) {
-        const cyacd_file = new TextDecoder().decode(data)
+    public async loadCyacd(data: number[]) {
+        const cyacd_file = new TextDecoder().decode(new Uint8Array(data))
             .replace(/\r/g, "")
             .split('\n');
         this.chip_id_from_cyacd = cyacd_file[0].substr(0, 8);
@@ -103,7 +103,7 @@ export class Bootloader {
         }
     }
 
-    public async finishRow(row: CyacdRow, remainingBytes: Uint8Array): Promise<void> {
+    public async finishRow(row: CyacdRow, remainingBytes: number[]): Promise<void> {
         const rowReference = jspack.Pack("<BH", [row.arrayId, row.cyRowId]);
         const programReply = await this.sendBootloaderCommand(PROGRAM, [...rowReference, ...remainingBytes]);
         if (programReply.code !== CYRET_SUCCESS) {
@@ -151,7 +151,7 @@ export class Bootloader {
     }
 
     public async sendBootloaderCommand(
-        command: number, data: number[] | Uint8Array, no_reply?: boolean,
+        command: number, data: number[], no_reply?: boolean,
     ): Promise<BootloaderReply> {
         const buffer: number[] = [];
         buffer.push(PACKET_START, command, data.length & 0xFF, (data.length >>> 8) & 0xFF);
@@ -168,7 +168,7 @@ export class Bootloader {
             if (!no_reply) {
                 this.last_commands.push({callback: res});
             }
-            this.write_cb(new Uint8Array(buffer)).then(() => {
+            this.write_cb(buffer).then(() => {
                 if (no_reply) {
                     res(new BootloaderReply(CYRET_SUCCESS, []));
                 }

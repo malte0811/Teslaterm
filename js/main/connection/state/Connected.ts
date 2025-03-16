@@ -51,6 +51,12 @@ export class Connected implements IConnectionState {
         return this.idleState;
     }
 
+    public makeConnectionLostState() {
+        this.activeConnection.disconnect().catch((e) => console.error('During disconnect', e));
+        ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
+        return new Reconnecting(this.activeConnection, this.idleState);
+    }
+
     public tickFast(): IConnectionState {
         this.activeConnection.tick();
 
@@ -62,9 +68,7 @@ export class Connected implements IConnectionState {
                 ToastSeverity.warning,
                 'will-reconnect',
             );
-            this.activeConnection.disconnect();
-            ipcs.terminal(this.activeConnection.getCoil()).onConnectionClosed();
-            return new Reconnecting(this.activeConnection, this.idleState);
+            return this.makeConnectionLostState();
         }
         const remoteProtocolVersion = this.activeConnection.getProtocolVersion();
         let disconnect = false;
@@ -101,7 +105,7 @@ export class Connected implements IConnectionState {
         this.activeConnection.resetWatchdog();
     }
 
-    public startBootloading(cyacd: Uint8Array): IConnectionState | undefined {
+    public startBootloading(cyacd: number[]): IConnectionState | undefined {
         if (this.activeConnection instanceof BootloadableConnection) {
             return new Bootloading(this.activeConnection, this.idleState, cyacd);
         } else {
