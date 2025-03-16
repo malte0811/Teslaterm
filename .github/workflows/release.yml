@@ -10,7 +10,7 @@ permissions:
 jobs:
   build-linux:
     name: Build on Linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
           name: teslaterm-linux
   build-windows:
     name: Build on Windows
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - name: Checkout
         uses: actions/checkout@v4
