@@ -35,7 +35,7 @@ export const IPC_CONSTANTS_TO_MAIN = {
         requestSuggestions: makeKey<undefined>('request-connect-suggestions'),
         setPresets: makeKey<ConnectionPreset[]>('set-connect-presets'),
     },
-    loadFile: makeKey<DroppedFile>('load-file'),
+    loadFile: makeKey<DroppedFile[]>('load-file'),
     loadFlightRecording: makeKey<number[]>('load-flight-recording'),
     menu: {
         startMedia: makeKey<undefined>('start-media'),
@@ -88,16 +88,6 @@ export function getToMainIPCPerCoil(coil: CoilID) {
 
 export type PerCoilMainIPCs = ReturnType<typeof getToMainIPCPerCoil>;
 
-export class TransmittedFile {
-    public readonly name: string;
-    public readonly contents: Uint8Array;
-
-    constructor(name: string, contents: Uint8Array) {
-        this.name = name;
-        this.contents = contents;
-    }
-}
-
 export class ConfirmReply {
     public readonly confirmed: boolean;
     public readonly requestID: number;
@@ -111,4 +101,5 @@ export class ConfirmReply {
 export interface DroppedFile {
     name: string;
     bytes: number[];
+    path?: string;
 }

@@ -1,7 +1,6 @@
 // TODO something's broken about the JSZip type defs, this weird import hides the errors
 import * as JSZip from "jszip/dist/jszip.min.js";
 import * as vm from 'vm';
-import {TransmittedFile} from "../common/IPCConstantsToMain";
 import {ToastSeverity} from "../common/IPCConstantsToRenderer";
 import {forEachCoil, getCoilCommands} from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
@@ -186,7 +185,7 @@ export class Script {
     private async loadMediaFile(file: string) {
         const fileInZip = this.zip.file(file);
         const contents = await fileInZip.async("uint8array");
-        await media_player.loadMediaFile(new TransmittedFile(file, contents));
+        await media_player.loadMediaFile({name: file, bytes: contents});
     }
 
     private async waitForConfirmation(text, title): Promise<any> {

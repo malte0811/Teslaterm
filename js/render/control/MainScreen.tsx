@@ -89,22 +89,11 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     }
 
     protected async onDrop(e: DragEvent) {
-        const files = e.dataTransfer.files;
-        if (e.dataTransfer.items.length === 1 && !files[0].name.endsWith(".js")) {
-            // only one file, not a script
-            await FileUploadIPC.uploadFile(files[0]);
-        } else {
-            // Multiple files or a JS file => send compressed; let main process work out what it is
-            const zip = new JSZip();
-            // Not actually possible here!
-            // tslint:disable-next-line:prefer-for-of
-            for (let i = 0; i < files.length; ++i) {
-                const file = files[i];
-                zip.file(file.name, await file.arrayBuffer());
-            }
-            const zipContent = await zip.generateAsync({type: "uint8array"});
-            FileUploadIPC.upload('multiple-files.zip', zipContent);
+        const files: File[] = [];
+        for (let i = 0; i < e.dataTransfer.files.length; ++i) {
+            files.push(e.dataTransfer.files[i]);
         }
+        await FileUploadIPC.uploadFiles(files);
     }
 
     private renderMultiCoil() {

@@ -1,7 +1,7 @@
 import * as path from "path";
 import {CoilID} from "../../common/constants";
-import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {DroppedFile} from "../../common/IPCConstantsToMain";
+import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
 import {CoilMixerState, SavedMixerState} from "../../common/UIConfig";
 import {
@@ -51,7 +51,7 @@ function applyMixerState(state: SavedMixerState) {
 }
 
 export class PlayerState {
-    public get currentFile(): TransmittedFile | undefined {
+    public get currentFile(): DroppedFile | undefined {
         return this.currentFileInt;
     }
 
@@ -68,13 +68,12 @@ export class PlayerState {
     }
 
     public progress: number;
-    private currentFileInt: TransmittedFile | undefined;
+    private currentFileInt: DroppedFile | undefined;
     private typeInt: MediaFileType;
     private startCallback: (() => Promise<void>) | undefined = undefined;
     private stopCallback: (() => void) | undefined = undefined;
     private titleInt: string | undefined;
     private stateInt: PlayerActivity = PlayerActivity.idle;
-    private voices: number[] = [0, 1, 2];
     private readonly listeners: Array<(state: PlayerActivity) => any> = [];
 
     public constructor() {
@@ -85,7 +84,7 @@ export class PlayerState {
     }
 
     public async loadFile(
-        file: TransmittedFile,
+        file: DroppedFile,
         type: MediaFileType,
         title: string,
         startCallback?: () => Promise<void>,
@@ -184,7 +183,7 @@ export function isMediaFile(filename: string): boolean {
     return extension === "mid" || extension === "sid" || extension === "dmp";
 }
 
-export async function loadMediaFile(file: TransmittedFile): Promise<void> {
+export async function loadMediaFile(file: DroppedFile): Promise<void> {
     if (media_state.state === PlayerActivity.playing) {
         media_state.stopPlaying();
     }

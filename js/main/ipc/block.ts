@@ -1,4 +1,4 @@
-import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {DroppedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {forEachCoil, getMixer, getOptionalUD3Connection} from "../connection/connection";
 import {UD3Connection} from "../connection/types/UD3Connection";
@@ -116,10 +116,10 @@ interface Program {
 }
 
 // "Main" function
-export function loadVMS(file: TransmittedFile) {
+export function loadVMS(file: DroppedFile) {
     try {
         ipcs.misc.openGenericToast('VMS', "Load VMS file: " + file.name, ToastSeverity.info);
-        const data = parseVMSToStructuredMap(file.contents);
+        const data = parseVMSToStructuredMap(file.bytes);
         const programs = parseProgramsFromStructure(data.getAsMap('MidiPrograms'));
         const totalBlocks = programs.map(
             p => p.maps.map(map => map.blocks.length).reduce((a, b) => a + b),
@@ -140,7 +140,7 @@ export function loadVMS(file: TransmittedFile) {
 }
 
 // File parsing
-function parseVMSToStructuredMap(data: Uint8Array) {
+function parseVMSToStructuredMap(data: number[]) {
     const lines = Buffer.from(data)
         .toString('utf8')
         .replace(/[\t,\u0000]*/g, '')

@@ -1,6 +1,6 @@
 // Based on https://github.com/og2t/jsSID/blob/master/source/jsSID.js
 import {convertArrayBufferToString} from "../helper";
-import {ISidSource, SidFrame} from "./sid_api";
+import {FRAME_LENGTH, ISidSource, SidFrame} from "./sid_api";
 import {NTSC, PAL, TimingStandard} from "./SIDConstants";
 
 enum CPUStatus {
@@ -66,7 +66,7 @@ export class EmulationSidSource implements ISidSource {
     private SP: number;
     private A: number;
 
-    constructor(file: Uint8Array) {
+    constructor(file: number[]) {
         this.sid_info = this.load(file);
         this.init(this.sid_info);
     }
@@ -102,15 +102,15 @@ export class EmulationSidSource implements ISidSource {
             }
         }
         this.cpu_time -= this.sid_info.timing.cycles_per_frame;
-        const data = new Uint8Array(25);
-        for (let i = 0; i < data.byteLength; ++i) {
-            data[i] = this.memory[SID_BASE_ADDR + i];
+        const data: number[] = [];
+        for (let i = 0; i < FRAME_LENGTH; ++i) {
+            data.push(this.memory[SID_BASE_ADDR + i]);
         }
         ++this.current_frame;
         return new SidFrame(data, 1e6 / this.sid_info.timing.framerate);
     }
 
-    private load(filedata: Uint8Array): SidFileInfo {
+    private load(filedata: number[]): SidFileInfo {
         let strend;
         const offs = filedata[7];
         let loadaddr: number;
@@ -129,7 +129,7 @@ export class EmulationSidSource implements ISidSource {
         for (let i = 0; i < this.memory.length; i++) {
             this.memory[i] = 0;
         }
-        for (let i = offs + 2; i < filedata.byteLength; i++) {
+        for (let i = offs + 2; i < filedata.length; i++) {
             if (loadaddr + i - (offs + 2) < this.memory.length) {
                 this.memory[loadaddr + i - (offs + 2)] = filedata[i];
             }

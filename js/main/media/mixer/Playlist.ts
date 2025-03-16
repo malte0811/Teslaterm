@@ -1,21 +1,12 @@
-import JSZip from "jszip";
+import {DroppedFile} from "../../../common/IPCConstantsToMain";
 import {SongListData} from "../../../common/IPCConstantsToRenderer";
 import {loadMediaFile} from "../media_player";
 
-interface SongData {
-    name: string;
-    data: Buffer;
-}
+type SongData = DroppedFile;
 
 export class Playlist {
-    public static async load(files: JSZip) {
-        const songPromises: Array<Promise<SongData>> = [];
-        files.forEach((name, file) => {
-            songPromises.push(
-                file.async('nodebuffer').then((buffer) => ({name, data: buffer})),
-            );
-        });
-        const playlist = new Playlist(await Promise.all(songPromises));
+    public static async load(files: DroppedFile[]) {
+        const playlist = new Playlist(files);
         await playlist.loadSelectedFile();
         return playlist;
     }
@@ -46,7 +37,6 @@ export class Playlist {
     }
 
     private async loadSelectedFile() {
-        const song = this.songs[this.currentSong];
-        await loadMediaFile({contents: song.data, name: song.name});
+        await loadMediaFile(this.songs[this.currentSong]);
     }
 }

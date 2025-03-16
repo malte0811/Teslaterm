@@ -10,7 +10,7 @@ export class NetworkSIDServer {
     private activeSocket?: net.Socket;
     private readonly port: number;
     private timeSinceLastFrame: number = 0;
-    private currentSIDState: Uint8Array = new Uint8Array(FRAME_LENGTH);
+    private currentSIDState: number[] = new Array(FRAME_LENGTH);
     private timeStandard: TimingStandard = PAL;
     private firstAfterReset: boolean = false;
     private sendTimer: NodeJS.Timeout;
@@ -75,7 +75,7 @@ export class NetworkSIDServer {
                     frameTime *= 20;
                     this.firstAfterReset = false;
                 }
-                queueSIDFrame(new SidFrame(Uint8Array.from(this.currentSIDState), this.timeSinceLastFrame));
+                queueSIDFrame(new SidFrame(this.currentSIDState, this.timeSinceLastFrame));
                 this.timeSinceLastFrame = 0;
             }
 

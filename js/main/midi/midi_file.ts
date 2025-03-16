@@ -1,4 +1,4 @@
-import {TransmittedFile} from "../../common/IPCConstantsToMain";
+import {DroppedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
 import {getMixer, isMulticoil} from "../connection/connection";
@@ -95,9 +95,9 @@ function updateMixer(mixer: MixerState) {
     });
 }
 
-export async function loadMidiFile(file: TransmittedFile) {
+export async function loadMidiFile(file: DroppedFile) {
     (player as any).defaultTempo = 120;
-    player.loadArrayBuffer(file.contents);
+    player.loadArrayBuffer(new Uint8Array(file.bytes));
     const mixer = getMixer();
     if (mixer) {
         updateMixer(mixer);

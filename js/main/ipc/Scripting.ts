@@ -1,5 +1,5 @@
 import JSZip from "jszip";
-import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
 import {ipcs, MainIPC} from "./IPCProvider";

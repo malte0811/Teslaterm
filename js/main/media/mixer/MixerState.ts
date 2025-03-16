@@ -1,5 +1,5 @@
-import JSZip from "jszip";
 import {CoilID} from "../../../common/constants";
+import {DroppedFile} from "../../../common/IPCConstantsToMain";
 import {ChannelID, FaderID} from "../../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../../common/MediaTypes";
 import {MixerLayer, VolumeChannel, VolumeKey, VolumeUpdate} from "../../../common/MixerTypes";
@@ -136,7 +136,7 @@ export class MixerState {
         this.markForUpdate({coil, channel: 'sidSpecial'});
     }
 
-    public async loadPlaylist(loadedZip: JSZip) {
+    public async loadPlaylist(loadedZip: DroppedFile[]) {
         this.playlist = await Playlist.load(loadedZip);
         ipcs.mixer.sendSongList(this.playlist.getSyncState());
     }

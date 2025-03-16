@@ -112,10 +112,10 @@ export async function disconnectFrom(coil: CoilID) {
     setConnectionState(coil, await getConnectionState(coil).disconnectFromCoil());
 }
 
-export function startBootloading(coil: CoilID, cyacd: Uint8Array): boolean {
+export function startBootloading(coil: CoilID, cyacd: number[]): boolean {
     const coilState = getConnectionState(coil);
     if (coilState instanceof Connected) {
-        const newConnection = coilState.startBootloading(cyacd);
+        const newConnection = coilState.startBootloading(Buffer.from(cyacd));
         if (newConnection) {
             setConnectionState(coil, newConnection);
             return true;

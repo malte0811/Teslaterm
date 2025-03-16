@@ -1,16 +1,14 @@
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {webUtils} from 'electron';
+import {DroppedFile, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {processIPC} from "./IPCProvider";
 
 export class FileUploadIPC {
-    public static async uploadFile(file: File) {
-        const data = await file.arrayBuffer();
-        FileUploadIPC.upload(file.name, data);
-    }
-
-    public static upload(name: string, data: ArrayBuffer) {
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFile, {
-            bytes: [...new Uint8Array(data)],
-            name,
-        });
+    public static async uploadFiles(files: File[]) {
+        const droppedFiles = await Promise.all(files.map(async (f) => ({
+            bytes: [...new Uint8Array(await f.arrayBuffer())],
+            name: f.name,
+            path: webUtils.getPathForFile(f),
+        } as DroppedFile)));
+        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFile, droppedFiles);
     }
 }
