@@ -1,25 +1,9 @@
-import {app, BrowserWindow, ipcMain} from "electron";
+import {app, BrowserWindow} from "electron";
 import * as path from "path";
 import {init} from "./init";
-import {ISingleWindowIPC, processIPC} from "./ipc/IPCProvider";
+import {saveUIConfigNow} from "./UIConfigHandler";
 
 export let mainWindow: BrowserWindow;
-
-class ElectronIPC implements ISingleWindowIPC {
-    public on(channel: string, callback: (...args: any[]) => void) {
-        ipcMain.on(channel, (ev, ...args) => callback(...args));
-    }
-
-    public send(channel: string, ...args: any[]) {
-        if (mainWindow && mainWindow.webContents) {
-            mainWindow.webContents.send(channel, ...args);
-        }
-    }
-
-    public once(channel: string, callback: (...args: any[]) => void) {
-        ipcMain.once(channel, (ev, ...args) => callback(...args));
-    }
-}
 
 function createWindow() {
     init();
@@ -41,10 +25,8 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
 
     mainWindow.on("closed", () => {
-        processIPC.removeWindow(mainWindow);
         mainWindow = null;
     });
-    processIPC.addWindow(mainWindow, new ElectronIPC());
 }
 
 app.on("ready", createWindow);
@@ -64,3 +46,5 @@ app.on("activate", () => {
         createWindow();
     }
 });
+
+app.on('will-quit', saveUIConfigNow);

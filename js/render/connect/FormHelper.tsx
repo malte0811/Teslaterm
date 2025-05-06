@@ -17,20 +17,42 @@ export class FormHelper {
     }
 
     public makeCheckbox(
-        label: string, enabled: boolean, set: (val: boolean) => any, ref?: React.RefObject<HTMLInputElement>,
+        label: string,
+        enabled: boolean,
+        set: (val: boolean) => any,
+        ref?: React.RefObject<HTMLInputElement>,
+        keyPrefix?: string,
     ) {
         return (
             <Form.Check
                 type={'checkbox'}
-                id={label}
+                id={(keyPrefix || '') + label}
                 label={label}
                 checked={enabled}
                 onChange={ev => set(ev.target.checked)}
                 disabled={this.component.props.connecting}
                 className={'tt-connect-form-row'}
-                key={label}
+                key={(keyPrefix || '') + label}
                 ref={ref}
             />
+        );
+    }
+
+    public makeLargeLabeledCheckbox(
+        rowLabel: string,
+        boxLabel: string,
+        enabled: boolean,
+        set: (val: boolean) => any,
+        ref?: React.RefObject<HTMLInputElement>,
+        keyPrefix?: string,
+    ) {
+        return (
+            <Form.Group as={Row} className={'tt-connect-form-row'} key={keyPrefix}>
+                <Form.Label style={({fontSize: 'large'})} column>{rowLabel}</Form.Label>
+                <Col sm={this.rightColumnWidth} style={{marginTop: 'auto'}}>
+                    {this.makeCheckbox(boxLabel, enabled, set, ref, keyPrefix)}
+                </Col>
+            </Form.Group>
         );
     }
 
@@ -67,7 +89,7 @@ export class FormHelper {
         );
     }
 
-    public makeIntField(label: string, current: number, set: (val: number) => any): JSX.Element {
+    public makeIntField(label: string, current: number, set: (val: number) => any): React.JSX.Element {
         return this.makeString(label, current.toString(), val => set(Number.parseInt(val, 10)), 'number');
     }
 
@@ -77,7 +99,7 @@ export class FormHelper {
         set: (newVal: string) => any,
         suggestions: string[],
         ref?: React.RefObject<HTMLInputElement>,
-    ): JSX.Element {
+    ): React.JSX.Element {
         return <Form.Group as={Row} className={'tt-connect-form-row'} key={label}>
             <Form.Label column>{label}</Form.Label>
             <Col sm={this.rightColumnWidth}>

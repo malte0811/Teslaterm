@@ -1,13 +1,16 @@
 import * as MidiPlayer from "midi-player-js";
-import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
-import {connectionState, hasUD3Connection} from "../connection/connection";
+import {CoilID} from "../../common/constants";
+import {ChannelID} from "../../common/IPCConstantsToRenderer";
+import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
+import {forEachCoil, forEachCoilAsync, getConnectionState, hasUD3Connection} from "../connection/connection";
 import {Connected} from "../connection/state/Connected";
-import {simulated} from "../init";
 import {ipcs} from "../ipc/IPCProvider";
 import {checkTransientDisabled, media_state} from "../media/media_player";
 import * as scripting from "../scripting";
+import {maybeRedirectEvent} from "./MidiRedirector";
 
-export const kill_msg = Buffer.of(0xB0, 0x77, 0x00);
+export const kill_msg = Buffer.of(0xB0, 0x78, 0x00);
+export const VOLUME_CC_KEY = 7;
 
 // Initialize player and register event handler
 export const player = new MidiPlayer.Player(
@@ -16,12 +19,11 @@ export const player = new MidiPlayer.Player(
 
 export async function startCurrentMidiFile() {
     player.play();
-    ipcs.scope.updateMediaInfo();
+    ipcs.misc.updateMediaInfo();
 }
 
 export function stopMidiFile() {
     player.stop();
-    ipcs.scope.drawChart();
     stopMidiOutput();
     scripting.onMediaStopped();
 }
@@ -33,10 +35,8 @@ export function stopMidiOutput() {
 async function processMidiFromPlayer(event: MidiPlayer.Event) {
     if (await playMidiEvent(event)) {
         media_state.progress = 100 - player.getSongPercentRemaining();
-    } else if (!simulated && !hasUD3Connection()) {
-        stopMidiFile();
     }
-    ipcs.scope.updateMediaInfo();
+    ipcs.misc.updateMediaInfo();
 }
 
 const expectedByteCounts = {
@@ -49,12 +49,12 @@ const expectedByteCounts = {
     0xE: 3,
 };
 
-function getVarIntLength(byteArray, base) {
-    let currentByte = byteArray[base];
+function getVarIntLength(byteArray: Uint8Array, startByte: number) {
+    let currentByte = byteArray[startByte];
     let byteCount = 1;
 
     while (currentByte >= 128) {
-        currentByte = byteArray[base + byteCount];
+        currentByte = byteArray[startByte + byteCount];
         byteCount++;
     }
 
@@ -63,32 +63,70 @@ function getVarIntLength(byteArray, base) {
 
 let received_event = false;
 
+export function sendProgramChange(voice: ChannelID, program: number) {
+    return playMidiData([0xc0 | (voice - 1), program]);
+}
+
+export function sendVolume(coil: CoilID, voice: ChannelID, volumePercent: number) {
+    return playMidiDataOn(
+        coil,
+        [
+            // Controller change command
+            0xb0 | (voice - 1),
+            // Volume change
+            VOLUME_CC_KEY,
+            // Actual volume (0-127)
+            volumePercent * 127 / 100,
+        ],
+    );
+}
+
+const lastStatusByTrack = new Map<number, number>();
+
 export async function playMidiEvent(event: MidiPlayer.Event): Promise<boolean> {
     received_event = true;
+
     const trackObj = player.tracks[event.track - 1];
     // tslint:disable-next-line:no-string-literal
-    const track: number[] = trackObj["data"];
+    const track: Uint8Array = trackObj["data"];
     const startIndex = event.byteIndex + getVarIntLength(track, event.byteIndex);
-    const data: number[] = [track[startIndex]];
+    const firstByte = track[startIndex];
+    let argsStartIndex = startIndex;
+    if (firstByte >= 0x80) {
+        // If the first byte is less than 0x80, the MIDI file is using the "running status" feature where the first byte
+        // of a message can be skipped if it is the same as in the previous message.
+        lastStatusByTrack.set(event.track, firstByte);
+        ++argsStartIndex;
+    }
+    const data: number[] = [lastStatusByTrack.get(event.track)];
     const len = expectedByteCounts[data[0] >> 4];
     if (!len) {
         return true;
     }
-    for (let i = 1; i < len; ++i) {
-        data.push(track[startIndex + i]);
+    for (let i = 0; i < len - 1; ++i) {
+        data.push(track[argsStartIndex + i]);
     }
-    return playMidiData(data);
+    if (await maybeRedirectEvent(event)) {
+        return true;
+    } else {
+        return playMidiData(data);
+    }
+}
+
+async function playMidiDataOn(coil: CoilID, data: number[] | Uint8Array) {
+    await checkTransientDisabled(coil);
+    const connectionState = getConnectionState(coil);
+    if (connectionState instanceof Connected) {
+        await connectionState.sendMIDI(Buffer.from(data));
+    }
 }
 
 export async function playMidiData(data: number[] | Uint8Array): Promise<boolean> {
-    if (hasUD3Connection() && data[0] !== 0x00) {
-        await checkTransientDisabled();
-        if (connectionState instanceof Connected) {
-            await connectionState.sendMIDI(Buffer.from(data));
-        }
+    if (data[0] !== 0x00) {
+        await forEachCoilAsync(async (coil) => playMidiDataOn(coil, data));
         return true;
     } else {
-        return simulated && data[0] !== 0;
+        return false;
     }
 }
 

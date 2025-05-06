@@ -1,72 +1,68 @@
-import {ConfirmReply, IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ConfirmationRequest, IPC_CONSTANTS_TO_RENDERER, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import JSZip from "jszip";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {IPC_CONSTANTS_TO_RENDERER, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {Script} from "../scripting";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {ipcs, MainIPC} from "./IPCProvider";
 
 export class ScriptingIPC {
     private currentScript: Script | null = null;
     private activeConfirmationID = 0;
     private confirmationResolve: (confirmed: boolean) => void;
     private confirmationReject: () => void;
-    private readonly processIPC: MultiWindowIPC;
+    private readonly processIPC: MainIPC;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny, (src, msg) => {
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny, (msg) => {
             if (msg.requestID === this.activeConfirmationID && this.confirmationResolve) {
                 this.confirmationResolve(msg.confirmed);
                 this.confirmationReject = this.confirmationResolve = undefined;
             }
         });
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.startScript, (src) => this.startScript(src));
+        processIPC.on(IPC_CONSTANTS_TO_MAIN.script.startScript, () => this.startScript());
         processIPC.on(IPC_CONSTANTS_TO_MAIN.script.stopScript, () => this.stopScript());
     }
 
-    public async startScript(source: object) {
+    public async startScript() {
         if (this.currentScript === null) {
-            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info, 'no-script');
+            ipcs.misc.openGenericToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info, 'no-script');
         } else {
-            await this.currentScript.start(source);
+            await this.currentScript.start();
         }
     }
 
     public stopScript() {
         if (this.currentScript === null) {
-            ipcs.misc.openToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info, 'no-script');
+            ipcs.misc.openGenericToast('Script', "Please select a script file using drag&drop first", ToastSeverity.info, 'no-script');
         } else if (!this.currentScript.isRunning()) {
-            ipcs.misc.openToast('Script', "The script can not be stopped since it isn't running", ToastSeverity.info, 'script-not-running');
+            ipcs.misc.openGenericToast('Script', "The script can not be stopped since it isn't running", ToastSeverity.info, 'script-not-running');
         } else {
             this.currentScript.cancel();
         }
     }
 
-    public async loadScript(file: TransmittedFile) {
+    public async loadScript(data: JSZip, jsName: string) {
         try {
-            this.currentScript = await Script.create(file.contents);
-            ipcs.menu.setScriptName(file.name);
+            this.currentScript = await Script.create(data, jsName);
+            ipcs.menu.setScriptName(jsName);
         } catch (e) {
-            ipcs.misc.openToast('Script', "Failed to load script: " + e, ToastSeverity.error, 'failed-script-load');
+            ipcs.misc.openGenericToast('Script', "Failed to load script: " + e, ToastSeverity.error, 'failed-script-load');
             console.log(e);
         }
     }
 
-    public requestConfirmation(key: object, message: string, title?: string): Promise<boolean> {
+    public requestConfirmation(message: string, title?: string): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             if (this.confirmationReject) {
                 this.confirmationReject();
             }
-            if (this.processIPC.isValidWindow(key)) {
-                ++this.activeConfirmationID;
-                this.confirmationResolve = resolve;
-                this.confirmationReject = reject;
-                this.processIPC.sendToWindow(
-                    IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
-                    key,
-                    {confirmationID: this.activeConfirmationID, message, title},
-                );
-            } else {
-                reject();
-            }
+            ++this.activeConfirmationID;
+            this.confirmationResolve = resolve;
+            this.confirmationReject = reject;
+            this.processIPC.send(
+                IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
+                {confirmationID: this.activeConfirmationID, message, title},
+            );
         });
     }
 }

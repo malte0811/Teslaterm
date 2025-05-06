@@ -1,18 +1,18 @@
 import fs from "fs";
 import JSZip from "jszip";
 import {isMainThread, parentPort, Worker} from "worker_threads";
-import {MeterConfig, ScopeTraceConfig, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {FlightRecorderEvent} from "./FlightRecorder";
+import {
+    FlightEventType,
+    FlightRecordingBuffer,
+    FR_HEADER_BYTES,
+    FRMeterConfigs,
+    FRScopeConfigs,
+} from "../../../common/FlightRecorderTypes";
+import {ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 
 export interface PassedToast {
     text: string;
     level?: ToastSeverity;
-}
-
-export interface PassedEventData {
-    event: FlightRecorderEvent;
-    scopeConfig: {[i: number]: ScopeTraceConfig};
-    meterConfig: {[i: number]: MeterConfig};
 }
 
 export function makeFlightRecorderWorker(showToast: (toast: PassedToast) => any) {
@@ -21,47 +21,45 @@ export function makeFlightRecorderWorker(showToast: (toast: PassedToast) => any)
     return worker;
 }
 
+export interface StoredFlightEvent {
+    type: FlightEventType;
+    data: string;
+    time_us: number;
+}
+
+export interface FlightRecorderJSON {
+    initialScopeConfig: FRScopeConfigs;
+    initialMeterConfig: FRMeterConfigs;
+    events: StoredFlightEvent[];
+}
+
 /**
  * The below code runs in a worker thread: If the export is done on the main thread, it will lock up communication with
  * the UD3 for a few seconds, which we would like to avoid.
  */
 
-const max_stored_bytes = 2.5e6;
-
-interface EventBuffer {
-    events: FlightRecorderEvent[];
-    initialScopeConfig: {[i: number]: ScopeTraceConfig};
-    initialMeterConfig: {[i: number]: MeterConfig};
+function extractEvents(buffer: FlightRecordingBuffer): StoredFlightEvent[] {
+    const events: StoredFlightEvent[] = [];
+    const bufferView = new DataView(buffer.buffer);
+    let i = 0;
+    while (i < buffer.writeIndex) {
+        const type: FlightEventType = bufferView.getUint8(i);
+        const time_us = bufferView.getUint32(i + 1);
+        const length = bufferView.getUint32(i + 5);
+        const dataView = new Uint8Array(buffer.buffer, i + FR_HEADER_BYTES, length);
+        const data = Buffer.from(dataView).toString('base64');
+        events.push({type, data, time_us});
+        i += length + FR_HEADER_BYTES;
+    }
+    return events;
 }
 
-/**
- * oldEvents and activeEvents are used to implement a very rough queue-like structure: JS by itself does not have
- * any reasonably fast queue data structures (abusing arrays as queues has linear runtime for each op). As an
- * alternative, we grow the "active" event array until it reaches the size limit. When it does, it replaces the
- * "old events" array and is itself replaced by an empty array.
- */
-let oldEvents: EventBuffer;
-let activeEvents: EventBuffer;
-let currentPayloadBytes: number = 0;
-
-async function doExport(filename: string) {
-    if (!activeEvents) {
-        return;
-    }
-    const eventToJSON = (ev: FlightRecorderEvent) => ({
-        ...ev,
-        data: Buffer.from(ev.data).toString('base64'),
-    });
-    const eventJSONArray = [];
-    if (oldEvents) {
-        eventJSONArray.push(...oldEvents.events.map(eventToJSON));
-    }
-    eventJSONArray.push(...activeEvents.events.map(eventToJSON));
-    const firstData = oldEvents || activeEvents;
-    const jsonData = {
+async function doExport(filename: string, oldBuffer: FlightRecordingBuffer, newBuffer: FlightRecordingBuffer) {
+    const eventJSONArray = [...extractEvents(oldBuffer), ...extractEvents(newBuffer)];
+    const jsonData: FlightRecorderJSON = {
         events: eventJSONArray,
-        initialMeterConfig: firstData.initialMeterConfig,
-        initialScopeConfig: firstData.initialScopeConfig,
+        initialMeterConfig: oldBuffer.initialMeterConfig,
+        initialScopeConfig: oldBuffer.initialScopeConfig,
     };
     const jsonString = JSON.stringify(jsonData, null, 2);
     const zip = JSZip();
@@ -73,46 +71,21 @@ async function doExport(filename: string) {
     await fs.promises.writeFile(filename, data);
 }
 
-function newEventBuffer(ev: PassedEventData): EventBuffer {
-    return {
-        events: [],
-        initialMeterConfig: ev.meterConfig,
-        initialScopeConfig: ev.scopeConfig,
-    };
-}
-
-function addEvent(ev: PassedEventData) {
-    if (!activeEvents) {
-        activeEvents = newEventBuffer(ev);
-    }
-    activeEvents.events.push(ev.event);
-    currentPayloadBytes += ev.event.data.length;
-    if (currentPayloadBytes > max_stored_bytes) {
-        currentPayloadBytes = 0;
-        oldEvents = activeEvents;
-        activeEvents = newEventBuffer(ev);
-    }
-}
-
 function sendToastToMain(toast: PassedToast) {
     parentPort.postMessage(toast);
 }
 
 if (!isMainThread) {
-    parentPort.on('message', (ev?: PassedEventData) => {
-        if (ev) {
-            addEvent(ev);
-        } else {
-            const file = 'tt-flight-recording-' + Date.now().toString() + '.zip';
-            sendToastToMain({text: 'Exporting flight recording to ' + file});
-            doExport(file)
-                .then(() => {
-                    sendToastToMain({text: 'Exported flight recording to ' + file});
-                })
-                .catch((error) => {
-                    console.error('While writing flight recording', error);
-                    sendToastToMain({level: ToastSeverity.error, text: 'Failed to write flight recording!'});
-                });
-        }
+    parentPort.on('message', ([oldBuffer, newBuffer]: [FlightRecordingBuffer, FlightRecordingBuffer]) => {
+        const file = 'tt-flight-recording-' + Date.now().toString() + '.zip';
+        sendToastToMain({text: 'Exporting flight recording to ' + file});
+        doExport(file, oldBuffer, newBuffer)
+            .then(() => {
+                sendToastToMain({text: 'Exported flight recording to ' + file});
+            })
+            .catch((error) => {
+                console.error('While writing flight recording', error);
+                sendToastToMain({level: ToastSeverity.error, text: 'Failed to write flight recording!'});
+            });
     });
 }

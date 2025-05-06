@@ -1,7 +1,7 @@
 import {
     ACK_BYTE,
     get4ByteBigEndian, injectErrors,
-    MIN_DEBUG, MIN_INJECT_ERRORS,
+    MIN_DEBUG, MIN_INJECT_ERRORS, MINDataBuffer,
     RESET,
     toBigEndianBytes,
     TRANSPORT_MAX_WINDOW_SIZE,
@@ -18,7 +18,7 @@ const TRANSPORT_IDLE_TIMEOUT_MS = 1000;
 const TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS = 25;
 
 export class MINTransceiver {
-    private readonly sendByte: MinByteSender;
+    private readonly sendBytesNow: MinByteSender;
     private readonly handler: MinHandler;
     private readonly get_ack_payload: MinAckPayloadGetter;
 
@@ -33,6 +33,7 @@ export class MINTransceiver {
     private sequenceMismatchDrop: number = 0;
     private spuriousACKs: number = 0;
     private resetsReceived: number = 0;
+    private sendBuffer: number[];
 
     constructor(get_ack_payload: MinAckPayloadGetter, sendByte: MinByteSender, handler: MinHandler) {
         this.get_ack_payload = get_ack_payload;
@@ -42,7 +43,7 @@ export class MINTransceiver {
         this.remote_rx_space = 512;
         this.transport_fifo = new TransportFifo();
 
-        this.sendByte = sendByte;
+        this.sendBytesNow = sendByte;
         this.handler = handler;
 
         this.now = Date.now();
@@ -56,7 +57,7 @@ export class MINTransceiver {
         return this.transport_fifo.frames.length / TRANSPORT_MAX_WINDOW_SIZE;
     }
 
-    public onReceived(buf: Buffer) {
+    public onReceived(buf: MINDataBuffer) {
         if (MIN_INJECT_ERRORS) {
             injectErrors(buf);
         }
@@ -69,6 +70,7 @@ export class MINTransceiver {
     }
 
     public tick() {
+        this.sendBuffer = [];
         this.now = Date.now();
 
         const sinceAnyReceive = this.now - this.transport_fifo.last_received_anything_ms;
@@ -110,6 +112,10 @@ export class MINTransceiver {
         if (sinceLastSentAck > TRANSPORT_ACK_RETRANSMIT_TIMEOUT_MS && remote_active) {
             this.sendACK();
         }
+        if (this.sendBuffer.length > 0) {
+            this.sendBytesNow(this.sendBuffer);
+        }
+        this.sendBuffer = undefined;
     }
 
     private valid_frame_received(frame: ReceivedMINFrame) {
@@ -252,9 +258,15 @@ export class MINTransceiver {
         // Throw our frames away
         this.transport_fifo.reset();
         this.nextReceiveSeq = 0;
+        this.sendBuffer = [];
     }
 
     private sendFrame(id_control: number, seq: number, payload: number[]) {
-        this.sendByte(new MINFrameBuilder(id_control, seq, payload).getBytes());
+        const data = new MINFrameBuilder(id_control, seq, payload).getBytes();
+        if (this.sendBuffer) {
+            this.sendBuffer.push(...data);
+        } else {
+            this.sendBytesNow(data);
+        }
     }
 }

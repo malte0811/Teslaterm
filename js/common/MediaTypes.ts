@@ -11,6 +11,19 @@ export enum SynthType {
     SID = 0x02,
 }
 
+export function synthTypeToString(type: SynthType) {
+    switch (type) {
+        case SynthType.NONE:
+            return 'none';
+        case SynthType.MIDI:
+            return 'midi';
+        case SynthType.SID:
+            return 'sid';
+        default:
+            return 'Unknown synth type ' + type;
+    }
+}
+
 export const enum PlayerActivity {
     playing,
     idle,

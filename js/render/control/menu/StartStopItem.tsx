@@ -25,11 +25,11 @@ export class StartStopMenuItem extends TTComponent<StartStopProps, StartStopStat
         this.state = {current: ''};
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.addIPCListener(this.props.dataKey, (s: string) => this.setState({current: s}));
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         return <TTDropdown title={this.state.current} darkMode={this.props.darkMode}>
             <Dropdown.Item
                 as={Button}

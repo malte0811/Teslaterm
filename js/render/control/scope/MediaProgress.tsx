@@ -1,5 +1,5 @@
 import React from 'react';
-import {MediaFileType, PlayerActivity} from '../../../common/CommonTypes';
+import {MediaFileType, PlayerActivity} from '../../../common/MediaTypes';
 import {MediaState} from '../../../common/IPCConstantsToRenderer';
 import {TTComponent} from "../../TTComponent";
 

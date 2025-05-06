@@ -1,84 +1,23 @@
-import {DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
-import {UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
+import {CoilID, DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
+import {ScopeTraceConfig, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
+import {ChartText, TelemetryFrame} from "../../../common/TelemetryTypes";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
-import {commands} from "../connection";
+import {getCoilCommands} from "../connection";
 import {addAlarm} from "./Alarms";
 import {updateStateFromTelemetry} from "./UD3State";
 
 export type UD3ConfigConsumer = (cfg: UD3ConfigOption[]) => any;
 let configRequestQueue: UD3ConfigConsumer[] = [];
 
-export function requestConfig(out: UD3ConfigConsumer) {
+export function requestConfig(coil: CoilID, out: UD3ConfigConsumer) {
     configRequestQueue.push(out);
     if (configRequestQueue.length === 1) {
-        commands.sendCommand("config_get\r").catch((err) => console.error("While getting config:", err));
+        getCoilCommands(coil).sendCommand("config_get\r").catch((err) => console.error("While getting config:", err));
     }
 }
 
 let udconfig: UD3ConfigOption[] = [];
-
-interface MeasuredValue {
-    type: TelemetryEvent.GAUGE | TelemetryEvent.GAUGE32 | TelemetryEvent.CHART | TelemetryEvent.CHART32;
-    value: number;
-    index: number;
-}
-
-interface GaugeConf {
-    type: TelemetryEvent.GAUGE32_CONF | TelemetryEvent.GAUGE_CONF;
-    index: number;
-    min: number;
-    max: number;
-    divider: number;
-    name: string;
-}
-
-interface TraceConf {
-    type: TelemetryEvent.CHART32_CONF | TelemetryEvent.CHART_CONF;
-    traceId: number;
-    min: number;
-    max: number;
-    offset: number;
-    unit: string;
-    divider: number;
-    name: string;
-}
-
-interface ChartLine {
-    type: TelemetryEvent.CHART_LINE;
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-    colorIndex: number;
-}
-
-interface ChartText {
-    type: TelemetryEvent.CHART_TEXT_CENTER | TelemetryEvent.CHART_TEXT;
-    text: string;
-    x: number;
-    y: number;
-    colorIndex: number;
-    size: number;
-}
-
-interface StateSync {
-    type: TelemetryEvent.STATE_SYNC;
-    packedState: number;
-    maxPw?: number;
-    maxPrf?: number;
-}
-
-type TelemetryFrame = MeasuredValue |
-    GaugeConf |
-    TraceConf |
-    {type: TelemetryEvent.CHART_DRAW} |
-    {type: TelemetryEvent.CHART_CLEAR, title: string} |
-    ChartLine |
-    ChartText |
-    StateSync |
-    { type: TelemetryEvent.CONFIG_GET | TelemetryEvent.EVENT, data: string } |
-    {type: TelemetryEvent.UNKNOWN, data: number[]};
 
 export class TelemetryFrameParser {
     private readonly length: number;
@@ -116,43 +55,47 @@ export class TelemetryFrameParser {
                 };
             case TelemetryEvent.GAUGE_CONF:
                 return {
-                    divider: 1,
-                    index: num,
                     max: bytes_to_signed(this.data[4], this.data[5]),
+                    meterId: num,
                     min: bytes_to_signed(this.data[2], this.data[3]),
                     name: convertBufferToString(this.data.slice(6)),
+                    scale: 1,
                     type,
                 };
             case TelemetryEvent.GAUGE32_CONF:
                 return {
-                    divider: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
-                    index: num,
                     max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
+                    meterId: num,
                     min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
                     name: convertBufferToString(this.data.slice(14)),
+                    scale: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
                     type,
                 };
             case TelemetryEvent.CHART32_CONF:
                 return {
-                    divider: from_32_bit_bytes(this.data.slice(14, 18), Endianness.LITTLE_ENDIAN),
-                    max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
-                    min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
-                    name: convertBufferToString(this.data.slice(19)),
-                    offset: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
-                    traceId: num,
+                    config: {
+                        div: from_32_bit_bytes(this.data.slice(14, 18), Endianness.LITTLE_ENDIAN),
+                        id: num,
+                        max: from_32_bit_bytes(this.data.slice(6, 10), Endianness.LITTLE_ENDIAN),
+                        min: from_32_bit_bytes(this.data.slice(2, 6), Endianness.LITTLE_ENDIAN),
+                        name: convertBufferToString(this.data.slice(19)),
+                        offset: from_32_bit_bytes(this.data.slice(10, 14), Endianness.LITTLE_ENDIAN),
+                        unit: UNITS[this.data[18]],
+                    },
                     type,
-                    unit: UNITS[this.data[18]],
                 };
             case TelemetryEvent.CHART_CONF:
                 return {
-                    divider: 1,
-                    max: bytes_to_signed(this.data[4], this.data[5]),
-                    min: bytes_to_signed(this.data[2], this.data[3]),
-                    name: convertBufferToString(this.data.slice(9)),
-                    offset: bytes_to_signed(this.data[6], this.data[7]),
-                    traceId: num,
+                    config: {
+                        div: 1,
+                        id: num,
+                        max: bytes_to_signed(this.data[4], this.data[5]),
+                        min: bytes_to_signed(this.data[2], this.data[3]),
+                        name: convertBufferToString(this.data.slice(9)),
+                        offset: bytes_to_signed(this.data[6], this.data[7]),
+                        unit: UNITS[this.data[8]],
+                    },
                     type,
-                    unit: UNITS[this.data[8]],
                 };
             case TelemetryEvent.CHART:
                 return {
@@ -203,52 +146,53 @@ export class TelemetryFrameParser {
     }
 }
 
-export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initializing: boolean) {
+export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, initializing: boolean) {
     switch (frame.type) {
         case TelemetryEvent.GAUGE32:
         case TelemetryEvent.GAUGE: {
-            ipcs.meters.setValue(frame.index, frame.value);
+            ipcs.meters(coil).setValue(frame.index, frame.value);
             break;
         }
         case TelemetryEvent.GAUGE32_CONF:
         case TelemetryEvent.GAUGE_CONF: {
-            ipcs.meters.configure(frame.index, frame.min, frame.max, frame.divider, frame.name);
+            ipcs.meters(coil).configure(frame.meterId, frame.min, frame.max, frame.scale, frame.name);
             break;
         }
         case TelemetryEvent.CHART_CONF:
         case TelemetryEvent.CHART32_CONF: {
-            ipcs.scope.configure(
-                frame.traceId, frame.min, frame.max, frame.offset, frame.divider, frame.unit, frame.name,
+            const config = frame.config;
+            ipcs.scope(coil).configure(
+                config.id, config.min, config.max, config.offset, config.div, config.unit, config.name,
             );
             break;
         }
         case TelemetryEvent.CHART32:
         case TelemetryEvent.CHART: {
-            ipcs.scope.addValue(frame.index, frame.value);
+            ipcs.scope(coil).addValue(frame.index, frame.value);
             break;
         }
         case TelemetryEvent.CHART_DRAW: {
-            ipcs.scope.drawChart();
+            ipcs.scope(coil).drawChart();
             break;
         }
         case TelemetryEvent.CHART_CLEAR: {
-            ipcs.scope.startControlledDraw(frame.title, source);
+            ipcs.scope(coil).startControlledDraw(frame.title);
             break;
         }
         case TelemetryEvent.CHART_LINE: {
-            ipcs.scope.drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex, source);
+            ipcs.scope(coil).drawLine(frame.x1, frame.y1, frame.x2, frame.y2, frame.colorIndex);
             break;
         }
         case TelemetryEvent.CHART_TEXT_CENTER:
         case TelemetryEvent.CHART_TEXT: {
             const center = frame.type === TelemetryEvent.CHART_TEXT_CENTER;
-            ipcs.scope.drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center, source);
+            ipcs.scope(coil).drawText(frame.x, frame.y, frame.colorIndex, frame.size, frame.text, center);
             break;
         }
         case TelemetryEvent.STATE_SYNC: {
-            updateStateFromTelemetry(frame.packedState);
+            updateStateFromTelemetry(coil, frame.packedState);
             if (frame.maxPw !== undefined) {
-                ipcs.sliders.setSliderRanges(frame.maxPw, frame.maxPrf).catch(
+                ipcs.sliders(coil).setSliderRanges(frame.maxPw, frame.maxPrf).catch(
                     (err) => console.log("While updating slider ranges", err),
                 );
             }
@@ -285,7 +229,7 @@ export function sendTelemetryFrame(frame: TelemetryFrame, source: object, initia
             const level = Number.parseInt(levelStr, 10) as UD3AlarmLevel;
             const timestamp = Number.parseInt(timestampStr, 10);
             const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr, 10);
-            addAlarm({message, value, level, timestamp}, initializing);
+            addAlarm(coil, {message, value, level, timestamp}, initializing);
             break;
         }
     }

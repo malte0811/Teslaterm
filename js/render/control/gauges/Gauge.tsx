@@ -1,5 +1,5 @@
+import 'justgage/dist/justgage';
 import React from "react";
-import 'justgage/dist/justgage'
 import {MeterConfig} from "../../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../../TTComponent";
 
@@ -11,8 +11,8 @@ export interface GaugeProps {
 
 const DARK_GAUGE_PROPS = {
     gaugeColor: '#575757',
-    valueFontColor: 'white',
     labelFontColor: 'white',
+    valueFontColor: 'white',
 };
 
 export class Gauge extends TTComponent<GaugeProps, {}> {
@@ -20,6 +20,7 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
     private readonly id: string;
     private gauge?: JustGage;
     private readonly ref: React.RefObject<HTMLDivElement>;
+    private observer?: ResizeObserver;
 
     public constructor(props: any) {
         super(props);
@@ -31,11 +32,15 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
     public componentDidMount() {
         this.reInit();
         if (this.ref.current) {
-            new ResizeObserver( () => this.reInit()).observe(this.ref.current);
+            this.observer = new ResizeObserver( () => this.reInit());
+            this.observer.observe(this.ref.current);
         }
     }
 
     public componentDidUpdate() {
+        if (!this.ref.current || this.ref.current.offsetHeight < 10 || this.ref.current.offsetWidth < 10) {
+            return;
+        }
         if (this.gauge) {
             const newConfig = this.props.config;
             const oldConfig = this.gauge.config;
@@ -58,6 +63,9 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
             (this.gauge as any).destroy();
             this.gauge = undefined;
         }
+        if (this.observer) {
+            this.observer.unobserve(this.ref.current);
+        }
     }
 
     public render() {
@@ -70,10 +78,12 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
         }
         this.gauge = new JustGage({
             id: this.id,
-            value: this.props.value,
-            min: this.props.config.min,
-            max: this.props.config.max,
             label: this.props.config.name,
+            max: this.props.config.max,
+            min: this.props.config.min,
+            refreshAnimationTime: 0,
+            startAnimationTime: 0,
+            value: this.props.value,
             ...(this.props.darkMode ? DARK_GAUGE_PROPS : {}),
         });
     }

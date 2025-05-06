@@ -1,68 +1,124 @@
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {CoilID} from "../../common/constants";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
-    ConnectionStatus,
-    IPC_CONSTANTS_TO_RENDERER, ToastData,
+    ConnectionStatus, getToRenderIPCPerCoil,
+    IPC_CONSTANTS_TO_RENDERER, PerCoilRenderIPCs, ToastData,
     ToastSeverity,
     UD3ConfigOption,
 } from "../../common/IPCConstantsToRenderer";
-import {TTConfig} from "../../common/TTConfig";
+import {forEachCoil, getMixer} from "../connection/connection";
+import {getFlightRecorder} from "../connection/flightrecorder/FlightRecorder";
 import {config} from "../init";
+import {media_state} from "../media/media_player";
 import {playMidiData} from "../midi/midi";
-import {getUIConfig, setUIConfig} from "../UIConfig";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
-import {TermSetupResult} from "./terminal";
+import {getUIConfig, setUIConfig} from "../UIConfigHandler";
+import {ipcs, MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
-export class MiscIPC {
-    private readonly processIPC: MultiWindowIPC;
+export function sendCoilSync(coil: CoilID) {
+    ipcs.coilMenu(coil).sendFullState();
+    ipcs.coilMisc(coil).sendSync();
+    ipcs.scope(coil).sendConfig();
+    ipcs.meters(coil).sendConfig();
+    ipcs.sliders(coil).sendSliderSync();
+}
+
+export class ByCoilMiscIPC {
+    private readonly processIPC: TemporaryIPC;
+    private readonly coil: CoilID;
     private lastConnectionState: ConnectionStatus = ConnectionStatus.IDLE;
+    private renderIPCs: PerCoilRenderIPCs;
+    private udName: string;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
+        this.coil = coil;
         this.processIPC = processIPC;
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async (source: object) => {
-            const terminalSuccessful = await ipcs.terminal.setupTerminal(source);
-            if (terminalSuccessful === TermSetupResult.no_terminal_available) {
-                ipcs.terminal.println("No free terminal slot available. Will assign one when available.", source);
-            }
-            ipcs.menu.sendFullState(source);
-            this.processIPC.sendToWindow(
-                IPC_CONSTANTS_TO_RENDERER.updateConnectionState, source, this.lastConnectionState,
-            );
-            ipcs.scope.sendConfig(source);
-            ipcs.meters.sendConfig(source);
-            ipcs.sliders.sendSliderSync();
-            this.syncTTConfig(config, source);
-            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, source, getUIConfig().darkMode);
-        });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (source: object, msg) => {
-            playMidiData(msg);
-        });
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (source, darkMode) => {
-            setUIConfig({darkMode});
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.syncDarkMode, darkMode);
-        });
+        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
+        processIPC.on(
+            getToMainIPCPerCoil(coil).dumpFlightRecorder,
+            (coil) => getFlightRecorder(coil).exportAsFile(),
+        );
     }
 
     public setConnectionState(newState: ConnectionStatus) {
         this.lastConnectionState = newState;
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, newState);
-        console.log("Setting to ", newState);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, newState]);
     }
 
-    public openUDConfig(configToSync: UD3ConfigOption[], target: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.udConfig, target, configToSync);
+    public openUDConfig(configToSync: UD3ConfigOption[]) {
+        this.processIPC.send(this.renderIPCs.udConfig, configToSync);
     }
 
-    public syncTTConfig(configToSync: TTConfig, target: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.ttConfig, target, configToSync);
-    }
-
-    public openToast(title: string, message: string, level: ToastSeverity, mergeKey?: string, target?: object) {
+    public openToast(title: string, message: string, level: ToastSeverity, mergeKey?: string) {
         const msg: ToastData = {level, title, message, mergeKey};
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.openToast, target, msg);
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.openToastOn, [msg, this.coil]);
     }
 
     public sendUDName(name: string) {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.udName, name);
+        this.udName = name;
+        this.sendSync();
+    }
+
+    public sendSync() {
+        if (this.udName) {
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, this.udName]);
+        }
+        this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, this.lastConnectionState],
+        );
+    }
+
+    public init() {
+    }
+}
+export class CommonMiscIPC {
+    private readonly processIPC: MainIPC;
+
+    constructor(processIPC: MainIPC) {
+        this.processIPC = processIPC;
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
+            ipcs.menu.sendFullState();
+            this.syncUIConfig();
+            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.ttConfig, config);
+        });
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (msg) => {
+            playMidiData(msg);
+        });
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.setDarkMode, (darkMode) => {
+            setUIConfig({darkMode});
+        });
+        this.processIPC.on(
+            IPC_CONSTANTS_TO_MAIN.centralTab.setCentralTelemetry,
+            (newTelemetryNames) => setUIConfig({centralTelemetry: newTelemetryNames}),
+        );
+        this.processIPC.on(
+            IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
+            () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),
+        );
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
+            forEachCoil(sendCoilSync);
+            getMixer()?.sendFullState();
+        });
+    }
+
+    public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string) {
+        this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.openToastOn, [{title, message, level: severity, mergeKey}, undefined],
+        );
+    }
+
+    public syncUIConfig() {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.uiConfig, getUIConfig().syncedConfig);
+    }
+
+    public updateMediaInfo() {
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
+            {
+                progress: media_state.progress,
+                state: media_state.state,
+                title: media_state.title,
+                type: media_state.type,
+            });
     }
 
     public init() {

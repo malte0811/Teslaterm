@@ -1,13 +1,19 @@
 import React from "react";
 import {Button, Modal} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, IUD3State, UD3Alarm, UD3ConfigOption} from "../../../common/IPCConstantsToRenderer";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
+import {
+    getToRenderIPCPerCoil,
+    IUD3State,
+    UD3Alarm,
+    UD3ConfigOption,
+} from "../../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../../common/TTConfig";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TTDropdown} from "../../TTDropdown";
 import {Alarms} from "../Alarms";
+import {TabControlLevel} from "../SingleCoilTab";
 import {UD3Config} from "../UD3Config";
 
 interface CommandsState {
@@ -20,51 +26,67 @@ interface CommandsState {
 }
 
 export interface CommandsMenuProps {
-    udState: IUD3State;
+    level: TabControlLevel;
+    udState?: IUD3State;
     ttConfig: TTConfig;
     disabled: boolean;
     darkMode: boolean;
 }
 
 export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsState> {
-    constructor(props) {
+    constructor(props: CommandsMenuProps) {
         super(props);
         this.state = {};
     }
 
     public componentDidMount() {
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.udConfig, cfg => this.setState({originalSettings: cfg}));
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.alarmList, alarmList => this.setState({alarmList}));
+        if (this.props.level.level !== 'central-control') {
+            const channels = getToRenderIPCPerCoil(this.props.level.coil);
+            this.addIPCListener(channels.udConfig, cfg => this.setState({originalSettings: cfg}));
+            this.addIPCListener(channels.alarmList, alarmList => this.setState({alarmList}));
+        }
     }
 
     public render(): React.ReactNode {
-        const items: JSX.Element[] = [];
-        if (this.props.udState.busControllable) {
-            if (this.props.udState.busActive) {
-                this.makeIPCItem(items, 'Bus off', IPC_CONSTANTS_TO_MAIN.commands.setBusState, false);
-            } else {
+        const items: React.JSX.Element[] = [];
+        const coilIPC = this.props.level.level !== 'central-control' ?
+            getToMainIPCPerCoil(this.props.level.coil) :
+            undefined;
+        const combined = coilIPC ? coilIPC : IPC_CONSTANTS_TO_MAIN;
+        if (!this.props.udState || this.props.udState.busControllable) {
+            if (!this.props.udState || this.props.udState.busActive) {
+                this.makeIPCItem(items, 'Bus off', combined.commands.setBusState, false);
+            }
+            if (!this.props.udState || !this.props.udState.busActive) {
                 this.makeWarningItem(
-                    items, 'Bus on', 'The coil will be energized', IPC_CONSTANTS_TO_MAIN.commands.setBusState, true,
+                    items, 'Bus on', 'The coil will be energized', combined.commands.setBusState, true,
                 );
             }
         }
-        if (this.props.udState.transientActive) {
-            this.makeIPCItem(items, 'TR stop', IPC_CONSTANTS_TO_MAIN.commands.setTRState, false);
-        } else {
-            this.makeIPCItem(items, 'TR start', IPC_CONSTANTS_TO_MAIN.commands.setTRState, true);
+        if (!this.props.udState || this.props.udState.transientActive) {
+            this.makeIPCItem(items, 'TR stop', combined.commands.setTRState, false);
         }
-        this.makeWarningItem(
-            items,
-            'Save EEPROM',
-            'Are you sure to save the configuration to EEPROM?',
-            IPC_CONSTANTS_TO_MAIN.commands.saveEEPROM,
-            undefined,
-        );
-        this.makeIPCItem(items, 'Settings', IPC_CONSTANTS_TO_MAIN.menu.requestUDConfig, undefined);
-        this.makeIPCItem(items, 'Show alarms', IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList, undefined, true);
-        this.makeIPCItem(
-            items, 'Export Flight Recording', IPC_CONSTANTS_TO_MAIN.menu.dumpFlightRecorder, undefined, true,
-        );
+        if (!this.props.udState || !this.props.udState.transientActive) {
+            this.makeIPCItem(items, 'TR start', combined.commands.setTRState, true);
+        }
+        if (this.props.level.level !== 'central-control') {
+            this.makeWarningItem(
+                items,
+                'Save EEPROM',
+                'Are you sure to save the configuration to EEPROM?',
+                coilIPC.commands.saveEEPROM,
+                undefined,
+            );
+            this.makeIPCItem(items, 'Settings', coilIPC.menu.requestUDConfig, undefined);
+            this.makeIPCItem(items, 'Show alarms', coilIPC.menu.requestAlarmList, undefined, true);
+            this.makeIPCItem(
+                items,
+                'Export Flight Recording',
+                coilIPC.dumpFlightRecorder,
+                this.props.level.coil,
+                true,
+            );
+        }
         return <>
             <TTDropdown title={'Commands'} darkMode={this.props.darkMode}>{items}</TTDropdown>
             {this.makeWarningModal()}
@@ -74,14 +96,14 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeWarningItem<T>(
-        items: JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T
+        items: React.JSX.Element[], text: string, warningText: string, channel: IPCToMainKey<T>, arg: T,
     ) {
         items.push(<Dropdown.Item
             as={Button}
             onClick={() => {
                 this.setState({
+                    onOk: () => processIPC.send(channel, arg),
                     warningText,
-                    onOk: () => processIPC.send(channel, arg)
                 });
             }}
             key={items.length}
@@ -92,7 +114,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeIPCItem<T>(
-        items: JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T, alwaysEnable: boolean = false,
+        items: React.JSX.Element[], text: string, channel: IPCToMainKey<T>, arg: T, alwaysEnable: boolean = false,
     ) {
         items.push(<Dropdown.Item
             as={Button}
@@ -129,6 +151,9 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
     }
 
     private makeConfigModal() {
+        if (this.props.level.level === 'central-control') {
+            return <></>;
+        }
         const closeModal = () => this.setState({originalSettings: undefined});
         return <Modal
             show={this.state.originalSettings !== undefined}
@@ -142,6 +167,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
                     close={closeModal}
                     ttConfig={this.props.ttConfig}
                     darkMode={this.props.darkMode}
+                    coil={this.props.level.coil}
                 />
             </Modal.Body>
         </Modal>;

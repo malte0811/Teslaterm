@@ -1,8 +1,6 @@
-import {ConnectionStatus} from "../../../common/IPCConstantsToRenderer";
-import {AdvancedOptions, CommandRole} from "../../../common/Options";
-import {DUMMY_SERVER, ICommandServer} from "../../command/CommandServer";
+import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
-import {startConf} from "../connection";
+import {isMulticoil, startConf} from "../connection";
 import * as telemetry from "../telemetry";
 import {TerminalHandle, UD3Connection} from "../types/UD3Connection";
 import {Connected} from "./Connected";
@@ -19,18 +17,19 @@ enum State {
 
 export class Connecting implements IConnectionState {
     private readonly connection: UD3Connection;
-    private readonly advOptions: AdvancedOptions;
-    private autoTerminal: TerminalHandle | undefined;
     private state: State = State.waiting_for_ud_connection;
     private readonly stateOnFailure: IConnectionState;
     private doneInitializingAt: number;
+    private readonly idleState: Idle;
 
-    public constructor(connection: UD3Connection, onFailure: IConnectionState, advOptions: AdvancedOptions) {
+    public constructor(
+        connection: UD3Connection, onFailure: IConnectionState, idleState: Idle,
+    ) {
         this.stateOnFailure = onFailure;
         this.connection = connection;
-        this.advOptions = advOptions;
+        this.idleState = idleState;
         this.connect().catch((error) => {
-            ipcs.connectionUI.sendConnectionError(this.removeErrorPrefixes(error + ''));
+            ipcs.connectionUI.sendConnectionError(connection.getCoil(), this.removeErrorPrefixes(error + ''));
             console.log("While connecting: ", error);
             connection.releaseResources();
             this.state = State.failed;
@@ -49,9 +48,9 @@ export class Connecting implements IConnectionState {
         return ConnectionStatus.CONNECTING;
     }
 
-    public async pressButton(window: object): Promise<IConnectionState> {
+    public async disconnectFromCoil(): Promise<Idle> {
         this.connection.releaseResources();
-        return new Idle();
+        return this.idleState;
     }
 
     public tickFast(): IConnectionState {
@@ -63,7 +62,7 @@ export class Connecting implements IConnectionState {
                 this.connection.tick();
                 return this;
             case State.connected:
-                return new Connected(this.connection, this.autoTerminal, this.advOptions);
+                return new Connected(this.connection, this.idleState);
             case State.failed:
                 return this.stateOnFailure;
             default:
@@ -74,38 +73,25 @@ export class Connecting implements IConnectionState {
     public tickSlow() {
     }
 
-    public getAutoTerminal(): TerminalHandle | undefined {
-        return this.autoTerminal;
-    }
-
-    public getCommandServer(): ICommandServer {
-        return DUMMY_SERVER;
-    }
-
-    public getCommandRole(): CommandRole {
-        return this.advOptions.commandOptions.state;
-    }
-
     private async connect() {
         this.state = State.connecting;
-        ipcs.sliders.reinitState(this.advOptions.commandOptions.state);
-        await this.connection.connect();
-        this.autoTerminal = this.connection.setupNewTerminal((data) =>
-            telemetry.receive_main(
+        ipcs.sliders(this.connection.getCoil()).reinitState(isMulticoil());
+        await this.connection.startTerminal(
+            TerminalHandle.automatic,
+            (data) => telemetry.receive_main(
+                this.connection.getCoil(),
                 data,
                 // After connecting the UD3 will send one alarm per 100 ms, generally less than 20 total. We
                 // do not want to show toasts for these alarms that happened before TT connected, so
                 // consider these 2000 ms as "initializing"
                 this.state === State.initializing || (Date.now() - this.doneInitializingAt) < 2000,
-                undefined,
-            ));
-        if (this.autoTerminal === undefined) {
-            throw new Error("Failed to create a terminal for automatic commands");
-        }
-        await this.connection.startTerminal(this.autoTerminal);
+                true,
+            ),
+        );
+        await this.connection.connect();
         this.state = State.initializing;
-        await startConf(this.advOptions.commandOptions.state);
-        await ipcs.terminal.onSlotsAvailable(true);
+        await startConf(this.connection.getCoil());
+        await ipcs.terminal(this.connection.getCoil()).setupManualTerminal();
         this.doneInitializingAt = Date.now();
         this.state = State.connected;
     }

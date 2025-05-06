@@ -1,7 +1,16 @@
-import React, {ReactElement} from "react";
-import {Button, Col, Form, Row} from "react-bootstrap";
+import React from "react";
+import {Accordion, Button, Col, Form, OverlayTrigger, Row, Tooltip} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {AdvancedOptions, CommandConnectionConfig, CommandRole, MidiConfig, NetSidConfig} from "../../common/Options";
+import {OverlayInjectedProps} from "react-bootstrap/Overlay";
+import {
+    AdvancedOptions,
+    getMixerTypeName,
+    MidiConfig,
+    NetSidConfig,
+    PHYSICAL_MIXER_TYPES,
+    PhysicalMixerConfig,
+    PhysicalMixerType
+} from "../../common/Options";
 import {TTComponent} from "../TTComponent";
 import {TTDropdown} from "../TTDropdown";
 import {FormHelper} from "./FormHelper";
@@ -11,42 +20,67 @@ export interface AdvancedFormProps {
     setOptions: (newOptions: Partial<AdvancedOptions>) => any;
     darkMode: boolean;
     connecting: boolean;
+    keyPrefix?: string;
+    showMixer: boolean;
 }
 
 export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
     private readonly helper: FormHelper;
 
-    constructor(props) {
+    constructor(props: AdvancedFormProps) {
         super(props);
         this.helper = new FormHelper(this, 8);
     }
 
     public render() {
+        const mixerElement = (() => {
+            if (this.props.showMixer) {
+                return <Form.Group key={'mixer'} style={{borderTop: 'solid'}}>
+                    {this.buildPhysicalMixerConfig()}
+                </Form.Group>;
+            } else {
+                return <></>;
+            }
+        })();
         return (
-            <>
-                <Form.Group key={'netsid'}>
-                    <Form.Label key={'title'} style={({fontSize: 'large'})}>NetSID settings</Form.Label>
-                    {this.buildNetSIDConfig()}
-                </Form.Group>
-                <Form.Group key={'rtpmidi'}>
-                    <Form.Label key={'title'} style={({fontSize: 'large'})}>RTP-MIDI settings</Form.Label>
-                    {this.buildRTPMIDIConfig()}
-                </Form.Group>
-                <Form.Group key={'command'}>
-                    <Form.Label key={'title'} style={({fontSize: 'large'})}>Command server settings</Form.Label>
-                    {this.buildCommandConfig()}
-                </Form.Group>
-            </>
+            <Accordion defaultActiveKey={'-1'} className={this.props.darkMode && 'dark-accordion'}>
+                <Accordion.Item eventKey={'0'}>
+                    <Accordion.Header>Advanced Settings</Accordion.Header>
+                    <Accordion.Body style={({
+                        // TODO sort of a hack, but works well enough
+                        height: '50vh',
+                        overflowY: 'auto',
+                    })}>
+                        <Form.Group key={'direct-midi'}>
+                            {this.buildDirectMIDIConfig()}
+                        </Form.Group>
+                        <Form.Group key={'netsid'} style={{borderTop: 'solid'}}>
+                            {this.buildNetSIDConfig()}
+                        </Form.Group>
+                        <Form.Group key={'rtpmidi'} style={{borderTop: 'solid'}}>
+                            {this.buildRTPMIDIConfig()}
+                        </Form.Group>
+                        {mixerElement}
+                    </Accordion.Body>
+                </Accordion.Item>
+            </Accordion>
         );
     }
 
-    private buildNetSIDConfig(): JSX.Element[] {
+    private buildNetSIDConfig(): React.JSX.Element[] {
         const current = this.props.currentOptions.netSidOptions;
         const setOption = (toSet: Partial<NetSidConfig>) => {
             this.props.setOptions({netSidOptions: {...current, ...toSet}});
         };
-        const rows: JSX.Element[] = [
-            this.helper.makeCheckbox("Enable NetSID", current.enabled, enabled => setOption({enabled})),
+        const rows: React.JSX.Element[] = [
+            this.helper.makeLargeLabeledCheckbox(
+                'NetSID',
+                'Enable NetSID',
+                current.enabled,
+                    enabled => setOption({enabled}),
+                undefined,
+                this.props.keyPrefix,
+            ),
         ];
         if (current.enabled) {
             rows.push(this.helper.makeIntField('NetSID port', current.port, port => setOption({port})));
@@ -54,14 +88,21 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
         return rows;
     }
 
-    private buildRTPMIDIConfig(): JSX.Element[] {
+    private buildRTPMIDIConfig(): React.JSX.Element[] {
         const current = this.props.currentOptions.midiOptions;
         const setOption = (toSet: Partial<MidiConfig>) => {
             this.props.setOptions({midiOptions: {...current, ...toSet}});
         };
-        const rows: JSX.Element[] = [this.helper.makeCheckbox(
-            "Run RTP-MIDI server", current.runMidiServer, runMidiServer => setOption({runMidiServer}),
-        )];
+        const rows: React.JSX.Element[] = [
+            this.helper.makeLargeLabeledCheckbox(
+                'RTP-MIDI',
+                'Run RTP-MIDI server',
+                current.runMidiServer,
+                runMidiServer => setOption({runMidiServer}),
+                undefined,
+                this.props.keyPrefix,
+            ),
+        ];
         if (current.runMidiServer) {
             rows.push(this.helper.makeIntField('RTP-MIDI port', current.port, port => setOption({port})));
             rows.push(this.helper.makeString('Local name', current.localName, localName => setOption({localName})));
@@ -72,49 +113,52 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
         return rows;
     }
 
-    private buildCommandConfig(): JSX.Element[] {
-        const current = this.props.currentOptions.commandOptions;
-        const setOption = (toSet: Partial<CommandConnectionConfig>) => {
-            this.props.setOptions({commandOptions: {...current, ...toSet}});
+    private buildPhysicalMixerConfig(): React.JSX.Element[] {
+        const current = this.props.currentOptions.mixerOptions;
+        const setOption = (toSet: Partial<PhysicalMixerConfig>) => {
+            this.props.setOptions({mixerOptions: {...current, ...toSet}});
         };
-        const rows: JSX.Element[] = [this.makeSelect<CommandRole>(
-            "Role", ['disable', 'client', 'server'], current.state, state => setOption({state}),
-        )];
-        if (current.state !== 'disable') {
-            rows.push(this.helper.makeIntField("Command port", current.port, port => setOption({port})));
-        }
-        if (current.state === 'client') {
-            rows.push(this.helper.makeString(
-                'Remote address', current.remoteName, remoteName => setOption({remoteName}),
-            ));
+        const rows: React.JSX.Element[] = [this.buildMixerOptions(current.type, (type) => setOption({type}))];
+        if (current.type === PhysicalMixerType.behringer_x_touch) {
+            rows.push(this.helper.makeIntField('Remote port', current.port, port => setOption({port})));
+            rows.push(this.helper.makeString('Remote IP', current.ip, ip => setOption({ip})));
         }
         return rows;
     }
 
-    private makeSelect<T extends string>(label: string, values: T[], current: T, set: (val: T) => any) {
-        const options: ReactElement[] = [];
-        for (const value of values) {
-            options.push(<Dropdown.Item
-                key={value}
-                as={Button}
-                onClick={() => set(value)}
-                disabled={this.props.connecting}
-            >
-                {value}
+    private buildMixerOptions(current: PhysicalMixerType, set: (option: PhysicalMixerType) => any) {
+        const possibleTypes: React.JSX.Element[] = [];
+        for (const type of PHYSICAL_MIXER_TYPES) {
+            possibleTypes.push(<Dropdown.Item key={possibleTypes.length} as={Button} onClick={() => set(type)}>
+                {getMixerTypeName(type)}
             </Dropdown.Item>);
         }
-        return (
-            <Form.Group as={Row} key={label}>
-                <Form.Label column>{label}</Form.Label>
-                <Col sm={8}>
-                    <TTDropdown
-                        title={current}
-                        darkMode={this.props.darkMode}
-                    >
-                        {options}
-                    </TTDropdown>
-                </Col>
-            </Form.Group>
-        );
+        return <Form.Group as={Row} className={'tt-connect-form-row'} key={'mixer-select'}>
+            <Form.Label style={({fontSize: 'large'})} column>Physical Mixer</Form.Label>
+            <Col sm={8}>
+                <TTDropdown title={getMixerTypeName(current)} darkMode={this.props.darkMode}>
+                    {possibleTypes}
+                </TTDropdown>
+            </Col>
+        </Form.Group>;
+    }
+
+    private buildDirectMIDIConfig() {
+        const renderTooltip = (props: OverlayInjectedProps) => <Tooltip {...props}>
+            Due to a Chromium issue enabling this causes Teslaterm to acquire all MIDI ports. This can cause issues with
+            external interrupters.
+        </Tooltip>;
+        // Hack: without the width=100% div the tooltip only shows on the checkbox, not its label
+        return <OverlayTrigger placement={'top'} overlay={renderTooltip}>
+            <div style={{width: '100%'}}>
+                {this.helper.makeCheckbox(
+                    "Allow direct MIDI input",
+                    this.props.currentOptions.enableMIDIInput,
+                    (enableMIDIInput) => this.props.setOptions({enableMIDIInput}),
+                    undefined,
+                    this.props.keyPrefix,
+                )}
+            </div>
+        </OverlayTrigger>;
     }
 }

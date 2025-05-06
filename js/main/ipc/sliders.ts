@@ -1,32 +1,40 @@
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER, ISliderState} from "../../common/IPCConstantsToRenderer";
-import {CommandRole} from "../../common/Options";
-import {NumberOptionCommand} from "../command/CommandMessages";
-import {commands, connectionState} from "../connection/connection";
-import {Connected} from "../connection/state/Connected";
-import {config} from "../init";
-import {MultiWindowIPC} from "./IPCProvider";
+import {CoilID} from "../../common/constants";
+import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../common/IPCConstantsToMain";
+import {getToRenderIPCPerCoil} from "../../common/IPCConstantsToRenderer";
+import {CommandInterface} from "../connection/commands";
+import {
+    forEachCoilAsync,
+    getCoilCommands,
+} from "../connection/connection";
+import {ipcs, MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
-export class SliderState implements ISliderState {
+let relativeOntime: number = 0;
+
+export async function setRelativeOntime(newRelative: number) {
+    relativeOntime = newRelative;
+    await forEachCoilAsync(async (coil) => {
+        const coilIPC = ipcs.sliders(coil);
+        coilIPC.sendSliderSync();
+        coilIPC.scheduleOntimeUpdate();
+    });
+}
+
+export class SliderState {
     public ontimeAbs: number;
-    public ontimeRel: number;
     public bps: number = 20;
     public burstOntime: number = 500;
     public burstOfftime: number = 0;
-    public onlyMaxOntimeSettable: boolean = true;
+    public onlyMaxOntimeSettable: boolean = false;
     public maxOntime: number = 400;
     public maxBPS: number = 1000;
-    public startAtRelativeOntime: boolean;
 
-    constructor(role: CommandRole) {
-        this.ontimeAbs = role !== "disable" ? this.maxOntime : 0;
-        this.ontimeRel = role !== "disable" ? 0 : 100;
-        this.onlyMaxOntimeSettable = role === "client";
-        this.startAtRelativeOntime = role === "server";
+    constructor(multicoil: boolean) {
+        this.ontimeAbs = multicoil ? this.maxOntime : 0;
     }
 
     public get ontime() {
-        return this.ontimeAbs * this.ontimeRel / 100;
+        return this.ontimeAbs * relativeOntime / 100;
     }
 
     public updateRanges(maxOntime: number, maxBPS: number): boolean {
@@ -52,20 +60,38 @@ export class SliderState implements ISliderState {
 }
 
 export class SlidersIPC {
-    private state = new SliderState('disable');
-    private readonly processIPC: MultiWindowIPC;
+    private state: SliderState;
+    private readonly processIPC: TemporaryIPC;
+    private readonly coil: CoilID;
+    private readonly commands: CommandInterface;
+    private multicoil: boolean;
+    private readonly delayedCommands = new Map<string, () => any>();
 
-    constructor(processIPC: MultiWindowIPC) {
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeAbsolute, this.callSwapped(this.setAbsoluteOntime));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, this.callSwapped(this.setRelativeOntime));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, this.callSwapped(this.setBPS));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, this.callSwapped(this.setBurstOntime));
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, this.callSwapped(this.setBurstOfftime));
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
+        this.reinitState(false);
         this.processIPC = processIPC;
+        this.coil = coil;
+        this.commands = getCoilCommands(coil);
+        const channels = getToMainIPCPerCoil(coil);
+        this.addDelayedListener(channels.sliders.setOntimeAbsolute, (ot) => this.setAbsoluteOntime(ot));
+        this.addDelayedListener(channels.sliders.setBPS, (bps) => this.setBPS(bps));
+        this.addDelayedListener(channels.sliders.setBurstOntime, (bon) => this.setBurstOntime(bon));
+        this.addDelayedListener(channels.sliders.setBurstOfftime, (boff) => this.setBurstOfftime(boff));
+    }
+
+    public tick100() {
+        for (const setter of this.delayedCommands.values()) {
+            setter();
+        }
+        this.delayedCommands.clear();
     }
 
     public get bps() {
         return this.state.bps;
+    }
+
+    public get ontime() {
+        return this.state.ontime;
     }
 
     public get burstOntime() {
@@ -76,40 +102,37 @@ export class SlidersIPC {
         return this.state.burstOfftime;
     }
 
-    public async setAbsoluteOntime(val: number, key?: object) {
+    public async setAbsoluteOntime(val: number) {
         this.state.ontimeAbs = val;
-        await commands.setOntime(this.state.ontime);
-        this.sendSliderSync(key);
+        await this.commands.setOntime(this.state.ontime);
+        this.sendSliderSync();
     }
 
-    public async setRelativeOntime(val: number, key?: object) {
-        this.state.ontimeRel = val;
-        await commands.setOntime(this.state.ontime);
-        connectionState.getCommandServer().setNumberOption(NumberOptionCommand.relative_ontime, val);
-        this.sendSliderSync(key);
-    }
-
-    public async setBPS(val: number, key?: object) {
+    public async setBPS(val: number) {
         this.state.bps = val;
-        await commands.setBPS(val);
-        this.sendSliderSync(key);
+        await this.commands.setBPS(val);
+        this.sendSliderSync();
     }
 
-    public async setBurstOntime(val: number, key?: object) {
+    public async setBurstOntime(val: number) {
         this.state.burstOntime = val;
-        await commands.setBurstOntime(val);
-        this.sendSliderSync(key);
+        await this.commands.setBurstOntime(val);
+        this.sendSliderSync();
     }
 
-    public async setBurstOfftime(val: number, key?: object) {
+    public async setBurstOfftime(val: number) {
         this.state.burstOfftime = val;
-        await commands.setBurstOfftime(val);
-        this.sendSliderSync(key);
+        await this.commands.setBurstOfftime(val);
+        this.sendSliderSync();
     }
 
-    public setOnlyMaxOntimeSettable(allowed: boolean, key?: object) {
+    public setOnlyMaxOntimeSettable(allowed: boolean) {
         this.state.onlyMaxOntimeSettable = allowed;
-        this.sendSliderSync(key);
+        this.sendSliderSync();
+    }
+
+    public async resetOntimeOnConnect() {
+        await this.setAbsoluteOntime(this.multicoil ? this.state.ontimeAbs : 0);
     }
 
     public async setSliderRanges(maxOntime: number, maxBPS: number) {
@@ -120,26 +143,39 @@ export class SlidersIPC {
         // The UD3 also adjusts the ontime if it exceeds the new maximum, but with relative ontime we may want to
         // decrease to a lower level than the UD3 did
         if (oldOntime !== this.state.ontime) {
-            await commands.setOntime(this.state.ontime);
+            await this.commands.setOntime(this.state.ontime);
         }
     }
 
-    public sendSliderSync(excluded?: object) {
-        this.processIPC.sendToAllExcept(IPC_CONSTANTS_TO_RENDERER.sliders.syncSettings, excluded, this.state);
+    public sendSliderSync() {
+        if (this.processIPC) {
+            this.processIPC.send(
+                getToRenderIPCPerCoil(this.coil).sliders.syncSettings,
+                {...this.state, ontimeRel: relativeOntime},
+            );
+        }
     }
 
-    public reinitState(role: CommandRole) {
-        this.state = new SliderState(role);
+    public reinitState(multicoil: boolean) {
+        this.state = new SliderState(multicoil);
+        this.multicoil = multicoil;
         this.sendSliderSync();
     }
 
-    private callSwapped(f: (val: number, key: object) => Promise<any>) {
-        return async (key: object, val: number) => {
-            try {
-                await f.call(this, val, key);
-            } catch (r) {
-                console.log("Error while sending command: ", r);
-            }
-        };
+    public scheduleOntimeUpdate() {
+        this.delayedCommands.set('ontimeUpdate', () => this.commands.setOntime(this.state.ontime));
     }
+
+    private addDelayedListener(key: IPCToMainKey<number>, run: (value: number) => any) {
+        this.processIPC.on(
+            key, (value) => this.delayedCommands.set(key.channel, () => run(value)),
+        );
+    }
+}
+
+export function registerCommonSliderIPC(processIPC: MainIPC) {
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBPS, (c) => c.sliders.setBPS);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOfftime, (c) => c.sliders.setBurstOfftime);
+    processIPC.distributeTo(IPC_CONSTANTS_TO_MAIN.sliders.setBurstOntime, (c) => c.sliders.setBurstOntime);
+    processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.sliders.setOntimeRelative, (val) => setRelativeOntime(val));
 }

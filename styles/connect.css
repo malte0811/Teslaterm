@@ -8,9 +8,12 @@
 .tt-connect-form {
     width: calc(min(500px, 50vw));
     margin-left: auto;
-    margin-right: 5%;
+    margin-right: 2.5%;
+    padding-right: 2.5%;
+    padding-bottom: 40px;
     height: 100%;
-    overflow-y: visible;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .tt-connect-presets {

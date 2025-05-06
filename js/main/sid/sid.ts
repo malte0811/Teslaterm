@@ -1,37 +1,71 @@
 import * as path from "path";
-import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
-import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {connectionState} from "../connection/connection";
-import * as connection from "../connection/connection";
-import {Connected} from "../connection/state/Connected";
+import {DroppedFile} from "../../common/IPCConstantsToMain";
+import {MediaFileType, PlayerActivity, SynthType} from "../../common/MediaTypes";
+import {forEachCoil, forEachCoilAsync, getConnectedCoils, getMixer, getUD3Connection} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
-import {checkTransientDisabled, isSID, media_state} from "../media/media_player";
-import {ISidSource} from "./sid_api";
+import {checkAllTransientDisabled, isSID, media_state} from "../media/media_player";
+import * as microtime from "../microtime";
+import {getActiveSIDConnection} from "./ISidConnection";
+import {AbsoluteSIDFrame, ISidSource, SidFrame} from "./sid_api";
 import {DumpSidSource} from "./sid_dump";
 import {EmulationSidSource} from "./sid_emulated";
 
 let current_sid_source: ISidSource | null = null;
+let queuedFutureFrames: AbsoluteSIDFrame[] = [];
+let nextFrameTime = 0;
 
 async function startPlayingSID() {
-    const sidConnection = connection.getUD3Connection().getSidConnection();
-    await sidConnection.flush();
-    sidConnection.onStart();
+    await flushAllSID();
+    forEachCoil((coil) => {
+        const sidConnection = getActiveSIDConnection(coil);
+        if (sidConnection) {
+            sidConnection.onStart();
+        }
+    });
+}
+
+export function getFirstQueuedFrameAfter(afterMicrotime: number) {
+    for (const frame of queuedFutureFrames) {
+        if (frame.time > afterMicrotime) {
+            return frame;
+        }
+    }
+    return undefined;
+}
+
+export function shouldQueueSIDFrames() {
+    return queuedFutureFrames.length < 10;
+}
+
+export function queueSIDFrame(frame: SidFrame) {
+    queuedFutureFrames.push({data: frame.data, time: nextFrameTime});
+    nextFrameTime += frame.delayMicrosecond;
+}
+
+export async function flushAllSID() {
+    queuedFutureFrames = [];
+    nextFrameTime = microtime.now() + 50e3;
+    await forEachCoilAsync(async (coil) => {
+        await getActiveSIDConnection(coil)?.flush();
+    });
 }
 
 async function stopPlayingSID() {
     await loadSidFile(media_state.currentFile);
 }
 
-export async function loadSidFile(file: TransmittedFile) {
-    const extension = path.extname(file.name).substr(1).toLowerCase();
+export async function loadSidFile(file: DroppedFile) {
+    const extension = path.extname(file.name).substring(1).toLowerCase();
     const name = path.basename(file.name);
-    ipcs.menu.setMediaName("SID-File: " + name);
+    getMixer()?.resetBeforeSongLoad();
     if (extension === "dmp") {
-        current_sid_source = new DumpSidSource(file.contents);
+        current_sid_source = new DumpSidSource(file.bytes);
+        getMixer()?.setChannels([0, 1, 2]);
         await media_state.loadFile(file, MediaFileType.sid_dmp, name, startPlayingSID, stopPlayingSID);
     } else if (extension === "sid") {
-        const source_emulated = new EmulationSidSource(file.contents);
+        const source_emulated = new EmulationSidSource(file.bytes);
         current_sid_source = source_emulated;
+        getMixer()?.setChannels([0, 1, 2]);
         await media_state.loadFile(
             file,
             MediaFileType.sid_emulated,
@@ -42,7 +76,6 @@ export async function loadSidFile(file: TransmittedFile) {
     } else {
         throw new Error("Unknown extension " + extension);
     }
-    ipcs.scope.updateMediaInfo();
 }
 
 export function update() {
@@ -50,17 +83,20 @@ export function update() {
 }
 
 async function updateAsync() {
-    if (!(connectionState instanceof Connected)) {
-        return;
+    if (queuedFutureFrames.length > 0) {
+        await Promise.all([
+            checkAllTransientDisabled(),
+            ...getConnectedCoils().map((id) => getUD3Connection(id).setSynth(SynthType.SID, true)),
+        ]);
+        const now = microtime.now();
+        while (queuedFutureFrames.length > 0 && queuedFutureFrames[0].time < now) {
+            queuedFutureFrames.shift();
+        }
     }
-    const sidConnection = connectionState.getActiveConnection().getSidConnection();
-    if (current_sid_source && media_state.state === PlayerActivity.playing && isSID(media_state.type)
-        && !sidConnection.isBusy()) {
-        await checkTransientDisabled();
-        if (connection.hasUD3Connection()) {
+    if (current_sid_source && media_state.state === PlayerActivity.playing && isSID(media_state.type)) {
+        if (shouldQueueSIDFrames()) {
             for (let i = 0; i < 4 && !current_sid_source.isDone(); ++i) {
-                const real_frame = current_sid_source.next_frame();
-                await sidConnection.processFrame(real_frame, connectionState.getCommandServer());
+                queueSIDFrame(current_sid_source.next_frame());
             }
         }
         const totalFrames = current_sid_source.getTotalFrameCount();
@@ -71,6 +107,6 @@ async function updateAsync() {
         if (current_sid_source.isDone()) {
             media_state.stopPlaying();
         }
-        ipcs.scope.updateMediaInfo();
+        ipcs.misc.updateMediaInfo();
     }
 }

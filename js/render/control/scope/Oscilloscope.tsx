@@ -1,7 +1,9 @@
 import React from "react";
 import {CloseButton, Nav, Tab} from "react-bootstrap";
-import {MediaFileType, PlayerActivity} from "../../../common/CommonTypes";
+import {CoilID} from "../../../common/constants";
+import {MediaFileType, PlayerActivity} from "../../../common/MediaTypes";
 import {
+    getToRenderIPCPerCoil,
     IPC_CONSTANTS_TO_RENDERER,
     MediaState,
     ScopeLine,
@@ -30,6 +32,10 @@ export const TRACE_COLORS: string[] = [
     "dimGray",
 ];
 
+export interface OscilloscopeProps {
+    coil: CoilID;
+}
+
 interface OscilloscopeState {
     traces: Array<OscilloscopeTrace | undefined>;
     media: MediaState;
@@ -37,7 +43,7 @@ interface OscilloscopeState {
     selectedTab: number;
 }
 
-export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
+export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeState> {
     constructor(props: any) {
         super(props);
         const traces: Array<OscilloscopeTrace | undefined> = [];
@@ -53,13 +59,14 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
     }
 
     public componentDidMount() {
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.configure, (cfg: ScopeTraceConfig) => {
+        const channels = getToRenderIPCPerCoil(this.props.coil);
+        this.addIPCListener(channels.scope.configure, (cfg: ScopeTraceConfig) => {
             this.setState((state) => Oscilloscope.configure(state.traces, cfg));
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.addValues, (values: ScopeValues) => {
+        this.addIPCListener(channels.scope.addValues, (values: ScopeValues) => {
             this.setState((state) => Oscilloscope.addScopeValues(state.traces, values));
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, (title) => {
+        this.addIPCListener(channels.scope.startControlled, (title) => {
             this.setState((state) => {
                 return {
                     controlledDraws: [...state.controlledDraws, {commandList: [], title}],
@@ -67,10 +74,10 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
                 };
             });
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.drawString, (data: ScopeText) => {
+        this.addIPCListener(channels.scope.drawString, (data: ScopeText) => {
             this.setState((state) => Oscilloscope.addDrawCommand(state.controlledDraws, {data, type: "text"}));
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.drawLine, (data: ScopeLine) => {
+        this.addIPCListener(channels.scope.drawLine, (data: ScopeLine) => {
             this.setState((state) => Oscilloscope.addDrawCommand(state.controlledDraws, {data, type: "line"}));
         });
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia, (data: MediaState) => {
@@ -98,7 +105,7 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         }
     }
 
-    private makeTabContents(): JSX.Element {
+    private makeTabContents(): React.JSX.Element {
         return <div className={'tt-tabs-body'}>
             <Tab.Content>
                 <Tab.Pane eventKey={0} className={'tt-tabs-body-inner'} key={0}>
@@ -109,7 +116,7 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         </div>;
     }
 
-    private makeControlledContent(index: number): JSX.Element {
+    private makeControlledContent(index: number): React.JSX.Element {
         const key = index + 1;
         return <Tab.Pane eventKey={key} className={'tt-tabs-body-inner'} key={key}>
             {
@@ -121,7 +128,7 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         </Tab.Pane>;
     }
 
-    private makeTabRow(): JSX.Element {
+    private makeTabRow(): React.JSX.Element {
         return <div className={'tt-tabs-top'}>
             <Nav variant="tabs">
                 <Nav.Item key={0}>
@@ -134,7 +141,7 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         </div>;
     }
 
-    private makeControlledTab(index: number): JSX.Element {
+    private makeControlledTab(index: number): React.JSX.Element {
         const tabKey = index + 1;
         const removeTab = (ev) => {
             ev.stopPropagation();
@@ -152,7 +159,7 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
         </Nav.Item>;
     }
 
-    private makeMainScope(): JSX.Element {
+    private makeMainScope(): React.JSX.Element {
         const realTraces = this.state.traces.filter(t => t !== undefined);
         return <div className={'tt-scope'}>
             <MediaProgress {...this.state.media}/>
@@ -185,9 +192,8 @@ export class Oscilloscope extends TTComponent<{}, OscilloscopeState> {
 
     private static configure(oldTraces: OscilloscopeTrace[], cfg: ScopeTraceConfig) {
         const newTraces = [...oldTraces];
-        const perDiv = (cfg.max - cfg.min) / NUM_VERTICAL_DIVS;
         const oldTrace = newTraces[cfg.id];
-        const newTraceCfg = new TraceConfig(TRACE_COLORS[cfg.id], cfg.name, cfg.unit, perDiv, cfg.offset, cfg.div);
+        const newTraceCfg = new TraceConfig(cfg);
         newTraces[cfg.id] = oldTrace ? oldTrace.withCfg(newTraceCfg) : new OscilloscopeTrace(newTraceCfg);
         return {traces: newTraces};
     }

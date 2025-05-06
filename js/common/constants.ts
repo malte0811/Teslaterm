@@ -28,6 +28,9 @@ export const FEATURE_TIMEBASE = "timebase";
 export const FEATURE_TIMECOUNT = "time_count";
 export const FEATURE_NOTELEMETRY = "notelemetry_supported";
 export const FEATURE_MINSID = "min_sid_support";
+export const FEATURE_PROTOCOL_VERSION = "protocol";
+export const LAST_SUPPORTED_PROTOCOL = 3.0;
+export const MIN_MULTICOIL_PROTOCOL = 3.0;
 
 // Connection types
 export enum UD3ConnectionType {
@@ -46,6 +49,15 @@ CONNECTION_TYPE_DESCS.set(UD3ConnectionType.udp_min, "MIN over UDP");
 CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_min, "Serial (MIN)");
 CONNECTION_TYPE_DESCS.set(UD3ConnectionType.serial_plain, "Serial (Plain)");
 // connection_types.set(dummy, "Dummy connection (debug only!)");
+
+//export interface CoilID {
+//    id: number;
+//}
+export type CoilID = number;
+
+export function coilSuffix(coil: CoilID) {
+    return coil.toString();
+}
 
 export enum UD3AlarmLevel {
     info = 0,

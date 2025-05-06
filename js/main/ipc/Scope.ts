@@ -1,42 +1,45 @@
-import {IPC_CONSTANTS_TO_RENDERER, ScopeTraceConfig} from "../../common/IPCConstantsToRenderer";
-import {media_state} from "../media/media_player";
-import {MultiWindowIPC} from "./IPCProvider";
+import {CoilID} from "../../common/constants";
+import {getToRenderIPCPerCoil, ScopeTraceConfig} from "../../common/IPCConstantsToRenderer";
+import {MainIPC} from "./IPCProvider";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class ScopeIPC {
-    private tickSummary: Array<{ [id: number]: number }> = [];
-    private sinceLastDraw: { [id: number]: number } = {};
-    private configs: {[id: number]: ScopeTraceConfig} = {};
-    private readonly processIPC: MultiWindowIPC;
+    private tickSummary: number[][] = [];
+    private sinceLastDraw: number[] = [];
+    private configs: ScopeTraceConfig[] = [];
+    private readonly processIPC: TemporaryIPC;
+    private coil: CoilID;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.processIPC = processIPC;
+        this.coil = coil;
         setInterval(() => this.tick(), 50);
     }
 
     public drawChart() {
         this.tickSummary.push(this.sinceLastDraw);
-        this.sinceLastDraw = {};
+        this.sinceLastDraw = [];
     }
 
     public addValue(traceId: number, value: number) {
         this.sinceLastDraw[traceId] = value;
     }
 
-    public startControlledDraw(title: string, source?: object) {
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.startControlled, source, title);
+    public startControlledDraw(title: string) {
+        this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.startControlled, title);
     }
 
-    public drawLine(x1: number, y1: number, x2: number, y2: number, traceColorIndex: number, source?: object) {
-        this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.scope.drawLine, source, {x1, y1, x2, y2, traceColorIndex},
+    public drawLine(x1: number, y1: number, x2: number, y2: number, traceColorIndex: number) {
+        this.processIPC.send(
+            getToRenderIPCPerCoil(this.coil).scope.drawLine, {x1, y1, x2, y2, traceColorIndex},
         );
     }
 
     public drawText(
-        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean, source?: object,
+        x: number, y: number, traceColorIndex: number, size: number, str: string, center: boolean,
     ) {
-        this.processIPC.sendToWindow(
-            IPC_CONSTANTS_TO_RENDERER.scope.drawString, source, {x, y, traceColorIndex, size, str, center},
+        this.processIPC.send(
+            getToRenderIPCPerCoil(this.coil).scope.drawString, {x, y, traceColorIndex, size, str, center},
         );
     }
 
@@ -44,23 +47,13 @@ export class ScopeIPC {
         id: number, min: number, max: number, offset: number, div: number, unit: string, name: string,
     ) {
         const config: ScopeTraceConfig = {id, min, max, offset, div, unit, name};
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.configure, config);
+        this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.configure, config);
         this.configs[id] = config;
     }
 
-    public updateMediaInfo() {
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
-            {
-                progress: media_state.progress,
-                state: media_state.state,
-                title: media_state.title,
-                type: media_state.type,
-            });
-    }
-
-    public sendConfig(source: object) {
+    public sendConfig() {
         for (const cfg of Object.values(this.configs)) {
-            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.scope.configure, source, cfg);
+            this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.configure, cfg);
         }
     }
 
@@ -70,7 +63,7 @@ export class ScopeIPC {
 
     private tick() {
         if (Object.keys(this.tickSummary).length > 0) {
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.scope.addValues, {values: this.tickSummary});
+            this.processIPC.send(getToRenderIPCPerCoil(this.coil).scope.addValues, {values: this.tickSummary});
             this.tickSummary = [];
         }
     }

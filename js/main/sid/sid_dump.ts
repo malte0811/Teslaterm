@@ -1,10 +1,10 @@
 import {FRAME_LENGTH, ISidSource, SidFrame} from "./sid_api";
 
 export class DumpSidSource implements ISidSource {
-    private sid_file: Uint8Array;
+    private sid_file: number[];
     private processedFrames: number = 0;
 
-    constructor(data: Uint8Array) {
+    constructor(data: number[]) {
         this.sid_file = data;
     }
 
@@ -15,7 +15,7 @@ export class DumpSidSource implements ISidSource {
     }
 
     public getTotalFrameCount(): number | null {
-        return this.sid_file.byteLength / FRAME_LENGTH;
+        return this.sid_file.length / FRAME_LENGTH;
     }
 
     public getCurrentFrameCount(): number {
@@ -23,6 +23,6 @@ export class DumpSidSource implements ISidSource {
     }
 
     public isDone(): boolean {
-        return this.processedFrames * FRAME_LENGTH >= this.sid_file.byteLength;
+        return this.processedFrames * FRAME_LENGTH >= this.sid_file.length;
     }
 }

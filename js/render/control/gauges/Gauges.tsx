@@ -1,5 +1,6 @@
 import React from "react";
-import {IPC_CONSTANTS_TO_RENDERER, MeterConfig, SetMeters} from "../../../common/IPCConstantsToRenderer";
+import {CoilID} from "../../../common/constants";
+import {getToRenderIPCPerCoil, MeterConfig, SetMeters} from "../../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../../TTComponent";
 import {Gauge, GaugeProps} from "./Gauge";
 
@@ -7,6 +8,7 @@ export const NUM_GAUGES = 7;
 
 export interface GaugesProps {
     darkMode: boolean;
+    coil: CoilID;
 }
 
 interface GaugeState {
@@ -34,31 +36,35 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
     }
 
     public componentDidMount() {
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.meters.configure, (config: MeterConfig) => {
+        const coilChannels = getToRenderIPCPerCoil(this.props.coil);
+        this.addIPCListener(coilChannels.meters.configure, (config: MeterConfig) => {
             this.setState((oldState) => {
                 const newGauges: GaugeProps[] = [...oldState.gauges];
                 newGauges[config.meterId] = {
-                    value: newGauges[config.meterId].value,
                     config,
                     darkMode: this.props.darkMode,
+                    value: newGauges[config.meterId]?.value || 0,
                 };
                 return {gauges: newGauges};
             });
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.meters.setValue, (update: SetMeters) => {
+        this.addIPCListener(coilChannels.meters.setValue, (update: SetMeters) => {
             this.setState((oldState) => {
                 const newGauges: GaugeProps[] = [...oldState.gauges];
                 for (const [id, value] of Object.entries(update.values)) {
+                    if (!newGauges[id]) {
+                        console.warn(`Invalid gauge ${id}`);
+                        continue;
+                    }
                     const config = newGauges[id].config;
-                    const scale = config.scale || 1;
-                    newGauges[id] = {value: value / scale, config, darkMode: this.props.darkMode};
+                    newGauges[id] = {value, config, darkMode: this.props.darkMode};
                 }
                 return {gauges: newGauges};
             });
         });
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         return <div className={'tt-gauges'}>
             {this.state.gauges.map((p, i) => <Gauge {...p} key={i}/>)}
         </div>;

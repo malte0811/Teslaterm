@@ -1,7 +1,6 @@
 import React from "react";
-import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
+import {TabControlLevel} from "../SingleCoilTab";
 
 export interface OntimeSliderProps {
     max: number;
@@ -9,7 +8,6 @@ export interface OntimeSliderProps {
     valueRelative: number;
     setValue: (val: number, relative: boolean) => any;
     relativeAllowed: boolean;
-    relativeIsDefault: boolean;
     // Gray out the slider, but do not actually stop the user from interacting. Indicates that changing the value
     // probably does not affect the coil right now, but might when the coil is turned on.
     visuallyEnabled: boolean;
@@ -17,6 +15,7 @@ export interface OntimeSliderProps {
     disabled: boolean;
     controllingRelative: boolean;
     setControllingRelative: (val: boolean) => any;
+    level: TabControlLevel;
 }
 
 export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
@@ -24,33 +23,52 @@ export class OntimeSlider extends TTComponent<OntimeSliderProps, {}> {
         super(props);
     }
 
-    render(): React.ReactNode {
+    public render(): React.ReactNode {
         const totalOntime = this.props.valueAbsolute * (this.props.valueRelative / 100);
-        let desc: JSX.Element;
-        if (this.props.controllingRelative) {
-            desc = <span><b>{this.props.valueRelative}%</b> of {this.props.valueAbsolute} µs</span>;
+        let desc: React.JSX.Element;
+        let relative: boolean;
+        if (this.props.level.level === 'central-control' ) {
+            relative = true;
+            desc = <span>{this.props.valueRelative}%</span>;
         } else {
-            desc = <span>{this.props.valueRelative}% of <b>{this.props.valueAbsolute} µs</b></span>;
+            relative = this.props.level.level !== 'single-coil' && this.props.controllingRelative;
+            desc = <span>{this.props.valueAbsolute} µs</span>;
+            let innerDesc: React.JSX.Element;
+            if (this.props.level.level === 'single-coil') {
+                innerDesc = <span>{this.props.valueRelative}% of {this.props.valueAbsolute} µs</span>;
+            } else if (relative) {
+                innerDesc = <span><b>{this.props.valueRelative}%</b> of {this.props.valueAbsolute} µs</span>;
+            } else {
+                innerDesc = <span>{this.props.valueRelative}% of <b>{this.props.valueAbsolute} µs</b></span>;
+            }
+            desc = <>{totalOntime.toFixed()} µs ({innerDesc})</>;
+        }
+        let relativeControl: React.JSX.Element;
+        if (this.props.level.level === 'combined') {
+            relativeControl = <>
+                <input
+                    id={'enable-relative-ontime'}
+                    type={'checkbox'}
+                    disabled={!this.props.relativeAllowed}
+                    onChange={(e) => this.props.setControllingRelative(e.target.checked)}
+                    checked={relative}
+                /><label htmlFor={'enable-relative-ontime'}>Relative</label>
+            </>;
+        } else {
+            relativeControl = <></>;
         }
         return <div className={'tt-slider-container'}>
-            Ontime: {totalOntime.toFixed()} µs ({desc})<br/>
+            Ontime: {desc}<br/>
             <input
                 className={this.props.visuallyEnabled ? 'tt-slider' : 'tt-slider-gray'}
                 type={'range'}
                 min={0}
-                max={this.props.controllingRelative ? 100 : this.props.max}
-                value={this.props.controllingRelative ? this.props.valueRelative : this.props.valueAbsolute}
-                onChange={(e) => this.props.setValue(e.target.valueAsNumber, this.props.controllingRelative)}
+                max={relative ? 100 : this.props.max}
+                value={relative ? this.props.valueRelative : this.props.valueAbsolute}
+                onChange={(e) => this.props.setValue(e.target.valueAsNumber, relative)}
                 disabled={this.props.disabled}
             /><br/>
-            <input
-                id={'enable-relative-ontime'}
-                type={'checkbox'}
-                disabled={!this.props.relativeAllowed}
-                onChange={(e) => this.props.setControllingRelative(e.target.checked)}
-                checked={this.props.controllingRelative}
-            />
-            <label htmlFor={'enable-relative-ontime'}>Relative</label>
+            {relativeControl}
         </div>;
     }
 }

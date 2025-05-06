@@ -1,8 +1,7 @@
 import * as net from "net";
-import {SynthType} from "../../common/CommonTypes";
-import {ICommandServer} from "../command/CommandServer";
-import {getOptionalUD3Connection} from "../connection/connection";
+import {forEachCoil} from "../connection/connection";
 import {getActiveSIDConnection} from "./ISidConnection";
+import {queueSIDFrame, shouldQueueSIDFrames} from "./sid";
 import {FRAME_LENGTH, SidFrame} from "./sid_api";
 import {Command, NTSC, PAL, ReplyCode, TimingStandard} from "./SIDConstants";
 
@@ -11,16 +10,13 @@ export class NetworkSIDServer {
     private activeSocket?: net.Socket;
     private readonly port: number;
     private timeSinceLastFrame: number = 0;
-    private currentSIDState: Uint8Array = new Uint8Array(FRAME_LENGTH);
-    private localBuffer: SidFrame[] = [];
+    private currentSIDState: number[] = new Array(FRAME_LENGTH);
     private timeStandard: TimingStandard = PAL;
     private firstAfterReset: boolean = false;
     private sendTimer: NodeJS.Timeout;
-    private commandServer: ICommandServer;
 
-    public constructor(port: number, commandServer: ICommandServer) {
+    public constructor(port: number) {
         this.port = port;
-        this.commandServer = commandServer;
         this.startListening();
     }
 
@@ -49,9 +45,6 @@ export class NetworkSIDServer {
     private onConnected(socket: net.Socket) {
         this.activeSocket = socket;
         console.log("start");
-        this.sendTimer = setInterval(() => {
-            this.sendFramesSync();
-        } , 10);
         this.stopListening();
         socket.once("close", () => {
             this.startListening();
@@ -64,21 +57,6 @@ export class NetworkSIDServer {
         socket.on("data", async (data) => {
             this.handleMessage(data, d => socket.write(d));
         });
-    }
-
-    private async sendFramesWhilePossible() {
-        if (this.localBuffer.length < 3) {
-            return;
-        }
-
-        if (await getOptionalUD3Connection()?.setSynth(SynthType.SID, true)) {
-            getActiveSIDConnection()?.onStart();
-        }
-
-        while (!getActiveSIDConnection()?.isBusy() && this.localBuffer.length > 0) {
-            const nextFrame = this.localBuffer.shift();
-            await getActiveSIDConnection()?.processFrame(nextFrame, this.commandServer);
-        }
     }
 
     private processFrames(data: number[] | Buffer) {
@@ -97,21 +75,14 @@ export class NetworkSIDServer {
                     frameTime *= 20;
                     this.firstAfterReset = false;
                 }
-                this.localBuffer.push(new SidFrame(Uint8Array.from(this.currentSIDState), this.timeSinceLastFrame));
+                queueSIDFrame(new SidFrame(this.currentSIDState, this.timeSinceLastFrame));
                 this.timeSinceLastFrame = 0;
             }
 
         }
     }
 
-    private sendFramesSync() {
-        this.sendFramesWhilePossible().catch(r => {
-            console.error("Error while processing SID frames: " + r);
-        });
-    }
-
     private handleMessage(data: Buffer, sendReply: (data) => void) {
-
         const command = data[0];
         const sidNum = data[1];
         const additional = data.subarray(4);
@@ -120,9 +91,10 @@ export class NetworkSIDServer {
         let toRead: undefined | number[] | Buffer;
         switch (command) {
             case Command.FLUSH:
-                getActiveSIDConnection()?.flush();
-                getActiveSIDConnection()?.onStart();
-                this.localBuffer = [];
+                forEachCoil((coil) => {
+                    getActiveSIDConnection(coil)?.flush();
+                    getActiveSIDConnection(coil)?.onStart();
+                });
                 this.firstAfterReset = true;
                 break;
             case Command.TRY_SET_SID_COUNT:
@@ -143,7 +115,7 @@ export class NetworkSIDServer {
                 break;
             }
             case Command.TRY_WRITE:
-                if (this.localBuffer.length > 10) {
+                if (!shouldQueueSIDFrames()) {
                     returnCode = Buffer.of(ReplyCode.BUSY);
                 } else {
                     toRead = additional;
@@ -151,7 +123,7 @@ export class NetworkSIDServer {
 
                 break;
             case Command.TRY_READ: {
-                if (this.localBuffer.length > 10) {
+                if (!shouldQueueSIDFrames()) {
                     returnCode = Buffer.of(ReplyCode.BUSY);
                 } else {
                     toRead = additional.slice(0, len - 3);
@@ -197,6 +169,5 @@ export class NetworkSIDServer {
         if (toRead) {
             this.processFrames(toRead);
         }
-        // this.sendFramesSync();
     }
 }

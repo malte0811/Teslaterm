@@ -1,21 +1,57 @@
 import * as path from "path";
-import {MediaFileType, PlayerActivity} from "../../common/CommonTypes";
-import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {commands, connectionState, getUD3Connection, hasUD3Connection} from "../connection/connection";
-import {transientActive} from "../connection/telemetry/UD3State";
-import {config} from "../init";
+import {CoilID} from "../../common/constants";
+import {DroppedFile} from "../../common/IPCConstantsToMain";
+import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {MediaFileType, PlayerActivity} from "../../common/MediaTypes";
+import {CoilMixerState, SavedMixerState} from "../../common/UIConfig";
+import {
+    findCoilByName,
+    forEachCoilAsync,
+    getCoilCommands, getMixer,
+    getUD3Connection,
+    hasUD3Connection,
+} from "../connection/connection";
+import {getUD3State} from "../connection/telemetry/UD3State";
 import {ipcs} from "../ipc/IPCProvider";
 import {loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
 import {loadSidFile} from "../sid/sid";
+import {getDefaultVolumes, getUIConfig} from "../UIConfigHandler";
 
 export function isSID(type: MediaFileType): boolean {
     return type === MediaFileType.sid_dmp || type === MediaFileType.sid_emulated;
 }
 
+function applyCoilMixerState(coil: CoilID | undefined, state: CoilMixerState) {
+    getMixer()?.updateVolume({coil}, state.masterSetting, false);
+    getMixer()?.updateVolume({coil, channel: 'sidSpecial'}, state.sidSpecialSettings, false);
+    state.channelSettings.forEach((settings, channel) => {
+        if (settings !== undefined) {
+            getMixer()?.updateVolume({coil, channel}, settings, false);
+        }
+    });
+}
+
+function applyMixerState(state: SavedMixerState) {
+    applyCoilMixerState(undefined, state.masterSettings);
+    for (const [coilName, settings] of Object.entries(state.coilSettings)) {
+        const coil = findCoilByName(coilName);
+        if (coil !== undefined) {
+            applyCoilMixerState(coil, settings);
+        }
+    }
+    state.channelPrograms.forEach((programName, channel) => {
+        if (programName !== undefined) {
+            const programID = getUIConfig().syncedConfig.midiPrograms.indexOf(programName);
+            if (programID >= 0) {
+                getMixer()?.setProgramForChannel(channel, programID);
+            }
+        }
+    });
+}
+
 export class PlayerState {
-    public get currentFile(): TransmittedFile | undefined {
+    public get currentFile(): DroppedFile | undefined {
         return this.currentFileInt;
     }
 
@@ -32,12 +68,13 @@ export class PlayerState {
     }
 
     public progress: number;
-    private currentFileInt: TransmittedFile | undefined;
+    private currentFileInt: DroppedFile | undefined;
     private typeInt: MediaFileType;
     private startCallback: (() => Promise<void>) | undefined = undefined;
     private stopCallback: (() => void) | undefined = undefined;
     private titleInt: string | undefined;
     private stateInt: PlayerActivity = PlayerActivity.idle;
+    private readonly listeners: Array<(state: PlayerActivity) => any> = [];
 
     public constructor() {
         this.currentFileInt = undefined;
@@ -47,7 +84,7 @@ export class PlayerState {
     }
 
     public async loadFile(
-        file: TransmittedFile,
+        file: DroppedFile,
         type: MediaFileType,
         title: string,
         startCallback?: () => Promise<void>,
@@ -59,84 +96,103 @@ export class PlayerState {
         this.startCallback = startCallback;
         this.stopCallback = stopCallback;
         this.progress = 0;
-        if (hasUD3Connection()) {
-            await getUD3Connection().setSynthByFiletype(type, false);
-        }
+        const prefix = type === MediaFileType.midi ? 'MIDI file: ' : "SID file: ";
+        ipcs.menu.setMediaName(prefix + title);
+        ipcs.misc.updateMediaInfo();
+        await forEachCoilAsync(async (coil) => {
+            if (hasUD3Connection(coil)) {
+                await getUD3Connection(coil).setSynthByFiletype(type, false);
+            }
+        });
+        applyMixerState(getDefaultVolumes(title));
     }
 
-    public async startPlaying(source?: object): Promise<void> {
+    public async startPlaying(): Promise<void> {
         if (this.currentFile === null) {
-            ipcs.misc.openToast(
-                "Media", "Please select a media file using drag&drop", ToastSeverity.info, "media", source
+            ipcs.misc.openGenericToast(
+                "Media", "Please select a media file using drag&drop", ToastSeverity.info, "media",
             );
             return;
         }
         if (this.state !== PlayerActivity.idle) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 "Media",
                 "A media file is currently playing, stop it before starting it again",
                 ToastSeverity.info,
                 "media",
-                source
             );
             return;
         }
         if (this.startCallback) {
             await this.startCallback();
         }
-        this.stateInt = PlayerActivity.playing;
+        this.setState(PlayerActivity.playing);
     }
 
-    public stopPlaying(source?: Object): void {
+    public stopPlaying(): void {
         if (this.currentFile === null || this.state !== PlayerActivity.playing) {
-            ipcs.misc.openToast("Media", "No media file is currently playing", ToastSeverity.info, "media", source);
+            ipcs.misc.openGenericToast("Media", "No media file is currently playing", ToastSeverity.info, "media");
             return;
         }
         if (this.stopCallback) {
             this.stopCallback();
         }
-        this.stateInt = PlayerActivity.idle;
-        ipcs.scope.updateMediaInfo();
+        this.setState(PlayerActivity.idle);
+        ipcs.misc.updateMediaInfo();
         scripting.onMediaStopped();
+    }
+
+    public addUpdateCallback(mediaUpdateCallback: (state: PlayerActivity) => any) {
+        this.listeners.push(mediaUpdateCallback);
+
+    }
+
+    public removeUpdateCallback(mediaUpdateCallback: (state: PlayerActivity) => any) {
+        const index = this.listeners.indexOf(mediaUpdateCallback);
+        this.listeners[index] = this.listeners[this.listeners.length - 1];
+        this.listeners.pop();
+    }
+
+    private setState(state: PlayerActivity) {
+        this.stateInt = state;
+        this.listeners.forEach((cb) => cb(state));
     }
 }
 
 
 export let media_state = new PlayerState();
 
-let lastTimeoutReset: number = 0;
+const lastTimeoutReset: Map<CoilID, number> = new Map<CoilID, number>();
 
-export async function checkTransientDisabled() {
-    if (transientActive) {
+export async function checkTransientDisabled(coil: CoilID) {
+    if (getUD3State(coil).transientActive) {
         const currTime = new Date().getTime();
-        if (currTime - lastTimeoutReset > 500) {
-            await commands.setTransientEnabled(false);
-            lastTimeoutReset = currTime;
+        if (!lastTimeoutReset.has(coil) || currTime - lastTimeoutReset.get(coil) > 500) {
+            await getCoilCommands(coil).setTransientEnabled(false);
+            lastTimeoutReset.set(coil, currTime);
         }
     }
 }
 
+export async function checkAllTransientDisabled() {
+    await forEachCoilAsync(checkTransientDisabled);
+}
+
 export function isMediaFile(filename: string): boolean {
-    const extension = path.extname(filename).substr(1).toLowerCase();
+    const extension = path.extname(filename).substring(1).toLowerCase();
     return extension === "mid" || extension === "sid" || extension === "dmp";
 }
 
-export async function loadMediaFile(file: TransmittedFile): Promise<void> {
-    if (connectionState.getCommandRole() === "client") {
-        ipcs.misc.openToast(
-            'Media', "Cannot load media files on command client!", ToastSeverity.info, 'media-command-client'
-        );
-        return;
-    }
+export async function loadMediaFile(file: DroppedFile): Promise<void> {
     if (media_state.state === PlayerActivity.playing) {
         media_state.stopPlaying();
     }
-    const extension = path.extname(file.name).substr(1).toLowerCase();
+    const extension = path.extname(file.name).substring(1).toLowerCase();
     if (extension === "mid") {
         await loadMidiFile(file);
     } else if (extension === "dmp" || extension === "sid") {
         await loadSidFile(file);
     } else {
-        ipcs.misc.openToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');
+        ipcs.misc.openGenericToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');
     }
 }

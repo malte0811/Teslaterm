@@ -1,9 +1,9 @@
-import {MediaFileType, SynthType, synthTypeFor} from "../../../common/CommonTypes";
-import {FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
+import {CoilID, FEATURE_PROTOCOL_VERSION, FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
+import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
 import {Endianness, to_ud3_time, withTimeout} from "../../helper";
 import {config} from "../../init";
-import {ipcs} from "../../ipc/IPCProvider";
 import {ISidConnection} from "../../sid/ISidConnection";
+import {getCoilCommands} from "../connection";
 
 export function toCommandID(type: SynthType): number {
     switch (type) {
@@ -17,26 +17,30 @@ export function toCommandID(type: SynthType): number {
     throw new Error("Unknown synth type: " + type);
 }
 
-export type TerminalHandle = number;
+export enum TerminalHandle {
+    automatic,
+    manual,
+}
 
-export class TerminalData {
-    public readonly callback: (data: Buffer) => void;
-    public active: boolean = false;
-
-    constructor(callback: (data: Buffer) => void) {
-        this.callback = callback;
-    }
+export interface TerminalData {
+    readonly callback: (data: Buffer) => void;
 }
 
 export abstract class UD3Connection {
+    // TODO simplify a bit?
     protected terminalCallbacks: Map<TerminalHandle, TerminalData> = new Map<TerminalHandle, TerminalData>();
     protected lastSynthType: SynthType = SynthType.NONE;
+    private readonly coil: CoilID;
+
+    constructor(coil: CoilID) {
+        this.coil = coil;
+    }
 
     public abstract sendTelnet(data: Buffer, handle: TerminalHandle): Promise<void>;
 
     public abstract sendMidi(data: Buffer): Promise<void>;
 
-    public abstract sendVMSFrames(data: Buffer);
+    public abstract sendVMSFrame(frames: Buffer): Promise<void>;
 
     public abstract getSidConnection(): ISidConnection;
 
@@ -63,37 +67,30 @@ export abstract class UD3Connection {
 
     public abstract tick(): void;
 
-    public abstract getMaxTerminalID(): number;
+    public abstract getUDName(): string | undefined;
 
-    public abstract isMultiTerminal(): boolean;
-
-    public setupNewTerminal(dataCallback: (data: Buffer) => void): TerminalHandle | undefined {
-        for (let i = 0; !this.isMultiTerminal() || i < this.getMaxTerminalID(); ++i) {
-            if (!this.terminalCallbacks.has(i)) {
-                this.terminalCallbacks.set(i, new TerminalData(dataCallback));
-                return i;
-            }
-        }
-        return undefined;
+    public getCoil() {
+        return this.coil;
     }
 
-    public async startTerminal(handle: TerminalHandle): Promise<void> {
-        if (!this.terminalCallbacks.has(handle)) {
-            throw new Error("Trying to connect start terminal that has not been set up yet");
-        }
-        if (this.terminalCallbacks.get(handle).active) {
-            throw new Error("Trying to connect start terminal that is already active");
-        }
-        this.terminalCallbacks.get(handle).active = true;
+    public commands() {
+        return getCoilCommands(this.getCoil());
+    }
+
+    public async startTerminal(id: TerminalHandle, dataCallback: (data: Buffer) => void) {
+        this.terminalCallbacks.set(id, {callback: dataCallback});
     }
 
     public async closeTerminal(handle: TerminalHandle): Promise<void> {
         this.terminalCallbacks.delete(handle);
-        await ipcs.terminal.onSlotsAvailable(false);
     }
 
     public getFeatureValue(feature: string): string {
         return config.defaultUDFeatures.get(feature);
+    }
+
+    public getProtocolVersion() {
+        return Number.parseFloat(this.getFeatureValue(FEATURE_PROTOCOL_VERSION));
     }
 
     public toUD3Time(now: number) {
@@ -118,6 +115,10 @@ export abstract class UD3Connection {
         } else {
             return false;
         }
+    }
+
+    public clearLastSynth() {
+        this.lastSynthType = undefined;
     }
 
     protected abstract setSynthImpl(type: SynthType): Promise<void>;

@@ -1,48 +1,81 @@
-import {IPC_CONSTANTS_TO_RENDERER, MeterConfig} from "../../common/IPCConstantsToRenderer";
-import {MultiWindowIPC} from "./IPCProvider";
+import {CoilID} from "../../common/constants";
+import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {
+    CentralTelemetryValue,
+    getToRenderIPCPerCoil, IPC_CONSTANTS_TO_RENDERER,
+    MeterConfig,
+    PerCoilRenderIPCs,
+} from "../../common/IPCConstantsToRenderer";
+import {getUIConfig} from "../UIConfigHandler";
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class MetersIPC {
-    private state: { [id: number]: number } = {};
-    private lastState: { [id: number]: number } = {};
-    private readonly configs: {[i: number]: MeterConfig} = {};
-    private readonly processIPC: MultiWindowIPC;
+    private rawValues: number[] = [];
+    private lastScaledValues: number[] = [];
+    private readonly configs: MeterConfig[] = [];
+    private readonly processIPC: TemporaryIPC;
+    private readonly coil: CoilID;
+    private readonly renderIPCs: PerCoilRenderIPCs;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.processIPC = processIPC;
-        setInterval(() => this.tick(), 100);
+        this.coil = coil;
+        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.centralTab.requestTelemetryNames, () => this.processIPC.send(
+            IPC_CONSTANTS_TO_RENDERER.centralTab.informTelemetryNames,
+            this.configs.map((cfg) => cfg.name),
+        ));
     }
 
     public setValue(id: number, value: number) {
-        this.state[id] = value;
+        this.rawValues[id] = value;
     }
 
     public configure(meterId: number, min: number, max: number, scale: number, name: string) {
         const config: MeterConfig = {meterId, min, max, scale, name};
-        this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.configure, config);
+        this.processIPC.send(this.renderIPCs.meters.configure, config);
         this.configs[meterId] =  config;
     }
 
-    public sendConfig(source: object) {
+    public sendConfig() {
         for (const cfg of Object.values(this.configs)) {
-            this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.configure, source, cfg);
+            this.processIPC.send(this.renderIPCs.meters.configure, cfg);
         }
-        this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.meters.setValue, source, {values: this.lastState});
+        this.sendCentralTelemetry();
+        this.processIPC.send(this.renderIPCs.meters.setValue, {values: this.lastScaledValues});
     }
 
     public getCurrentConfigs() {
         return this.configs;
     }
 
-    private tick() {
+    public tick() {
         const update: { [id: number]: number } = {};
-        for (const [id, value] of Object.entries(this.state)) {
-            if (this.lastState[id] !== value) {
-                this.lastState[id] = value;
-                update[id] = value;
+        this.rawValues.forEach((value, id) => {
+            const scale = this.configs[id] ? this.configs[id].scale : 1;
+            const scaled = value / scale;
+            if (this.lastScaledValues[id] !== scaled) {
+                this.lastScaledValues[id] = scaled;
+                update[id] = scaled;
+            }
+        });
+        if (Object.keys(update).length > 0) {
+            this.processIPC.send(this.renderIPCs.meters.setValue, {values: update});
+            this.sendCentralTelemetry();
+        }
+    }
+
+    public sendCentralTelemetry() {
+        const values: CentralTelemetryValue[] = [];
+        for (const nameToSend of getUIConfig().syncedConfig.centralTelemetry) {
+            const config = this.configs.find((cfg) => cfg && cfg.name === nameToSend);
+            if (config) {
+                const value = this.lastScaledValues[config.meterId];
+                values.push({max: config.max, min: config.min, value, valueName: config.name});
+            } else {
+                values.push(undefined);
             }
         }
-        if (Object.keys(update).length > 0) {
-            this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.meters.setValue, {values: update});
-        }
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.centralTab.setCentralTelemetry, [this.coil, values]);
     }
 }

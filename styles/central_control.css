@@ -1,0 +1,97 @@
+.tt-vertical-gauge-label {
+    text-align: center;
+    height: 100px;
+    writing-mode: vertical-rl;
+    transform:scale(-1);
+}
+
+.tt-telemetry-overview-meters {
+    display: inline-grid;
+    /*grid specification depends on config and is done in code*/
+    padding-right: 10px;
+}
+
+.tt-telemetry-overview {
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: nowrap;
+}
+
+.tt-central-telemetry-and-sliders {
+    display: grid;
+    grid-template-columns: 76% 24%;
+    grid-template-rows: 100%;
+    margin-bottom: 10px;
+    max-height: 50vh;
+    border-bottom-style: solid;
+    border-width: 1px;
+    padding-bottom: 5px;
+}
+
+.tt-mixer {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: row;
+    /*Align sliders with telemetry of corresponding coils*/
+    padding-left: 1lh;
+    padding-bottom: 5px;
+    overflow-x: auto;
+}
+
+.tt-mixer-selector {
+    flex: 0 0 110px;
+    margin-left: 10px;
+}
+
+.tt-mixer-slider-outer-box {
+    height: 100%;
+    display: inline-block;
+}
+
+.tt-mixer-slider-box {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    width: 120px;
+    padding-bottom: 5px;
+}
+
+.tt-mixer-border-box {
+    border-style: solid;
+    border-width: 1px;
+    white-space: nowrap;
+}
+
+.tt-vertical-slider-disabled, .tt-vertical-slider {
+    writing-mode: vertical-rl;
+    direction: rtl;
+    -webkit-appearance: none;
+    width: 10px;
+    flex: 1 0 auto;
+    margin: auto;
+    background: #d3d3d3;
+    border-radius: 5px;
+}
+
+.tt-vertical-slider-disabled::-webkit-slider-thumb, .tt-vertical-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 30px;
+    height: 20px;
+    border-radius: 20%;
+}
+
+.tt-vertical-slider::-webkit-slider-thumb {
+    background-color: #0d6efd;
+}
+
+.tt-vertical-slider-disabled::-webkit-slider-thumb {
+    background-color: #a0a0a0;
+}
+
+.tt-dot {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    display: inline-block;
+}

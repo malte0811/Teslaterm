@@ -10,15 +10,15 @@ permissions:
 jobs:
   build-linux:
     name: Build on Linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 19
+          node-version: 20
       - name: Cache node modules
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json')
@@ -30,55 +30,40 @@ jobs:
       - name: NPM install
         run: npm install --dev
       - name: Build Electron
-        run: npm run package-electron-linux
-      - name: Build Node
-        run: npm run build-node-linux
+        run: npm run package-linux
       - name: Upload electron-linux
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          path: dist/electron/teslaterm-linux.zip
-          name: teslaterm-linux.zip
-      - name: Upload node-linux
-        uses: actions/upload-artifact@v3
-        with:
-          path: dist/node/ud3-node
-          name: ud3-node-linux
+          path: dist/linux-unpacked
+          name: teslaterm-linux
   build-windows:
     name: Build on Windows
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 19
-      - name: Cache node modules
-        uses: actions/cache@v3
+          node-version: 20
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: pwsh
+        run: echo "dir=$(npm config get cache)" >> ${env:GITHUB_OUTPUT}
+      - uses: actions/cache@v3
         with:
-          path: ~\AppData\npm-cache
-          key: ${{ runner.os }}-build-cache-node-modules-${{ hashFiles('**/package-lock.json')
-            }}
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-build-cache-node-modules-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            ${{ runner.os }}-node-
       - name: NPM install
         run: npm install --dev
       - name: Build Electron
-        run: npm run package-electron-win
-      - name: Build Node
-        run: npm run build-node-windows
-      - name: Upload electron-win
-        uses: actions/upload-artifact@v3
+        run: npm run package-windows
+      - name: Upload electron-windows
+        uses: actions/upload-artifact@v4
         with:
-          path: dist/electron/teslaterm-win.zip
-          name: teslaterm-win.zip
-      - name: Upload node-win
-        uses: actions/upload-artifact@v3
-        with:
-          path: dist/node/ud3-node.exe
-          name: ud3-node-windows.exe
-  # TODO actually make this happen, grabbing binaries from uploaded artifacts of other builds
+          path: dist/win-unpacked
+          name: teslaterm-windows
   create-release:
     name: Create release if required
     runs-on: ubuntu-20.04
@@ -86,22 +71,22 @@ jobs:
     env:
       release: ${{ github.event_name == 'create' && startsWith(github.ref, 'refs/tags/v')}}
     steps:
-      - name: Download node-linux
-        uses: actions/download-artifact@v3
-        with:
-          name: ud3-node-linux
-      - name: Download node-windows
-        uses: actions/download-artifact@v3
-        with:
-          name: ud3-node-windows.exe
       - name: Download teslaterm-windows
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: teslaterm-win.zip
+          name: teslaterm-windows
+          path: windows
+      - name: Re-zip Windows artifact
+        working-directory: windows
+        run: zip -r ../teslaterm-windows.zip *
       - name: Download teslaterm-linux
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: teslaterm-linux.zip
+          name: teslaterm-linux
+          path: linux
+      - name: Re-zip Linux artifact
+        working-directory: linux
+        run: zip -r ../teslaterm-linux.zip *
       - name: Create and upload release builds
         uses: softprops/action-gh-release@v1
         if: env.release == 'true'
@@ -109,5 +94,3 @@ jobs:
           files: |
             teslaterm-linux.zip
             teslaterm-win.zip
-            ud3-node
-            ud3-node.exe

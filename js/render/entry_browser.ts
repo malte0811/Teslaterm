@@ -10,15 +10,19 @@ class IPC implements IPCProvider {
     public on<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void): IPCListenerRef {
         serverComms.on(channel.channel, callback);
         const listeners = serverComms.listeners(channel.channel);
-        return {channel: channel.channel, realCB:listeners[listeners.length - 1]};
+        return {channel: channel.channel, realCB: listeners[listeners.length - 1]};
     }
 
     public send<T>(channel: IPCToMainKey<T>, data: T) {
         serverComms.emit(channel.channel, data);
     }
 
-    public removeListener(listener:IPCListenerRef) {
+    public removeListener(listener: IPCListenerRef) {
         serverComms.removeListener(listener.channel, listener.realCB);
+    }
+
+    public once<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void) {
+        serverComms.once(channel.channel, callback);
     }
 }
 

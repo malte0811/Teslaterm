@@ -5,82 +5,53 @@
     "tsc": "tsc --build --incremental",
     "build-dev": "npm run tsc && webpack --mode=development",
     "build": "npm run tsc && webpack --mode=production",
-    "start-electron": "npm run tsc && cross-var electron .",
-    "start-node": "npm run build-dev && node js/main/main_node.js",
-
-    "package-electron-win": "npm run tsc && cross-var electron-builder --windows zip",
-    "package-electron-linux": "npm run tsc && cross-var electron-builder --linux zip",
-
-    "pkg-node-windows": "cross-var pkg --out-path=dist/node -t node18-windows-x64 package.json --no-native-build",
-    "build-node-windows": "npm run build && npm run pkg-node-windows && cross-var mv dist/node/teslaterm.exe dist/node/ud3-node.exe",
-    "pkg-node-linux": "cross-var pkg --out-path=dist/node -t node18-linux-x64 package.json --no-native-build",
-    "build-node-linux": "npm run build && npm run pkg-node-linux && cross-var mv dist/node/teslaterm dist/node/ud3-node"
+    "start": "npm run tsc && electron .",
+    "package-windows": "npm run tsc && electron-builder --windows --dir",
+    "package-linux": "npm run tsc && electron-builder --linux --dir"
   },
   "main": "js/main/main_electron.js",
-  "bin": "js/main/main_node.js",
   "dependencies": {
-    "bootstrap": "^5.3.2",
-    "ini": "^4.1.1",
+    "basic-ftp": "^5.0.5",
+    "bootstrap": "^5.3.3",
+    "ini": "^5.0.0",
     "jspack": "0.0.4",
     "jszip": "^3.10.1",
-    "justgage": "^1.6.1",
+    "justgage": "^1.7.0",
     "midi-player-js": "^2.0.16",
-    "react": "^18.2.0",
-    "react-bootstrap": "^2.9.0",
-    "react-dom": "^18.2.0",
+    "react-bootstrap": "^2.10.7",
     "rtpmidi": "^1.0.0",
     "serialport": "12.0.0",
-    "socket.io": "^4.7.2",
-    "socket.io-client": "^4.7.2",
-    "xterm": "^5.3.0",
-    "xterm-addon-fit": "^0.8.0"
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "@xterm/xterm": "^5.5.0",
+    "@xterm/addon-fit": "^0.10.0"
   },
   "devDependencies": {
-    "@types/ini": "^1.3.31",
-    "@types/node": "^20.8.3",
-    "@types/react": "^18.2.25",
-    "@types/react-dom": "^18.2.11",
-    "@types/serialport": "^8.0.3",
-    "@types/w2ui": "^1.4.34",
-    "@types/webmidi": "^2.0.8",
-    "cross-var": "^1.1.0",
-    "css-loader": "^6.8.1",
-    "electron": "^26.3.0",
-    "electron-builder": "^24.6.4",
-    "node": "^20.7.0",
-    "node-abi": "^3.47.0",
-    "npm": "^10.2.0",
-    "pkg": "^5.8.1",
-    "ts-loader": "^9.5.0",
+    "@types/ini": "^4.1.1",
+    "@types/serialport": "^8.0.5",
+    "@types/w2ui": "^1.4.37",
+    "@types/webmidi": "^2.1.0",
+    "css-loader": "^7.1.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "npm": "^11.0.0",
+    "ts-loader": "^9.5.1",
     "tslint": "^5.20.1",
     "tslint-no-circular-imports": "^0.7.0",
-    "typescript": "^5.2.2",
-    "webpack": "^5.88.2",
-    "webpack-cli": "^5.1.4"
+    "typescript": "^5.7.2",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1"
   },
   "build": {
     "appId": "teslaterm",
     "win": {
-      "artifactName": "electron/${productName}-win.${ext}"
+      "artifactName": "electron/${productName}-windows.${ext}"
     },
     "linux": {
       "artifactName": "electron/${productName}-linux.${ext}"
     },
     "asarUnpack": [
       "js/main/connection/flightrecorder/FlightRecordingWorker.js"
-    ]
-  },
-  "pkg": {
-    "assets": [
-      "index_node.html",
-      "dist/bundle.js",
-      "styles/*",
-      "node_modules/raphael/raphael.js",
-      "node_modules/xterm/css/xterm.css",
-      "node_modules/@serialport/bindings-cpp/prebuilds/linux-x64/node.napi.glibc.node",
-      "node_modules/@serialport/bindings-cpp/prebuilds/win32-x64/node.napi.node",
-      "node_modules/bootstrap/dist/css/bootstrap.min.css",
-      "node_modules/jszip/dist/jszip.min.js"
     ]
   }
 }

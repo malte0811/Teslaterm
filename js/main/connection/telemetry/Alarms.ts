@@ -1,23 +1,35 @@
-import {UD3AlarmLevel} from '../../../common/constants';
-import {IPC_CONSTANTS_TO_MAIN} from '../../../common/IPCConstantsToMain';
-import {IPC_CONSTANTS_TO_RENDERER, ToastSeverity, UD3Alarm} from '../../../common/IPCConstantsToRenderer';
+import {CoilID, UD3AlarmLevel} from '../../../common/constants';
+import {getToMainIPCPerCoil} from '../../../common/IPCConstantsToMain';
+import {
+    getToRenderIPCPerCoil,
+    IPC_CONSTANTS_TO_RENDERER,
+    ToastSeverity,
+    UD3Alarm
+} from '../../../common/IPCConstantsToRenderer';
 import {ipcs, processIPC} from '../../ipc/IPCProvider';
 
-const allAlarms: UD3Alarm[] = [];
+const allAlarms = new Map<CoilID, UD3Alarm[]>();
 
-export function resetAlarms() {
-    allAlarms.length = 0;
+export function resetAlarms(coil: CoilID) {
+    allAlarms.delete(coil);
 }
 
-export function initAlarms() {
+export function resetAllAlarms() {
+    allAlarms.clear();
+}
+
+export function initAlarms(coil: CoilID) {
     processIPC.on(
-        IPC_CONSTANTS_TO_MAIN.menu.requestAlarmList,
-        (source) => processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.alarmList, source, allAlarms),
+        getToMainIPCPerCoil(coil).menu.requestAlarmList,
+        () => processIPC.send(getToRenderIPCPerCoil(coil).alarmList, allAlarms.get(coil) || []),
     );
 }
 
-export function addAlarm(alarm: UD3Alarm, skipToast: boolean) {
-    allAlarms.push(alarm);
+export function addAlarm(coil: CoilID, alarm: UD3Alarm, skipToast: boolean) {
+    if (!allAlarms.has(coil)) {
+        allAlarms.set(coil, []);
+    }
+    allAlarms.get(coil).push(alarm);
     if (!skipToast) {
         const severity = (() => {
             switch (alarm.level) {
@@ -30,7 +42,7 @@ export function addAlarm(alarm: UD3Alarm, skipToast: boolean) {
                     return ToastSeverity.error;
             }
         })();
-        const toastMessage = alarm.message + (alarm.value !== undefined ? ' | Value: ' + alarm.value : '')
-        ipcs.misc.openToast('UD3 alarm', toastMessage, severity, alarm.message);
+        const toastMessage = alarm.message + (alarm.value !== undefined ? ' | Value: ' + alarm.value : '');
+        ipcs.coilMisc(coil).openToast('UD3 alarm', toastMessage, severity, alarm.message);
     }
 }

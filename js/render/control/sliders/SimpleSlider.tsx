@@ -1,9 +1,7 @@
 import React from 'react';
 import {TTComponent} from "../../TTComponent";
 
-export interface SimpleSliderProps {
-    title: string;
-    unit: string;
+interface SimpleSliderPropsBase {
     min: number;
     max: number;
     value: number;
@@ -12,10 +10,19 @@ export interface SimpleSliderProps {
     disabled: boolean;
 }
 
-export class SimpleSlider extends TTComponent<SimpleSliderProps, {}> {
-    render(): React.ReactNode {
+export interface SimpleSliderPropsFixedTitle extends SimpleSliderPropsBase {
+    title: string;
+}
+
+export interface SimpleSliderProps extends SimpleSliderPropsBase {
+    title: string;
+    unit: string;
+}
+
+export class SimpleSliderFixedTitle extends TTComponent<SimpleSliderPropsFixedTitle, {}> {
+    public render(): React.ReactNode {
         return <div className={'tt-slider-container'}>
-            {this.props.title + ': ' + this.props.value + ' ' + this.props.unit}<br/>
+            {this.props.title}<br/>
             <input
                 className={this.props.visuallyEnabled ? 'tt-slider' : 'tt-slider-gray'}
                 type={'range'}
@@ -26,5 +33,13 @@ export class SimpleSlider extends TTComponent<SimpleSliderProps, {}> {
                 disabled={this.props.disabled}
             />
         </div>;
+    }
+}
+
+export class SimpleSlider extends TTComponent<SimpleSliderProps, {}> {
+    public render(): React.ReactNode {
+        const title = this.props.title + ': ' + this.props.value + ' ' + this.props.unit;
+        const fixedTitleProps = {...this.props, title};
+        return <SimpleSliderFixedTitle {...fixedTitleProps}/>;
     }
 }

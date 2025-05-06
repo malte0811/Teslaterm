@@ -40,5 +40,19 @@
         120
       ]
     }
-  }
+  },
+  "member-ordering": [
+    true,
+    {
+      "order": [
+        "static-field",
+        "public-static-method",
+        "instance-field",
+        "public-instance-method",
+        "protected-instance-method",
+        "private-instance-method",
+        "private-static-method"
+      ]
+    }
+  ]
 }

@@ -1,35 +1,33 @@
+import {CoilID} from "../../common/constants";
+import {TelemetryFrame} from "../../common/TelemetryTypes";
 import {ipcs} from "../ipc/IPCProvider";
 import {resetResponseTimeout} from "./state/Connected";
 import {TelemetryChannel} from "./telemetry/TelemetryChannel";
+import {sendTelemetryFrame} from "./telemetry/TelemetryFrame";
 
-const channels: Map<object, TelemetryChannel> = new Map();
-let consoleLine: string = "";
+const channels: Map<CoilID, Map<boolean, TelemetryChannel>> = new Map();
 
-export function receive_main(data: Buffer, initializing: boolean, source?: object) {
+function getOrCreateChannel(coil: CoilID, onAuto: boolean) {
+    if (!channels.has(coil)) {
+        channels.set(coil, new Map());
+    }
+    const innerMap = channels.get(coil);
+    if (!innerMap.has(onAuto)) {
+        innerMap.set(onAuto, new TelemetryChannel());
+    }
+    return innerMap.get(onAuto);
+}
+
+export function receive_main(coil: CoilID, data: Buffer, initializing: boolean, onAutoTerminal: boolean) {
+    resetResponseTimeout(coil);
+
+    const print = (s: string) => {
+        if (!onAutoTerminal) {
+            ipcs.terminal(coil).print(s);
+        }
+    };
+    const handleFrame = (frame: TelemetryFrame) => sendTelemetryFrame(frame, coil, initializing);
+
     const buf = new Uint8Array(data);
-    resetResponseTimeout();
-    if (!channels.has(source)) {
-        channels.set(source, new TelemetryChannel(source));
-    }
-    let print: (s: string) => void;
-
-    if (source) {
-        print = (s) => ipcs.terminal.print(s, source);
-    } else {
-        print = (s) => {
-            if (s === '\n' || s === '\r') {
-                if (consoleLine !== "") {
-                    console.log(consoleLine);
-                    consoleLine = "";
-                }
-            } else {
-                if (s !== '\u0000') {
-                    consoleLine += s;
-                }
-            }
-        };
-    }
-    for (const byte of buf) {
-        channels.get(source).processByte(byte, print, initializing);
-    }
+    getOrCreateChannel(coil, onAutoTerminal).processBytes(buf, print, handleFrame);
 }

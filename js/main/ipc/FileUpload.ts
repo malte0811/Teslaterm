@@ -1,40 +1,64 @@
-import {IPC_CONSTANTS_TO_MAIN, TransmittedFile} from "../../common/IPCConstantsToMain";
-import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
-import {startBootloading} from "../connection/connection";
+import JSZip from "jszip";
+import {DroppedFile, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {getMixer, isMulticoil} from "../connection/connection";
+import {FirmwareFiletype, handleBootloaderFileDrop} from "../connection/state/Bootloading";
+import {isMediaFile} from "../media/media_player";
 import * as media_player from "../media/media_player";
-import {BlockSender} from "./block";
-import {ipcs, MultiWindowIPC} from "./IPCProvider";
+import {loadVMS} from "./block";
+import {ipcs, MainIPC} from "./IPCProvider";
 
 export class FileUploadIPC {
-    private static async loadFile(source: object, name: string, data: number[]) {
-        const file = new TransmittedFile(name, new Uint8Array(data));
+    private static async loadSingleFile(file: DroppedFile) {
         const extension = file.name.substring(file.name.lastIndexOf(".") + 1);
         if (extension === "zip") {
-            // TODO support plain JS scripts?
-            await ipcs.scripting.loadScript(file);
-        } else if (extension === "cyacd") {
-            if (!startBootloading(file.contents)) {
-                ipcs.misc.openToast(
-                    'Bootloader',
-                    "Connection does not support bootloading",
-                    ToastSeverity.error,
-                    'bootload-not-supported',
-                    source
-                );
+            const loadedZip: JSZip = await JSZip.loadAsync(file.bytes);
+            const fileNames = Object.keys(loadedZip.files);
+            const scriptName = FileUploadIPC.findScriptName(fileNames);
+            if (scriptName !== undefined) {
+                await ipcs.scripting.loadScript(loadedZip, scriptName);
             }
+        } else if (extension === FirmwareFiletype.ud3 || extension === FirmwareFiletype.fibernet) {
+            await handleBootloaderFileDrop(extension, file);
         } else if (extension === "mcf") {
-            await BlockSender.loadBlocks(file);
+            loadVMS(file);
         } else {
             await media_player.loadMediaFile(file);
         }
     }
 
-    private readonly processIPC: MultiWindowIPC;
+    private static async loadFiles(files: DroppedFile[]) {
+        if (files.length === 1) {
+            await FileUploadIPC.loadSingleFile(files[0]);
+            return;
+        }
+        const fileNames = files.map((f) => f.name);
+        const hasScript = FileUploadIPC.findScriptName(fileNames);
+        if (hasScript) {
+            const zip = new JSZip();
+            for (const file of files) {
+                zip.file(file.name, file.bytes);
+            }
+            const zipContent = await zip.generateAsync({type: 'array'});
+            await FileUploadIPC.loadSingleFile({name: 'multiple-files.zip', bytes: zipContent});
+        } else if (isMulticoil() && FileUploadIPC.isMediaCollection(fileNames)) {
+            await getMixer()?.loadPlaylist(files);
+        }
+    }
 
-    constructor(processIPC: MultiWindowIPC) {
-        processIPC.onAsync(
-            IPC_CONSTANTS_TO_MAIN.loadFile, (source, file) => FileUploadIPC.loadFile(source, file.name, file.bytes)
-        );
-        this.processIPC = processIPC;
+    private static findScriptName(files: string[]) {
+        const scriptNames = files.filter((name) => name.endsWith('.js'));
+        if (scriptNames.length === 1) {
+            return scriptNames[0];
+        } else {
+            return undefined;
+        }
+    }
+
+    private static isMediaCollection(files: string[]) {
+        return files.length > 0 && files.every(isMediaFile);
+    }
+
+    constructor(processIPC: MainIPC) {
+        processIPC.onAsync(IPC_CONSTANTS_TO_MAIN.loadFile, FileUploadIPC.loadFiles);
     }
 }

@@ -1,23 +1,27 @@
+import os from "os";
 import {SerialPort} from "serialport";
 import {AvailableSerialPort, IUDPConnectionSuggestion} from "../../../common/IPCConstantsToRenderer";
 import {convertArrayBufferToString, sleep} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
-import {createBroadcastSocket} from "../udp_helper";
+import {computeBroadcastAddress, createBroadcastSocket} from "../udp_helper";
 
-export function sendConnectionSuggestions(windowKey: any) {
-    Promise.all([sendSerialConnectionSuggestions(windowKey), sendUDPConnectionSuggestions(windowKey)])
+export function sendConnectionSuggestions() {
+    Promise.all([sendSerialConnectionSuggestions(), sendUDPConnectionSuggestions()])
         .catch((err) => console.error("While sending connection suggestions: ", err));
 }
 
-async function sendUDPConnectionSuggestions(windowKey: any) {
+async function sendUDPConnectionSuggestions() {
+    ipcs.connectionUI.suggestUDP(await collectUDPConnectionSuggestions());
+}
+
+export async function collectUDPConnectionSuggestions() {
     const suggestions: IUDPConnectionSuggestion[] = [];
     const udpSocket = await createBroadcastSocket();
-    udpSocket.send("FINDReq=1;\0", 50022, "255.255.255.255");
     udpSocket.on('message', (msg, rinfo) => {
         const asString = convertArrayBufferToString(msg);
         if (asString.startsWith("FIND=1;")) {
             const parts = asString.split(";");
-            let name;
+            let name: string;
             let isUD3 = false;
             for (const field of parts) {
                 const eq = field.indexOf("=");
@@ -32,23 +36,36 @@ async function sendUDPConnectionSuggestions(windowKey: any) {
                 }
             }
             if (isUD3) {
-                suggestions.push({remoteIP: rinfo.address, desc: name});
-                ipcs.connectionUI.suggestUDP(windowKey, suggestions);
+                const existing = suggestions.find((old) => old.remoteIP === rinfo.address && old.desc === name);
+                if (existing === undefined) {
+                    suggestions.push({remoteIP: rinfo.address, desc: name});
+                }
             }
         }
     });
+
+    for (const netInterface of Object.values(os.networkInterfaces()).flat()) {
+        if (netInterface.family === 'IPv4') {
+            udpSocket.send("FINDReq=1;\0", 50022, computeBroadcastAddress(netInterface));
+        }
+    }
+
     await sleep(1000);
     udpSocket.close();
+    return suggestions;
 }
 
-async function sendSerialConnectionSuggestions(windowKey: any) {
-    const serialPorts: AvailableSerialPort[] = (await SerialPort.list())
+async function sendSerialConnectionSuggestions() {
+    ipcs.connectionUI.suggestSerial(await collectSerialConnectionSuggestions());
+}
+
+export async function collectSerialConnectionSuggestions() {
+    return (await SerialPort.list())
         .filter((port) => port.productId)
-        .map((port) => ({
+        .map<AvailableSerialPort>((port) => ({
             manufacturer: port.manufacturer,
             path: port.path,
             productID: port.productId,
             vendorID: port.vendorId,
         }));
-    ipcs.connectionUI.suggestSerial(windowKey, serialPorts);
 }

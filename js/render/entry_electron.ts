@@ -15,8 +15,12 @@ class ElectronIPC implements IPCProvider {
         ipcRenderer.send(channel.channel, data);
     }
 
-    public removeListener(listener:IPCListenerRef) {
+    public removeListener(listener: IPCListenerRef) {
         ipcRenderer.removeListener(listener.channel, listener.realCB);
+    }
+
+    public once<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void) {
+        ipcRenderer.once(channel.channel, (ev, args) => callback(args));
     }
 }
 

@@ -1,54 +1,42 @@
-import {SynthType} from "../../../common/CommonTypes";
-import {FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
+import {CoilID, FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
+import {FlightEventType} from "../../../common/FlightRecorderTypes";
+import {SynthType} from "../../../common/MediaTypes";
 import {convertBufferToString, withTimeout} from "../../helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
+import {MINDataBuffer} from "../../min/MINConstants";
 import {MINTransceiver} from "../../min/MINTransceiver";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {FormatVersion, UD3FormattedConnection} from "../../sid/UD3FormattedConnection";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
-import {FlightEventType, getFlightRecorder} from "../flightrecorder/FlightRecorder";
+import {getFlightRecorder} from "../flightrecorder/FlightRecorder";
 import {TerminalHandle} from "./UD3Connection";
-
-const MIN_ID_WD = 10;
-const MIN_ID_MEDIA = 20;
-const MIN_ID_SID = 21;
-const MIN_ID_SOCKET = 13;
-const MIN_ID_SYNTH = 14;
-const MIN_ID_FEATURE = 15;
-const MIN_ID_EVENT = 40;
-const MIN_ID_VMS = 43;
-
-const EVENT_GET_INFO = 1;
-
-const SYNTH_CMD_FLUSH = 0x01;
-const SYNTH_CMD_SID = 0x02;
-const SYNTH_CMD_MIDI = 0x03;
-const SYNTH_CMD_OFF = 0x04;
+import {EVENT_GET_INFO, parseEventInfo, SYNTH_CMD_FLUSH, UD3MinIDs} from "./UD3MINConstants";
 
 export abstract class MinConnection extends BootloadableConnection {
     private min_wrapper: MINTransceiver | undefined;
     private readonly sidConnection: UD3FormattedConnection;
     private mediaFramesForBatching: Buffer[] = [];
     private mediaFramesForBatchingSID: Buffer[] = [];
-    private VMSFramesForBatching: Buffer[] = [];
     private actualUDFeatures: Map<string, string>;
     private connectionsToSetTTerm: TerminalHandle[] = [];
-    private counter: number = 0;
+    private udName: string = undefined;
+    private sidMINChannel: number = UD3MinIDs.SID;
 
-    protected constructor() {
-        super();
+    protected constructor(coil: CoilID) {
+        super(coil);
         this.sidConnection = new UD3FormattedConnection(
             () => this.flushSynth(),
-            (data) => this.sendMedia(data),
+            (data, direct) => this.sendSID(data, direct),
+            coil,
         );
         this.actualUDFeatures = new Map(config.defaultUDFeatures.entries());
     }
 
     public async connect(): Promise<void> {
         this.registerListener(data => {
-            getFlightRecorder().addEvent(FlightEventType.data_from_ud3, data);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_from_ud3, data);
             if (this.isBootloading()) {
                 this.bootloaderCallback(data);
             } else {
@@ -56,16 +44,21 @@ export abstract class MinConnection extends BootloadableConnection {
             }
         });
         await this.init_min_wrapper();
-        await this.repeatedlySendFrame(MIN_ID_EVENT, [EVENT_GET_INFO]);
+        for (const handle of this.terminalCallbacks.keys()) {
+            await this.sendTerminal(handle);
+        }
+        await this.repeatedlySendFrame(UD3MinIDs.EVENT, [EVENT_GET_INFO]);
+    }
+
+    public releaseResources() {
+        this.min_wrapper = undefined;
     }
 
     public async sendDisconnectData() {
         try {
             const toDisconnect = [];
-            for (const [id, handler] of this.terminalCallbacks) {
-                if (handler.active) {
-                    toDisconnect.push(id);
-                }
+            for (const id of this.terminalCallbacks.keys()) {
+                toDisconnect.push(id);
             }
             for (const id of toDisconnect) {
                 await this.closeTerminal(id).catch((e) => {
@@ -78,27 +71,17 @@ export abstract class MinConnection extends BootloadableConnection {
         this.terminalCallbacks.clear();
     }
 
-    async sendMedia(data: Buffer) {
+    public async sendVMSFrame(data: Buffer) {
         if (this.min_wrapper) {
-            this.mediaFramesForBatching.push(data);
+            await this.min_wrapper.enqueueFrame(UD3MinIDs.VMS, data);
         }
     }
 
-    async sendMediaSID(data: Buffer) {
-        if (this.min_wrapper) {
-            this.mediaFramesForBatchingSID.push(data);
-        }
+    public sendMidi(data: Buffer) {
+        return this.sendMedia(data);
     }
 
-    public async sendVMSFrames(data: Buffer) {
-        if (this.min_wrapper) {
-            this.VMSFramesForBatching.push(data);
-        }
-    }
-
-    sendMidi = this.sendMedia;
-
-    getSidConnection(): ISidConnection {
+    public getSidConnection(): ISidConnection {
         return this.sidConnection;
     }
 
@@ -108,29 +91,21 @@ export abstract class MinConnection extends BootloadableConnection {
         }
     }
 
-    async closeTerminal(handle: TerminalHandle): Promise<void> {
+    public async closeTerminal(handle: TerminalHandle): Promise<void> {
         await withTimeout(this.send_min_socket(false, handle), 500, "Close MIN socket");
         await super.closeTerminal(handle);
     }
 
-    async startTerminal(handle: TerminalHandle): Promise<void> {
-        await super.startTerminal(handle);
-        await this.send_min_socket(true, handle);
-        if (this.getFeatureValue(FEATURE_NOTELEMETRY) !== "1") {
-            this.connectionsToSetTTerm.push(handle);
-        }
-        if (this.getFeatureValue(FEATURE_MINSID) === "1") {
-            this.sidConnection.switch_format(FormatVersion.v2);
-            this.sidConnection.sendToUD = (data) => this.sendMediaSID(data);
-        } else {
-            this.sidConnection.switch_format(FormatVersion.v1);
-            this.sidConnection.sendToUD = (data) => this.sendMedia(data);
+    public async startTerminal(handle: TerminalHandle, dataCallback: (data: Buffer) => void): Promise<void> {
+        await super.startTerminal(handle, dataCallback);
+        if (this.min_wrapper) {
+            await this.sendTerminal(handle);
         }
     }
 
-    public sendBootloaderData(data: Buffer): Promise<void> {
+    public sendBootloaderData(data: MINDataBuffer): Promise<void> {
         return new Promise<void>((res, rej) => {
-            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, data);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
                 if (err) {
                     rej(err);
@@ -145,60 +120,109 @@ export abstract class MinConnection extends BootloadableConnection {
         super.enterBootloaderMode(dataCallback);
         this.min_wrapper = undefined;
         this.terminalCallbacks.clear();
-        ipcs.terminal.onConnectionClosed();
+        ipcs.terminal(this.getCoil()).onConnectionClosed();
     }
 
     public resetWatchdog(): void {
         if (this.min_wrapper) {
-            this.min_wrapper.enqueueFrame(MIN_ID_WD, []);
+            this.min_wrapper.enqueueFrame(UD3MinIDs.WATCHDOG, []);
+        }
+    }
+
+    public tick() {
+        if (this.min_wrapper) {
+            const maxPerFrame = 200;
+
+            this.sidConnection.tick();
+            this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, UD3MinIDs.MEDIA);
+            this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, UD3MinIDs.SID);
+            this.min_wrapper.tick();
+        }
+    }
+
+    public async flushSynth(): Promise<void> {
+        if (this.min_wrapper) {
+            await this.min_wrapper.enqueueFrame(UD3MinIDs.SYNTH, [SYNTH_CMD_FLUSH]);
+        }
+    }
+
+    public async setSynthImpl(type: SynthType): Promise<void> {
+        if (this.min_wrapper) {
+            await this.min_wrapper.enqueueFrame(UD3MinIDs.SYNTH, [type]);
+        }
+    }
+
+    public getFeatureValue(feature: string): string {
+        return this.actualUDFeatures.get(feature);
+    }
+
+    public getUDName(): string | undefined {
+        return this.udName;
+    }
+
+    protected abstract send(data: MINDataBuffer, onError: (err) => void): void;
+
+    protected abstract registerListener(listener: (data: Buffer) => void): void;
+
+    private async repeatedlySendFrame(id: number, payload: number[] | Buffer) {
+        let tries = 0;
+        while (this.min_wrapper && tries < 16) {
+            try {
+                await this.min_wrapper.enqueueFrame(id, payload);
+                return;
+            } catch (e) {
+                console.error('During MIN connection setup', e);
+            }
+            ++tries;
+        }
+        throw new Error('Failed to send frame in 16 tries');
+    }
+
+    private async sendTerminal(handle: TerminalHandle) {
+        await this.send_min_socket(true, handle);
+        if (this.getFeatureValue(FEATURE_NOTELEMETRY) !== "1") {
+            this.connectionsToSetTTerm.push(handle);
+        }
+        if (this.getFeatureValue(FEATURE_MINSID) === "1") {
+            this.sidConnection.switch_format(FormatVersion.v2);
+            this.sidMINChannel = UD3MinIDs.SID;
+        } else {
+            this.sidConnection.switch_format(FormatVersion.v1);
+            this.sidMINChannel = UD3MinIDs.MEDIA;
+        }
+    }
+
+    private async sendMedia(data: Buffer) {
+        if (this.min_wrapper) {
+            this.mediaFramesForBatching.push(data);
+        }
+    }
+
+    private async sendSID(data: Buffer, direct: boolean) {
+        if (this.min_wrapper) {
+            if (direct) {
+                await this.min_wrapper.enqueueFrame(this.sidMINChannel, data);
+            } else {
+                this.mediaFramesForBatchingSID.push(data);
+            }
         }
     }
 
     private batchFrames(buf: Buffer[], maxPerFrame: number, insertFrameCnt: boolean, minID: number) {
         while (this.min_wrapper.get_relative_fifo_size() < 0.75 && buf.length > 0) {
-            let frameParts: Buffer[] = [];
+            const frameParts: Buffer[] = [];
             let currentSize = 0;
-            while (
-                buf.length > 0 &&
-                buf[0].length + currentSize <= maxPerFrame
-                ) {
+            while (buf.length > 0 && buf[0].length + currentSize <= maxPerFrame) {
                 currentSize += buf[0].length;
                 frameParts.push(buf.shift());
             }
             if (insertFrameCnt) {
                 frameParts.unshift(Buffer.from([frameParts.length]));
             }
-            let frame = Buffer.concat(frameParts);
+            const frame = Buffer.concat(frameParts);
             this.min_wrapper.enqueueFrame(minID, frame).catch(err => {
                 console.log("Failed to send media packet: " + err);
             });
-        }
-    }
-
-    private sendBufferedFrame(buf: Buffer[], minID: number) {
-        while (this.min_wrapper.get_relative_fifo_size() < 0.75 && buf.length > 0) {
-            //console.log(buf[0]);
-            console.log("send_frame");
-            this.min_wrapper.enqueueFrame(minID, buf.shift()).catch(err => {
-                console.log("Failed to send media packet: " + err);
-            });
-        }
-    }
-
-    public async tick(): Promise<void> {
-        if (this.min_wrapper) {
-            const maxPerFrame = 200;
-
-            this.batchFrames(this.mediaFramesForBatching, maxPerFrame, false, MIN_ID_MEDIA);
-            this.batchFrames(this.mediaFramesForBatchingSID, maxPerFrame, true, MIN_ID_SID);
-            if (this.counter > 20) {
-                this.counter = 0;
-                this.sendBufferedFrame(this.VMSFramesForBatching, MIN_ID_VMS);
-            } else {
-                this.counter++;
-            }
-
-            this.min_wrapper.tick();
         }
     }
 
@@ -210,24 +234,24 @@ export abstract class MinConnection extends BootloadableConnection {
                 "TT socket" +
                 String.fromCharCode(0),
                 'utf-8');
-            await this.repeatedlySendFrame(MIN_ID_SOCKET, infoBuffer);
+            await this.repeatedlySendFrame(UD3MinIDs.SOCKET, infoBuffer);
         }
     }
 
     private async init_min_wrapper(): Promise<void> {
-        const sender = (data) => {
+        const sender = (data: number[]) => {
             if (this.isBootloading()) {
                 return;
             }
-            getFlightRecorder().addEvent(FlightEventType.data_to_ud3, data);
+            getFlightRecorder(this.getCoil()).addEvent(FlightEventType.data_to_ud3, data);
             this.send(data, (err) => {
                 if (err) {
                     console.error("Error while sending data: ", err);
                 }
             });
         };
-        const handler = async (id, data) => {
-            if (id === MIN_ID_MEDIA) {
+        const handler = async (id: number, data: number[]) => {
+            if (id === UD3MinIDs.MEDIA) {
                 if (data[0] === 0x78) {
                     this.sidConnection.setBusy(true);
                 } else if (data[0] === 0x6f) {
@@ -235,7 +259,7 @@ export abstract class MinConnection extends BootloadableConnection {
                 } else {
                     console.error("Unexpected MEDIA MIN message");
                 }
-            } else if (id === MIN_ID_FEATURE) {
+            } else if (id === UD3MinIDs.FEATURE) {
                 const asString = convertBufferToString(data);
                 const splitPoint = asString.indexOf("=");
                 if (splitPoint >= 0) {
@@ -251,58 +275,15 @@ export abstract class MinConnection extends BootloadableConnection {
                         this.connectionsToSetTTerm = [];
                     }
                 }
-            } else if (id === MIN_ID_EVENT && data[0] === EVENT_GET_INFO) {
-                // https://github.com/Netzpfuscher/UD3/blob/892b8c25da2784e880c0c2617d417b14c3421ecd/common/ud3core/tasks/tsk_min.c#L216-L221
-                // 1: ID, 1: struct_version, 2: Padding (FFS...), 2*4: unique_id
-                ipcs.misc.sendUDName(convertBufferToString(data.slice(1 + 1 + 2 + 2 * 4)));
+            } else if (id === UD3MinIDs.EVENT && data[0] === EVENT_GET_INFO) {
+                this.udName = parseEventInfo(data).udName;
+                ipcs.coilMisc(this.getCoil()).sendUDName(this.getUDName());
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {
-                console.warn("Unexpected MIN message at " + id + ": " + convertBufferToString(data));
+                console.warn("Unexpected MIN message at " + id + ": " + data);
             }
         };
         this.min_wrapper = new MINTransceiver(() => this.toUD3Time(microtime.now()), sender, handler);
-    }
-
-    public async flushSynth(): Promise<void> {
-        if (this.min_wrapper) {
-            await this.min_wrapper.enqueueFrame(MIN_ID_SYNTH, [SYNTH_CMD_FLUSH]);
-        }
-    }
-
-    public async setSynthImpl(type: SynthType): Promise<void> {
-        if (this.min_wrapper) {
-            await this.min_wrapper.enqueueFrame(MIN_ID_SYNTH, [type]);
-        }
-    }
-
-    getMaxTerminalID(): number {
-        return 4;
-    }
-
-    isMultiTerminal(): boolean {
-        return true;
-    }
-
-    getFeatureValue(feature: string): string {
-        return this.actualUDFeatures.get(feature);
-    }
-
-    abstract send(data: Buffer | number[], onError: (err) => void): void;
-
-    abstract registerListener(listener: (data: Buffer) => void): void;
-
-    private async repeatedlySendFrame(id: number, payload: number[] | Buffer) {
-        let tries = 0;
-        while (this.min_wrapper && tries < 16) {
-            try {
-                await this.min_wrapper.enqueueFrame(id, payload);
-                return;
-            } catch (e) {
-                console.error('During MIN connection setup', e);
-            }
-            ++tries;
-        }
-        throw new Error('Failed to send frame in 16 tries');
     }
 }

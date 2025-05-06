@@ -1,10 +1,10 @@
 // TODO something's broken about the JSZip type defs, this weird import hides the errors
 import * as JSZip from "jszip/dist/jszip.min.js";
 import * as vm from 'vm';
-import {TransmittedFile} from "../common/IPCConstantsToMain";
 import {ToastSeverity} from "../common/IPCConstantsToRenderer";
-import {commands} from "./connection/connection";
+import {forEachCoil, getCoilCommands} from "./connection/connection";
 import {ipcs} from "./ipc/IPCProvider";
+import {setRelativeOntime} from "./ipc/sliders";
 import * as media_player from "./media/media_player";
 import {isMediaFile} from "./media/media_player";
 
@@ -25,7 +25,6 @@ export class Script {
     private interruptFunc: (() => any) | null = null;
     private readonly queue: ScriptQueueEntry[];
     private readonly zip: JSZip;
-    private starterKey: object;
 
     private constructor(zip: JSZip, code: string) {
         this.zip = zip;
@@ -39,14 +38,20 @@ export class Script {
             playMediaAsync: this.wrapForSandboxNonPromise(() => media_player.media_state.startPlaying()),
             playMediaBlocking: this.wrapForSandbox(() => this.playMediaBlocking()),
             println: this.wrapForSandbox((s) => {
-                ipcs.misc.openToast('Script output', s, ToastSeverity.info);
+                ipcs.misc.openGenericToast('Script output', s, ToastSeverity.info);
                 return Promise.resolve();
             }),
-            setBPS: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBPS(d)),
-            setBurstOfftime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBurstOfftime(d)),
-            setBurstOntime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setBurstOntime(d)),
-            setOntime: this.wrapForSandboxNonPromise(d => ipcs.sliders.setRelativeOntime(d)),
-            setTransientMode: this.wrapForSandboxNonPromise(enabled => commands.setTransientEnabled(enabled)),
+            setBPS: this.wrapForSandboxNonPromise(d => forEachCoil(coil => ipcs.sliders(coil).setBPS(d))),
+            setBurstOfftime: this.wrapForSandboxNonPromise(
+                d => forEachCoil(coil => ipcs.sliders(coil).setBurstOfftime(d)),
+            ),
+            setBurstOntime: this.wrapForSandboxNonPromise(
+                d => forEachCoil(coil => ipcs.sliders(coil).setBurstOntime(d)),
+            ),
+            setOntime: this.wrapForSandboxNonPromise(setRelativeOntime),
+            setTransientMode: this.wrapForSandboxNonPromise(
+                enabled => forEachCoil(coil => getCoilCommands(coil).setTransientEnabled(enabled)),
+            ),
             stopMedia: this.wrapForSandboxNonPromise(() => media_player.media_state.stopPlaying()),
             waitForConfirmation: this.wrapForSandbox((msg, title) => this.waitForConfirmation(msg, title)),
         });
@@ -57,21 +62,7 @@ export class Script {
         }
     }
 
-    public static async create(zipData: ArrayBuffer): Promise<Script | null> {
-        const loadedZip: JSZip = await JSZip.loadAsync(zipData);
-
-        let scriptName = null;
-        for (const name of Object.keys(loadedZip.files)) {
-            if (name.endsWith(".js")) {
-                if (scriptName) {
-                    throw new Error("Multiple scripts in zip: " + scriptName + " and " + name);
-                }
-                scriptName = name;
-            }
-        }
-        if (scriptName == null) {
-            throw new Error("Did not find script in zip file!");
-        }
+    public static async create(loadedZip: JSZip, scriptName: string): Promise<Script | null> {
         const script = await loadedZip.file(scriptName).async("string");
         const ret = new Script(loadedZip, script);
         for (const entry of ret.queue) {
@@ -92,43 +83,41 @@ export class Script {
         return this.running;
     }
 
-    public async start(starterKey: object) {
+    public async start() {
         if (this.running) {
-            ipcs.misc.openToast(
+            ipcs.misc.openGenericToast(
                 'Script',
                 'The script is already running.',
                 ToastSeverity.info,
                 'script-info',
-                starterKey
             );
             return;
         }
-        this.starterKey = starterKey;
-        ipcs.sliders.setOnlyMaxOntimeSettable(true);
+        forEachCoil(coil => ipcs.sliders(coil).setOnlyMaxOntimeSettable(true));
         this.running = true;
         try {
             for (const entry of this.queue) {
                 if (!this.isRunning()) {
-                    ipcs.misc.openToast(
-                        'Script', 'Cancelled script', ToastSeverity.info, 'script-info', starterKey
+                    ipcs.misc.openGenericToast(
+                        'Script', 'Cancelled script', ToastSeverity.info, 'script-info',
                     );
                     break;
                 }
                 await entry.run();
             }
             if (this.isRunning()) {
-                ipcs.misc.openToast(
-                    'Script', 'Script finished normally', ToastSeverity.info, 'script-info', starterKey
+                ipcs.misc.openGenericToast(
+                    'Script', 'Script finished normally', ToastSeverity.info, 'script-info',
                 );
             }
         } catch (x) {
-            ipcs.misc.openToast(
-                'Script', 'Script finished with error: ' + x, ToastSeverity.warning, 'script-info', starterKey
+            ipcs.misc.openGenericToast(
+                'Script', 'Script finished with error: ' + x, ToastSeverity.warning, 'script-info',
             );
             console.error(x);
         }
         this.running = false;
-        ipcs.sliders.setOnlyMaxOntimeSettable(false);
+        forEachCoil(coil => ipcs.sliders(coil).setOnlyMaxOntimeSettable(false));
     }
 
     private wrapForSandboxNonPromise(func: (...args: any[]) => void): (...args: any[]) => void {
@@ -196,11 +185,11 @@ export class Script {
     private async loadMediaFile(file: string) {
         const fileInZip = this.zip.file(file);
         const contents = await fileInZip.async("uint8array");
-        await media_player.loadMediaFile(new TransmittedFile(file, contents));
+        await media_player.loadMediaFile({name: file, bytes: contents});
     }
 
     private async waitForConfirmation(text, title): Promise<any> {
-        const confirmed = await ipcs.scripting.requestConfirmation(this.starterKey, text, title);
+        const confirmed = await ipcs.scripting.requestConfirmation(text, title);
         if (!confirmed) {
             throw new Error("User did not confirm");
         }

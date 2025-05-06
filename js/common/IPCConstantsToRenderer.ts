@@ -1,8 +1,10 @@
-import {SliderState} from "../main/ipc/sliders";
-import {MediaFileType, PlayerActivity} from './CommonTypes';
-import {ConnectionOptions} from "./ConnectionOptions";
-import {UD3AlarmLevel} from "./constants";
+import {CoilID, coilSuffix, UD3AlarmLevel} from "./constants";
+import {InitialFRState, ParsedEvent} from "./FlightRecorderTypes";
+import {MediaFileType, PlayerActivity} from './MediaTypes';
+import {AllFaders, MixerLayer} from "./MixerTypes";
+import {SingleConnectionOptions} from "./SingleConnectionOptions";
 import {TTConfig} from "./TTConfig";
+import {SyncedUIConfig} from "./UIConfig";
 
 // The type parameter is purely a compile-time safeguard to make sure both sides agree on what data should be sent over
 // this channel
@@ -15,44 +17,63 @@ function makeKey<Type>(channel: string): IPCToRendererKey<Type> {
 }
 
 export const IPC_CONSTANTS_TO_RENDERER = {
-    alarmList: makeKey<UD3Alarm[]>('alarms'),
+    centralTab: {
+        informTelemetryNames: makeKey<string[]>('present-telemetry-names'),
+        setCentralTelemetry: makeKey<[CoilID, CentralTelemetryValue[]]>('central-telemetry'),
+        setMixerLayer: makeKey<[MixerLayer, AllFaders]>('set-mixer-layer'),
+        setSongList: makeKey<SongListData>('songlist'),
+    },
     connect: {
-        connectionError: makeKey<string>('connection-error'),
         setSerialSuggestions: makeKey<AvailableSerialPort[]>('suggest-serial'),
         setUDPSuggestions: makeKey<IUDPConnectionSuggestion[]>('suggest-udp'),
-        syncPresets: makeKey<ConnectionPreset[]>('sync-connect-sesets'),
+    },
+    flightRecorder: {
+        fullList: makeKey<{events: ParsedEvent[], initial: InitialFRState}>('fr-event-list'),
     },
     menu: {
         setMediaTitle: makeKey<string>('menu-media-title'),
         setScriptName: makeKey<string>('menu-script-name'),
-        ud3State: makeKey<UD3State>('menu-ud3-state'),
+        ud3State: makeKey<[CoilID, UD3State]>('menu-ud3-state'),
     },
-    meters: {
-        configure: makeKey<MeterConfig>('meter-config'),
-        setValue: makeKey<SetMeters>('meter-set-value'),
-    },
-    openToast: makeKey<ToastData>('open-toast'),
+    openToastOn: makeKey<[ToastData, CoilID?]>('open-toast-coil'),
+    registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
     scope: {
-        addValues: makeKey<ScopeValues>('scope-values'),
-        configure: makeKey<ScopeTraceConfig>('scope-config'),
-        drawLine: makeKey<ScopeLine>('scope-draw-line'),
-        drawString: makeKey<ScopeText>('scope-draw-string'),
         redrawMedia: makeKey<MediaState>('scope-draw-media'),
-        startControlled: makeKey<string>('scope-start-controlled'),
     },
     script: {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
-    sliders: {
-        syncSettings: makeKey<ISliderState>('slider-sync'),
-    },
-    syncDarkMode: makeKey<boolean>('syncDarkMode'),
-    terminal: makeKey<string>('terminal'),
     ttConfig: makeKey<TTConfig>('tt-config'),
-    udConfig: makeKey<UD3ConfigOption[]>('ud-config'),
-    udName: makeKey<string>('ud-name'),
-    updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
+    udName: makeKey<[CoilID, string]>('ud-name'),
+    uiConfig: makeKey<SyncedUIConfig>('uiConfig'),
+    updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
+
+export function getToRenderIPCPerCoil(coil: CoilID) {
+    const suffix = coilSuffix(coil);
+    const makeCoilKey = <Type>(channel: string) => makeKey<Type>(channel + suffix);
+    return {
+        alarmList: makeCoilKey<UD3Alarm[]>('alarms'),
+        meters: {
+            configure: makeCoilKey<MeterConfig>('meter-config'),
+            setValue: makeCoilKey<SetMeters>('meter-set-value'),
+        },
+        scope: {
+            addValues: makeCoilKey<ScopeValues>('scope-values'),
+            configure: makeCoilKey<ScopeTraceConfig>('scope-config'),
+            drawLine: makeCoilKey<ScopeLine>('scope-draw-line'),
+            drawString: makeCoilKey<ScopeText>('scope-draw-string'),
+            startControlled: makeCoilKey<string>('scope-start-controlled'),
+        },
+        sliders: {
+            syncSettings: makeCoilKey<ISliderState>('slider-sync'),
+        },
+        terminal: makeCoilKey<string>('terminal'),
+        udConfig: makeCoilKey<UD3ConfigOption[]>('ud-config'),
+    };
+}
+
+export type PerCoilRenderIPCs = ReturnType<typeof getToRenderIPCPerCoil>;
 
 export interface SetMeters {
     readonly values: { [id: number]: number };
@@ -64,6 +85,13 @@ export interface MeterConfig {
     readonly max: number;
     readonly scale: number;
     readonly name: string;
+}
+
+export interface CentralTelemetryValue {
+    readonly valueName: string;
+    readonly min: number;
+    readonly max: number;
+    readonly value: number;
 }
 
 export interface IUD3State {
@@ -149,7 +177,6 @@ export interface ISliderState {
     readonly onlyMaxOntimeSettable: boolean;
     readonly maxOntime: number;
     readonly maxBPS: number;
-    readonly startAtRelativeOntime: boolean;
 }
 
 export interface IUDPConnectionSuggestion {
@@ -210,6 +237,15 @@ export interface UD3Alarm {
 
 export interface ConnectionPreset {
     name: string;
-    options: ConnectionOptions;
+    options: SingleConnectionOptions;
+}
+
+export type ChannelID = number;
+
+export type FaderID = number;
+
+export interface SongListData {
+    songs: string[];
+    current: number;
 }
 

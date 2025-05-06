@@ -11,6 +11,8 @@ export interface IPCProvider {
 
     on<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void): IPCListenerRef;
 
+    once<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void);
+
     removeListener(listener: IPCListenerRef);
 }
 
@@ -18,6 +20,8 @@ export class DummyIPC implements IPCProvider {
     public on<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void): IPCListenerRef {
         return {channel: channel.channel, realCB: undefined};
     }
+
+    public once<T>(channel: IPCToRendererKey<T>, callback: (arg: T) => void) {}
 
     public send<T>(channel: IPCToMainKey<T>, data: T) {
     }

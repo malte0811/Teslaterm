@@ -11,7 +11,7 @@ export interface AlarmProps {
 }
 
 export class Alarms extends TTComponent<AlarmProps, {}> {
-    render() {
+    public render() {
         return <>
             <div className={'tt-modal-scrollable'}>
                 {this.makeTable()}

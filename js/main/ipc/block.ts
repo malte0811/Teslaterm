@@ -1,514 +1,424 @@
-import {TransmittedFile} from "../../common/IPCConstantsToMain";
-import {getUD3Connection} from "../connection/connection";
+import {DroppedFile} from "../../common/IPCConstantsToMain";
+import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {forEachCoil, getMixer, getOptionalUD3Connection} from "../connection/connection";
+import {UD3Connection} from "../connection/types/UD3Connection";
+import {setUIConfig} from "../UIConfigHandler";
 import {ipcs} from "./IPCProvider";
 
+class VMSDataMap {
+    public readonly map = new Map<string, string | VMSDataMap>();
 
-export namespace BlockSender {
+    public getAsInt(key: string) {
+        const value = Number.parseInt(this.getAsString(key), 10);
+        return isNaN(value) ? 0 : value;
+    }
 
-    const STATE_IDLE = 0;
-    const STATE_CONFIG = 1;
-    const STATE_PROG = 2;
+    public getAsBool(key: string) {
+        return this.getAsString(key) === 'true';
+    }
 
-    let state = STATE_IDLE;
-    let temp = new Array;
-    let indent: number = 0;
-    let indent_old: number = 0;
-    let prog;
-    let items;
-    let blk_cnt: number = 0;
-    let arr;
-    let spl;
-    let progNumber=0;
+    public getMapped(key: string, map: Map<string, number>) {
+        return map.get(this.getAsString(key));
+    }
 
-    enum DIRECTION {RISING = 0, FALLING = 1, ANY = 2, NONE = 3}
-    enum NOTEOFF_BEHAVIOR{INVERTED = 0, NORMAL = 1}
-    enum VMS_MODTYPE {VMS_EXP = 0, VMS_EXP_INV = 1, VMS_LIN = 2, VMS_SIN = 3, VMS_JUMP = 4}
-    enum KNOWN_VALUE {  maxOnTime = 0, minOnTime = 1, onTime = 2, otCurrent = 3, otTarget = 4, otFactor = 5,
-                        frequency = 6, freqCurrent = 7, freqTarget = 8, freqFactor = 9, noise = 10, pTime = 11,
-                        circ1 = 12, circ2 = 13, circ3 = 14, circ4 = 15, CC_102 = 16, CC_103 = 17, CC_104 = 18,
-                        CC_105 = 19, CC_106 = 20, CC_107 = 21, CC_108 = 22, CC_109 = 23, CC_110 = 24, CC_111 = 25,
-                        CC_112 = 26, CC_113 = 27, CC_114 = 28, CC_115 = 29, CC_116 = 30, CC_117 = 31, CC_118 = 32,
-                        CC_119 = 33, HyperVoice_Count = 34, HyperVoice_Phase = 35, KNOWNVAL_MAX = 36}
+    public getAsMap(key: string) {
+        return this.map.get(key) as VMSDataMap;
+    }
 
-    export async function loadBlocks(file: TransmittedFile) {
-        try {
-             ipcs.terminal.println("Load VMS file: " + file.name);
-             const blocks = interpret((utf8ArrayToString(file.contents).split('\r\n')));
-             ipcs.terminal.println("Found " + blocks[1].blocks.length + " blocks");
-             progNumber = 0;
-             blocks[1].blocks.forEach((block) => {
-                 if (block.uid !== -1) {
-                     sendBlock(block);
-                 }
-             });
-             sendNullBlock();
-             blocks[1].items.forEach((item) => {
-                sendMapHeader(item);
-                item.maps.forEach((entry) => {
-                   sendMapEntry(entry);
-                });
-             });
-             sendNullHeader();
-             sendFlush();
+    public getAsString(key: string) {
+        return this.map.get(key) as string;
+    }
+}
 
-             // getUD3Connection().sendVMSFrames(buf);
+class VMSBuffer {
+    private readonly buffer: ArrayBuffer;
+    private readonly view: DataView;
+    private readonly littleEndian: boolean;
+    private nextIndex: number = 0;
 
-        } catch (e) {
-            ipcs.terminal.println("Failed to load blocks: " + e);
-            console.log(e);
+    public constructor(size: number, littleEndian: boolean) {
+        this.buffer = new ArrayBuffer(size);
+        this.view = new DataView(this.buffer);
+        this.littleEndian = littleEndian;
+    }
+
+    public writeUint(value: number, bits: number) {
+        switch (bits) {
+            case 8:
+                return this.writeUint8(value);
+            case 16:
+                return this.writeUint16(value);
+            case 32:
+                return this.writeUint32(value);
+            default:
+                throw new Error(`Invalid bit count ${bits}`);
         }
     }
 
-    function writeUint32(buf: Buffer, index: number, val: number) {
-        buf[index] = (val >> 24) & 0xFF;
-        buf[index + 1] = (val >> 16) & 0xFF;
-        buf[index + 2] = (val >> 8) & 0xFF;
-        buf[index + 3] = val & 0xFF;
+    public writeUint32(value: number) {
+        this.view.setUint32(this.nextIndex, value, this.littleEndian);
+        this.nextIndex += 4;
     }
 
-    function writeUint16(buf: Buffer, index: number, val: number) {
-        buf[index] = (val >> 8) & 0xFF;
-        buf[index + 1] = val & 0xFF;
+    public writeUint16(value: number) {
+        this.view.setUint16(this.nextIndex, value, this.littleEndian);
+        this.nextIndex += 2;
     }
 
-    function writeUint8(buf: Buffer, index: number, val: number) {
-        buf[index] = val & 0xFF;
+    public writeUint8(value: number) {
+        this.view.setUint8(this.nextIndex, value);
+        ++this.nextIndex;
     }
 
-    function writeint32(buf: Buffer, index: number, val: number) {
-        buf[index] = (val >> 24) & 0xFF;
-        buf[index + 1] = (val >> 16) & 0xFF;
-        buf[index + 2] = (val >> 8) & 0xFF;
-        buf[index + 3] = val & 0xFF;
+    public getBuffer() {
+        return Buffer.from(this.buffer);
     }
+}
 
-    function sendMapHeader(header) {
-        const buf: Buffer = new Buffer(20);
-        let index: number = 0;
-        buf[index] = 0x02;
-        index++;
-        writeUint8(buf, index, header.maps.length);
-        index++;
-        writeUint8(buf, index, progNumber);
-        index++;
-        progNumber++;
-        const enc = new TextEncoder();
-        enc.encode(header.name).forEach((c) => {
-            buf[index] = c;
-            index++;
+interface Block {
+    uid: number;
+    outsEnabled: boolean;
+    nextBlock0: number;
+    nextBlock1: number;
+    nextBlock2: number;
+    nextBlock3: number;
+    offBlock: number;
+    behavior: number;
+    type: number;
+    target: number;
+    thresholdDirection: number;
+    targetFactor: number;
+    param1: number;
+    param2: number;
+    param3: number;
+    periodUS: number;
+    flags: number;
+}
+
+interface BlockMap {
+    startNote: number;
+    endNote: number;
+    noteFrequency: number;
+    volumeModifier: number;
+    enablePitchbend: boolean;
+    enableStereo: boolean;
+    enableVolume: boolean;
+    enableDamper: boolean;
+    ENA_PORTAMENTO: boolean;
+    frequencyMode: boolean;
+    startBlock: number;
+    blocks: Block[];
+}
+
+interface Program {
+    maps: BlockMap[];
+    name: string;
+}
+
+// "Main" function
+export function loadVMS(file: DroppedFile) {
+    try {
+        ipcs.misc.openGenericToast('VMS', "Load VMS file: " + file.name, ToastSeverity.info);
+        const data = parseVMSToStructuredMap(file.bytes);
+        const programs = parseProgramsFromStructure(data.getAsMap('MidiPrograms'));
+        const totalBlocks = programs.map(
+            p => p.maps.map(map => map.blocks.length).reduce((a, b) => a + b),
+        ).reduce((a, b) => a + b);
+        ipcs.misc.openGenericToast('VMS', "Found " + totalBlocks + " blocks", ToastSeverity.info);
+        forEachCoil((coil) => {
+            const connection = getOptionalUD3Connection(coil);
+            if (connection) {
+                sendBlocks(programs, connection, connection.getProtocolVersion() >= 3.0);
+            }
         });
-        getUD3Connection().sendVMSFrames(buf);
+        getMixer()?.setProgramsByVoice(new Map<ChannelID, number>());
+        setUIConfig({midiPrograms: programs.map((p) => p.name)});
+    } catch (e) {
+        ipcs.misc.openGenericToast('VMS', "Failed to load blocks: " + e, ToastSeverity.error);
+        console.error(e);
     }
+}
 
-    function sendFlush() {
-        const buf: Buffer = new Buffer(1);
-        buf[0] = 0x04;
-        getUD3Connection().sendVMSFrames(buf);
-    }
-
-    enum FLAGS {
-        MAP_ENA_PITCHBEND = 0x80,
-        MAP_ENA_STEREO = 0x40,
-        MAP_ENA_VOLUME = 0x20,
-        MAP_ENA_DAMPER = 0x10,
-        MAP_ENA_PORTAMENTO = 0x08,
-        MAP_FREQ_MODE = 0x01,
-    }
-    function sendMapEntry(entry) {
-        const buf: Buffer = new Buffer(11);
-        let index: number = 0;
-        buf[index] = 0x03;
-        index++;
-        writeUint8(buf, index, entry.startNote);
-        index++;
-        writeUint8(buf, index, entry.endNote);
-        index++;
-        writeUint16(buf, index, entry.noteFrequency);
-        index+=2;
-        writeUint8(buf, index, entry.volumeModifier);
-        index++;
-        let flag=0;
-        if (entry.ENA_PITCHBEND) {
-            flag |= FLAGS.MAP_ENA_PITCHBEND;
-        }
-        if (entry.ENA_STEREO) {
-            flag |= FLAGS.MAP_ENA_STEREO;
-        }
-        if (entry.ENA_VOLUME) {
-            flag |= FLAGS.MAP_ENA_VOLUME;
-        }
-        if (entry.ENA_DAMPER) {
-            flag |= FLAGS.MAP_ENA_DAMPER;
-        }
-        if (entry.ENA_PORTAMENTO) {
-            flag |= FLAGS.MAP_ENA_PORTAMENTO;
-        }
-        if (entry.FREQ_MODE) {
-            flag |= FLAGS.MAP_FREQ_MODE;
-        }
-        writeUint8(buf, index, flag);
-        index++;
-        writeUint32(buf, index, entry.startBlock);
-        getUD3Connection().sendVMSFrames(buf);
-    }
-
-    function sendNullBlock(){
-        const buf: Buffer = new Buffer(65);
-        getUD3Connection().sendVMSFrames(buf);
-    }
-
-    function sendNullHeader(){
-        const buf: Buffer = new Buffer(20);
-        getUD3Connection().sendVMSFrames(buf);
-    }
-
-    function sendBlock(block) {
-        const buf: Buffer = new Buffer(65);
-        let index: number = 0;
-        let temp=0;
-        buf[index] = 0x01;
-        index++;
-        writeUint32(buf, index, block.uid);
-        index += 4;
-        if(block.outsEnabled === false) {
-            console.log("DEAD");
-            writeUint32(buf, index, 0xDEADBEEF);
+// File parsing
+function parseVMSToStructuredMap(data: number[]) {
+    const lines = Buffer.from(data)
+        .toString('utf8')
+        .replace(/[\t,\u0000]*/g, '')
+        .replace('\r', '')
+        .split('\n');
+    const toplevel = new VMSDataMap();
+    const currentStack: VMSDataMap[] = [toplevel];
+    for (const line of lines) {
+        if (line.length === 0) { continue; }
+        const currentMap = currentStack[currentStack.length - 1];
+        if (line.includes('}')) {
+            currentStack.pop();
+        } else if (line.includes('=')) {
+            const split = line.split('=');
+            currentMap.map.set(split[0], split[1]);
+        } else if (line.includes(':')) {
+            let name = line.substring(0, line.indexOf(':'));
+            if (name.startsWith('"') && name.endsWith('"')) {
+                name = name.substring(1, name.length - 1);
+            }
+            const newMap = new VMSDataMap();
+            currentMap.map.set(name, newMap);
+            currentStack.push(newMap);
         } else {
-            writeUint32(buf, index, block.nextBlock0);
+            console.log(`Ignoring unknown line "${line}"`);
         }
-        index += 4;
-        writeUint32(buf, index, block.nextBlock1);
-        index += 4;
-        writeUint32(buf, index, block.nextBlock2);
-        index += 4;
-        writeUint32(buf, index, block.nextBlock3);
-        index += 4;
-        writeUint32(buf, index, block.offBlock);
-        index += 4;
+    }
+    return toplevel;
+}
 
-        temp = 0;
-        switch (block.offBehavior) {
-            case 'NORMAL':
-                temp = NOTEOFF_BEHAVIOR.NORMAL;
-                break;
-            case 'INVERTED':
-                temp = NOTEOFF_BEHAVIOR.INVERTED;
-                break;
+function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block[] {
+    const blocks: Block[] = [];
+    for (const key of mapData.map.keys()) {
+        if (!key.startsWith(keyPrefix)) {
+            continue;
         }
-        writeUint32(buf, index, temp);
-        index += 4;
+        const blockMap = mapData.getAsMap(key);
+        const newBlock: Block = {
+            uid: blockMap.getAsInt('uid'),
+            outsEnabled: blockMap.getAsBool('outsEnabled'),
+            // TODO what to use as default in new setup?
+            nextBlock0: blockMap.getAsInt('nextBlock[0]'),
+            nextBlock1: blockMap.getAsInt('nextBlock[1]'),
+            nextBlock2: blockMap.getAsInt('nextBlock[2]'),
+            nextBlock3: blockMap.getAsInt('nextBlock[3]'),
+            offBlock: blockMap.getAsInt('offBlock'),
+            behavior: blockMap.getMapped('offBehavior', NOTEOFF_BEHAVIOR),
+            type: blockMap.getMapped('type', VMS_MODTYPE),
+            target: blockMap.getMapped('target', KNOWN_VALUE),
+            thresholdDirection: blockMap.getMapped('thresholdDirection', DIRECTION),
+            targetFactor: blockMap.getAsInt('targetValue'),
+            param1: blockMap.getAsInt('param[0]'),
+            param2: blockMap.getAsInt('param[1]'),
+            param3: blockMap.getAsInt('param[2]'),
+            periodUS: blockMap.getAsInt('param[3]'),
+            flags: blockMap.getAsInt('flags'),
+        };
 
-        temp = 0;
-        switch (block.type) {
-            case 'VMS_EXP':
-                temp = VMS_MODTYPE.VMS_EXP;
-                break;
-            case 'VMS_EXP_INV':
-                temp = VMS_MODTYPE.VMS_EXP_INV;
-                break;
-            case 'VMS_LIN':
-                temp = VMS_MODTYPE.VMS_LIN;
-                break;
-            case 'VMS_SIN':
-                temp = VMS_MODTYPE.VMS_SIN;
-                break;
-            case 'VMS_JUMP':
-                temp = VMS_MODTYPE.VMS_JUMP;
-                break;
+        // apply flag fix
+        if (!newBlock.outsEnabled) {
+            newBlock.flags |= 0x80000000;
         }
-        writeUint32(buf, index, temp);
-        index += 4;
 
-        temp = 0;
-        switch (block.target) {
-            case 'maxOnTime':
-                temp = KNOWN_VALUE.maxOnTime;
-                break;
-            case 'minOnTime':
-                temp = KNOWN_VALUE.minOnTime;
-                break;
-            case 'onTime':
-                temp = KNOWN_VALUE.onTime;
-                break;
-            case 'otCurrent':
-                temp = KNOWN_VALUE.otCurrent;
-                break;
-            case 'otTarget':
-                temp = KNOWN_VALUE.otTarget;
-                break;
-            case 'otFactor':
-                temp = KNOWN_VALUE.otFactor;
-                break;
-            case 'frequency':
-                temp = KNOWN_VALUE.frequency;
-                break;
-            case 'freqCurrent':
-                temp = KNOWN_VALUE.freqCurrent;
-                break;
-            case 'freqTarget':
-                temp = KNOWN_VALUE.freqTarget;
-                break;
-            case 'freqFactor':
-                temp = KNOWN_VALUE.freqFactor;
-                break;
-            case 'noise':
-                temp = KNOWN_VALUE.noise;
-                break;
-            case 'pTime':
-                temp = KNOWN_VALUE.pTime;
-                break;
-            case 'circ1':
-                temp = KNOWN_VALUE.circ1;
-                break;
-            case 'circ2':
-                temp = KNOWN_VALUE.circ2;
-                break;
-            case 'circ3':
-                temp = KNOWN_VALUE.circ3;
-                break;
-            case 'circ4':
-                temp = KNOWN_VALUE.circ4;
-                break;
-            case 'CC_102':
-                temp = KNOWN_VALUE.CC_102;
-                break;
-            case 'CC_103':
-                temp = KNOWN_VALUE.CC_103;
-                break;
-            case 'CC_104':
-                temp = KNOWN_VALUE.CC_104;
-                break;
-            case 'CC_105':
-                temp = KNOWN_VALUE.CC_105;
-                break;
-            case 'CC_106':
-                temp = KNOWN_VALUE.CC_106;
-                break;
-            case 'CC_107':
-                temp = KNOWN_VALUE.CC_107;
-                break;
-            case 'CC_108':
-                temp = KNOWN_VALUE.CC_108;
-                break;
-            case 'CC_109':
-                temp = KNOWN_VALUE.CC_109;
-                break;
-            case 'CC_110':
-                temp = KNOWN_VALUE.CC_110;
-                break;
-            case 'CC_111':
-                temp = KNOWN_VALUE.CC_111;
-                break;
-            case 'CC_112':
-                temp = KNOWN_VALUE.CC_112;
-                break;
-            case 'CC_113':
-                temp = KNOWN_VALUE.CC_113;
-                break;
-            case 'CC_114':
-                temp = KNOWN_VALUE.CC_114;
-                break;
-            case 'CC_115':
-                temp = KNOWN_VALUE.CC_115;
-                break;
-            case 'CC_116':
-                temp = KNOWN_VALUE.CC_116;
-                break;
-            case 'CC_117':
-                temp = KNOWN_VALUE.CC_117;
-                break;
-            case 'CC_118':
-                temp = KNOWN_VALUE.CC_118;
-                break;
-            case 'CC_119':
-                temp = KNOWN_VALUE.CC_119;
-                break;
-            case 'HyperVoice_Count':
-                temp = KNOWN_VALUE.HyperVoice_Count;
-                break;
-            case 'HyperVoice_Phase':
-                temp = KNOWN_VALUE.HyperVoice_Phase;
-                break;
-            case 'KNOWNVAL_MAX':
-                temp = KNOWN_VALUE.KNOWNVAL_MAX;
-                break;
-        }
-        writeUint32(buf, index, temp);
-        index += 4;
-        temp = 0;
-        switch (block.thresholdDirection) {
-            case 'RISING':
-                temp = DIRECTION.RISING;
-                break;
-            case 'FALLING':
-                temp = DIRECTION.FALLING;
-                break;
-            case 'ANY':
-                temp = DIRECTION.ANY;
-                break;
-            case 'NONE':
-                temp = DIRECTION.NONE;
-                break;
-        }
-        writeUint32(buf, index, temp);
-        index += 4;
-        writeint32(buf, index, block.targetValue);
-        index += 4;
-        writeint32(buf, index, block.param0);
-        index += 4;
-        writeint32(buf, index, block.param1);
-        index += 4;
-        writeint32(buf, index, block.param2);
-        index += 4;
-        writeUint32(buf, index, block.param3);
-        index += 4;
-        writeUint32(buf, index, block.flags);
-        
-        getUD3Connection().sendVMSFrames(buf);
-       // console.log(block);
+        blocks.push(newBlock);
+    }
+    return blocks;
+}
 
+function parseMapFromStructure(mapData: VMSDataMap): BlockMap {
+    const blocks = parseBlocksFromStructure(mapData, 'block');
+    return {
+        startNote: mapData.getAsInt('startNote'),
+        endNote: mapData.getAsInt('endNote'),
+        noteFrequency: mapData.getAsInt('noteFrequency'),
+        volumeModifier: mapData.getAsInt('volumeModifier'),
+        enablePitchbend: mapData.getAsBool('ENA_PITCHBEND'),
+        enableStereo: mapData.getAsBool('ENA_STEREO'),
+        enableVolume: mapData.getAsBool('ENA_VOLUME'),
+        enableDamper: mapData.getAsBool('ENA_DAMPER'),
+        ENA_PORTAMENTO: mapData.getAsBool('ENA_PORTAMENTO'),
+        frequencyMode: mapData.getAsBool('FREQ_MODE'),
+        startBlock: mapData.getAsInt('startBlock'),
+        blocks,
+    };
+}
+
+function parseProgramsFromStructure(programsMap: VMSDataMap): Program[] {
+    const programs: Program[] = [];
+    for (const name of programsMap.map.keys()) {
+        const maps: BlockMap[] = [];
+        for (const mapData of programsMap.getAsMap(name).map.values()) {
+            maps.push(parseMapFromStructure(mapData as VMSDataMap));
+        }
+        programs.push({maps, name});
+    }
+    return programs;
+}
+
+// Packet format/conversion
+function prepareBlockBuffer(newFormat: boolean) {
+    const buffer = new VMSBuffer(newFormat ? 45 : 65, newFormat);
+    buffer.writeUint8(1);
+    return buffer;
+}
+
+function prepareHeaderBuffer(newFormat: boolean) {
+    const buffer = new VMSBuffer(newFormat ? 29 : 20, newFormat);
+    buffer.writeUint8(2);
+    return buffer;
+}
+
+function serializeBlock(block: Block, newFormat: boolean) {
+    if (block.uid === -1) {
+        return undefined;
     }
 
-    function utf8ArrayToString(aBytes) {
-        let sView = "";
-
-        for (let nPart, nLen = aBytes.length, nIdx = 0; nIdx < nLen; nIdx++) {
-            nPart = aBytes[nIdx];
-
-            sView += String.fromCharCode(
-                nPart > 251 && nPart < 254 && nIdx + 5 < nLen ? /* six bytes */
-                    /* (nPart - 252 << 30) may be not so safe in ECMAScript! So...: */
-                    (nPart - 252) * 1073741824 + (aBytes[++nIdx] - 128 << 24) + (aBytes[++nIdx] - 128 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-                    : nPart > 247 && nPart < 252 && nIdx + 4 < nLen ? /* five bytes */
-                    (nPart - 248 << 24) + (aBytes[++nIdx] - 128 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-                    : nPart > 239 && nPart < 248 && nIdx + 3 < nLen ? /* four bytes */
-                        (nPart - 240 << 18) + (aBytes[++nIdx] - 128 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-                        : nPart > 223 && nPart < 240 && nIdx + 2 < nLen ? /* three bytes */
-                            (nPart - 224 << 12) + (aBytes[++nIdx] - 128 << 6) + aBytes[++nIdx] - 128
-                            : nPart > 191 && nPart < 224 && nIdx + 1 < nLen ? /* two bytes */
-                                (nPart - 192 << 6) + aBytes[++nIdx] - 128
-                                : /* nPart < 127 ? */ /* one byte */
-                                nPart,
-            );
-        }
-
-        return sView;
+    const buf = prepareBlockBuffer(newFormat);
+    const writeBlockID = (id: number) => buf.writeUint(id, newFormat ? 16 : 32);
+    buf.writeUint32(block.uid);
+    if (block.outsEnabled === false) {
+        writeBlockID(newFormat ? 0xFFFF : 0xDEADBEEF);
+    } else {
+        writeBlockID(block.nextBlock0);
     }
+    writeBlockID(block.nextBlock1);
+    writeBlockID(block.nextBlock2);
+    writeBlockID(block.nextBlock3);
+    writeBlockID(block.offBlock);
 
-    function interpret(data) {
+    buf.writeUint(block.behavior, newFormat ? 8 : 32);
+    buf.writeUint(block.type + (newFormat ? 1 : 0), newFormat ? 8 : 32);
+    buf.writeUint(block.target, newFormat ? 16 : 32);
+    if (!newFormat) {
+        // TODO Did this just get removed?
+        buf.writeUint32(block.thresholdDirection);
+    }
+    buf.writeUint32(block.targetFactor);
+    buf.writeUint32(block.param1);
+    buf.writeUint32(block.param2);
+    buf.writeUint32(block.param3);
+    // new format uses period in milliseconds instead of microseconds
+    buf.writeUint32(newFormat ? (block.periodUS / 1000) : (block.periodUS));
+    buf.writeUint32(block.flags);
+    return buf.getBuffer();
+}
 
-        temp = [];
-        data.forEach((element: string) => {
+function buildNullBlock(newFormat: boolean, nullID: number) {
+    const buffer = prepareBlockBuffer(newFormat);
+    if (newFormat) {
+        buffer.writeUint32(nullID);
+    }
+    return buffer.getBuffer();
+}
 
-            element = element.replace(/\t/g, '');
+function serializeProgramHeader(programID: number, program: Program, newFormat: boolean) {
+    const buf = prepareHeaderBuffer(newFormat);
+    if (newFormat) {
+        buf.writeUint32(programID);
+    }
+    buf.writeUint8(program.maps.length);
+    buf.writeUint8(programID);
+    if (newFormat) {
+        buf.writeUint8(programID);
+    }
+    new TextEncoder().encode(program.name).forEach((c) => buf.writeUint8(c));
+    return buf.getBuffer();
+}
 
-            element.split('').forEach((c) => {
-                if (c === '{') {
-                    indent++;
-                } else if (c === '}') {
-                    indent--;
+function buildNullHeader(littleEndian: boolean) {
+    return prepareHeaderBuffer(littleEndian).getBuffer();
+}
+
+function serializeMapEntry(entry: BlockMap, littleEndian: boolean) {
+    const buf = new VMSBuffer(11, littleEndian);
+    buf.writeUint8(3);
+    buf.writeUint8(entry.startNote);
+    buf.writeUint8(entry.endNote);
+    buf.writeUint16(entry.noteFrequency);
+    buf.writeUint8(entry.volumeModifier);
+    let flag = 0;
+    if (entry.enablePitchbend) {
+        flag |= FLAGS.MAP_ENA_PITCHBEND;
+    }
+    if (entry.enableStereo) {
+        flag |= FLAGS.MAP_ENA_STEREO;
+    }
+    if (entry.enableVolume) {
+        flag |= FLAGS.MAP_ENA_VOLUME;
+    }
+    if (entry.enableDamper) {
+        flag |= FLAGS.MAP_ENA_DAMPER;
+    }
+    if (entry.ENA_PORTAMENTO) {
+        flag |= FLAGS.MAP_ENA_PORTAMENTO;
+    }
+    if (entry.frequencyMode) {
+        flag |= FLAGS.MAP_FREQ_MODE;
+    }
+    buf.writeUint8(flag);
+    buf.writeUint32(entry.startBlock);
+    return buf.getBuffer();
+}
+
+function buildFlush() {
+    const buf = new VMSBuffer(1, false);
+    buf.writeUint8(4);
+    return buf.getBuffer();
+}
+
+function sendBlocks(programs: Program[], connection: UD3Connection, newFormat: boolean) {
+    let maxID = 0;
+    const messages: Buffer[] = [];
+    for (const program of programs) {
+        for (const map of program.maps) {
+            for (const block of map.blocks) {
+                const buffer = serializeBlock(block, newFormat);
+                if (buffer) {
+                    messages.push(buffer);
                 }
-            });
-
-            element = element.replace('{', '');
-            element = element.replace('}', '');
-            element = element.replace(',', '');
-
-            if (element !== '') {
-                // if(!Array.isArray(temp[blk_cnt])) temp[blk_cnt] = new Array;
-
-
-                if (indent === 1 && element === 'CoilConfigurations:') {
-                    arr = new Array;
-                    state = STATE_CONFIG;
-                    arr.type = 'config';
-                } else if (indent === 1 && element === 'MidiPrograms:') {
-                    temp.push(arr);
-                    state = STATE_PROG;
-                    arr = new Array;
-                    arr.type = 'progr';
-                } else if (indent === 2) {
-                    if (!Array.isArray(arr.items)) {
-                        arr.items = new Array;
-                    }
-                    if (state === STATE_CONFIG) {
-                        spl = element.split('=');
-                        if (element.endsWith('":')) {
-                            element = element.replace('"', '');
-                            element = element.replace('":', '');
-                            arr.items.name = element;
-                        } else {
-                            arr.items[spl[0]] = spl[1];
-                        }
-                    } else if (state === STATE_PROG) {
-                        element = element.replace(/\u0000/g, '');
-                        element = element.replace('"', '');
-                        element = element.replace('":', '');
-                        prog = new Array;
-                        prog.name = element;
-                        arr.items.push(prog);
-                    }
-                } else if (indent === 3) { // MAP
-                    if (!Array.isArray(prog.maps)) { prog.maps = new Array; }
-                    if (element.endsWith(':')) {
-                        items = new Array;
-                        prog.maps.push(items);
-                    } else {
-                        spl = element.split('=');
-                        if (parseInt(spl[1], 10) || spl[1] === '0') {
-                            items[spl[0]] = parseInt(spl[1], 10);
-                        } else if (spl[1] === 'true') {
-                            items[spl[0]] = true;
-                        } else if (spl[1] === 'false') {
-                            items[spl[0]] = false;
-                        } else {
-                            items[spl[0]] = spl[1];
-                        }
-                    }
-                } else if (indent === 4 && element.startsWith('block')) {
-                    if (!Array.isArray(arr.blocks)) {
-                        arr.blocks = new Array;
-                    }
-                    items = new Array;
-                    items.nextBlock0 = 0;
-                    items.nextBlock1 = 0;
-                    items.nextBlock2 = 0;
-                    items.nextBlock3 = 0;
-                    items.param0 = 0;
-                    items.param1 = 0;
-                    items.param2 = 0;
-                    items.param3 = 0;
-                    arr.blocks.push(items);
-                } else if (indent === 4) {
-                    element = element.replace('[', '');
-                    element = element.replace(']', '');
-                    spl = element.split('=');
-                    if (parseInt(spl[1], 10) || spl[1] === '0') {
-                        items[spl[0]] = parseInt(spl[1], 10);
-                    } else if (spl[1] === 'true') {
-                        items[spl[0]] = true;
-                    } else if (spl[1] === 'false') {
-                        items[spl[0]] = false;
-                    } else {
-                        items[spl[0]] = spl[1];
-                    }
-
-                }
+                maxID = Math.max(maxID, block.uid);
             }
-
-
-            if (indent < indent_old) {
-                blk_cnt++;
-            }
-
-            indent_old = indent;
-        });
-        temp.push(arr);
-
-        return temp;
+        }
     }
+    messages.push(buildNullBlock(newFormat, maxID + 1));
+    programs.forEach((program, id) => {
+        messages.push(serializeProgramHeader(id, program, newFormat));
+        messages.push(...program.maps.map((map) => serializeMapEntry(map, newFormat)));
+    });
+    messages.push(buildNullHeader(newFormat));
+    messages.push(buildFlush());
+    sendVMSFramesToUD(connection, messages).catch((e) => {
+        ipcs.coilMisc(connection.getCoil())
+            .openToast('VMS error', 'Failed to transmit VMS frames, check log for details', ToastSeverity.error);
+        console.error('Sending VMS frames', e);
+    });
+}
 
-    export function init() {
-
+async function sendVMSFramesToUD(connection: UD3Connection, messages: Buffer[]) {
+    const showToast = (message: string) => {
+        ipcs.coilMisc(connection.getCoil()).openToast('VMS progress', message, ToastSeverity.info, 'vms-progress');
+    };
+    for (let i = 0; i < messages.length; ++i) {
+        if (i === 0 || i % 10 === 9) {
+            showToast(`Transmitting frame ${i + 1} of ${messages.length}`);
+        }
+        await connection.sendVMSFrame(messages[i]);
     }
+    showToast(`Transmitted ${messages.length} frames`);
+}
+
+// Magic numbers
+
+const NOTEOFF_BEHAVIOR = new Map<string, number>().set('INVERTED', 0).set('NORMAL', 1);
+
+const VMS_MODTYPE = new Map<string, number>()
+    .set('VMS_EXP', 0).set('VMS_EXP_INV', 1).set('VMS_LIN', 2).set('VMS_SIN', 3).set('VMS_JUMP', 4);
+
+const KNOWN_VALUE = new Map<string, number>()
+    .set('maxOnTime', 0).set('minOnTime', 1).set('onTime', 2)
+    .set('otCurrent', 3).set('otTarget', 4).set('otFactor', 5)
+    .set('frequency', 6).set('freqCurrent', 7).set('freqTarget', 8).set('freqFactor', 9)
+    .set('noise', 10)
+    .set('pTime', 11)
+    .set('circ1', 12).set('circ2', 13).set('circ3', 14).set('circ4', 15)
+    .set('CC_102', 16).set('CC_103', 17).set('CC_104', 18).set('CC_105', 19).set('CC_106', 20).set('CC_107', 21)
+    .set('CC_108', 22).set('CC_109', 23).set('CC_110', 24).set('CC_111', 25).set('CC_112', 26).set('CC_113', 27)
+    .set('CC_114', 28).set('CC_115', 29).set('CC_116', 30).set('CC_117', 31).set('CC_118', 32).set('CC_119', 33)
+    .set('HyperVoice_Count', 34).set('HyperVoice_Phase', 35).set('HyperVoice_Volume', 36)
+    .set('volume', 37).set('volumeCurrent', 38).set('volumeTarget', 39).set('volumeFactor', 40)
+    .set('KNOWNVAL_MAX', 41);
+
+const DIRECTION = new Map<string, number>().set('RISING', 0).set('FALLING', 1).set('ANY', 2).set('NONE', 3);
+
+enum FLAGS {
+    MAP_ENA_PITCHBEND = 0x80,
+    MAP_ENA_STEREO = 0x40,
+    MAP_ENA_VOLUME = 0x20,
+    MAP_ENA_DAMPER = 0x10,
+    MAP_ENA_PORTAMENTO = 0x08,
+    MAP_FREQ_MODE = 0x01,
 }

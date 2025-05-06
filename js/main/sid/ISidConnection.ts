@@ -1,19 +1,22 @@
-import {ICommandServer} from "../command/CommandServer";
+import {CoilID} from "../../common/constants";
 import {getOptionalUD3Connection} from "../connection/connection";
-import {SidFrame} from "./sid_api";
+
+export enum SidCommand {
+    setVolume = 0,
+    noiseVolume = 1,
+    hpvEnable = 2,
+}
 
 export interface ISidConnection {
     onStart(): void;
-
-    processFrame(frame: SidFrame, commandServer: ICommandServer): Promise<void>;
 
     flush(): Promise<void>;
 
     isBusy(): boolean;
 
-    sendVMSFrames(data: Buffer);
+    sendCommand(command: SidCommand, channel: number, value: number): Promise<void>;
 }
 
-export function getActiveSIDConnection(): ISidConnection | null {
-    return getOptionalUD3Connection()?.getSidConnection();
+export function getActiveSIDConnection(coil: CoilID): ISidConnection | null {
+    return getOptionalUD3Connection(coil)?.getSidConnection();
 }

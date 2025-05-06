@@ -1,110 +1,65 @@
-import {FEATURE_NOTELEMETRY} from "../../common/constants";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
+import {CoilID, FEATURE_NOTELEMETRY} from "../../common/constants";
+import {getToMainIPCPerCoil} from "../../common/IPCConstantsToMain";
+import {getToRenderIPCPerCoil, PerCoilRenderIPCs} from "../../common/IPCConstantsToRenderer";
 import {getUD3Connection, hasUD3Connection} from "../connection/connection";
 import {receive_main} from "../connection/telemetry";
 import {TerminalHandle} from "../connection/types/UD3Connection";
-import {MultiWindowIPC} from "./IPCProvider";
-
-export enum TermSetupResult {
-    not_connected,
-    no_terminal_available,
-    success,
-}
+import {TemporaryIPC} from "./TemporaryIPC";
 
 export class TerminalIPC {
-    public readonly terminals = new Map<object, TerminalHandle>();
-    public waitingConnections: object[] = [];
-    private readonly buffers: Map<object, string> = new Map();
-    private readonly processIPC: MultiWindowIPC;
+    private buffer: string = '';
+    private readonly processIPC: TemporaryIPC;
+    private readonly coil: CoilID;
+    private readonly renderIPCs: PerCoilRenderIPCs;
 
-    constructor(processIPC: MultiWindowIPC) {
+    constructor(processIPC: TemporaryIPC, coil: CoilID) {
+        this.coil = coil;
         this.processIPC = processIPC;
-        processIPC.on(IPC_CONSTANTS_TO_MAIN.manualCommand, async (source: object, msg: string) => {
+        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
+        processIPC.on(getToMainIPCPerCoil(coil).manualCommand, async (msg) => {
             try {
-                if (hasUD3Connection() && this.terminals.has(source)) {
-                    await getUD3Connection().sendTelnet(Buffer.from(msg), this.terminals.get(source));
+                if (hasUD3Connection(coil)) {
+                    const connection = getUD3Connection(coil);
+                    await connection.sendTelnet(Buffer.from(msg), TerminalHandle.manual);
                 }
             } catch (x) {
                 console.log("Error while sending: ", x);
             }
         });
+        // TODO one of the main tickers?
         setInterval(() => this.tick(), 20);
     }
 
-    public print(s: string, target?: object) {
-        let base: string = "";
-        if (this.buffers.has(target)) {
-            base = this.buffers.get(target);
-        }
-        this.buffers.set(target, base + s);
+    public print(s: string) {
+        this.buffer += s;
     }
 
-    public println(s: string, target?: object) {
-        this.print(s + "\r\n", target);
+    public println(s: string) {
+        this.print(s + "\r\n");
     }
 
-    public async setupTerminal(source: object): Promise<TermSetupResult> {
-        if (this.terminals.has(source)) {
-            return TermSetupResult.success;
-        }
-        this.processIPC.addDisconnectCallback(source, () => {
-            if (this.terminals.has(source)) {
-                if (hasUD3Connection()) {
-                    getUD3Connection().closeTerminal(this.terminals.get(source));
-                }
-                this.terminals.delete(source);
-            }
-            this.waitingConnections = this.waitingConnections.filter((conn) => conn === source);
-        });
-        if (!hasUD3Connection()) {
-            this.waitingConnections.push(source);
-            return TermSetupResult.not_connected;
-        }
-        const connection = getUD3Connection();
-        const termID = connection.setupNewTerminal((d) => receive_main(d, false, source));
-        if (termID === undefined) {
-            this.waitingConnections.push(source);
-            return TermSetupResult.no_terminal_available;
-        }
-        this.terminals.set(source, termID);
-        await connection.startTerminal(termID);
+    public async setupManualTerminal(): Promise<any> {
+        const connection = getUD3Connection(this.coil);
+        await connection.startTerminal(
+            TerminalHandle.manual,
+            (d) => receive_main(this.coil, d, false, false),
+        );
         if (connection.getFeatureValue(FEATURE_NOTELEMETRY) === "1") {
-            await connection.sendTelnet(Buffer.from("\rtterm notelemetry\rcls\r"), termID);
+            await connection.sendTelnet(
+                Buffer.from("\rtterm notelemetry\rcls\r"),
+                TerminalHandle.manual,
+            );
         }
-        return TermSetupResult.success;
     }
 
     public onConnectionClosed() {
-        for (const source of this.terminals.keys()) {
-            this.waitingConnections.push(source);
-        }
-        this.terminals.clear();
-    }
-
-    public async onSlotsAvailable(sendExcuse: boolean) {
-        while (this.waitingConnections.length > 0) {
-            const newTerminal = this.waitingConnections.pop();
-            if (await this.setupTerminal(newTerminal) !== TermSetupResult.success) {
-                this.waitingConnections.push(newTerminal);
-                break;
-            }
-        }
-        if (sendExcuse) {
-            for (const target of this.waitingConnections) {
-                this.println("No free terminal slot available. Will assign one when available.", target);
-            }
-        }
+        this.buffer = '';
     }
 
     private tick() {
-        for (const [key, text] of this.buffers) {
-            if (key) {
-                this.processIPC.sendToWindow(IPC_CONSTANTS_TO_RENDERER.terminal, key, text);
-            } else {
-                this.processIPC.sendToAll(IPC_CONSTANTS_TO_RENDERER.terminal, text);
-            }
+        if (this.buffer.length > 0) {
+            this.processIPC.send(this.renderIPCs.terminal, this.buffer);
+            this.buffer = '';
         }
-        this.buffers.clear();
     }
 }
