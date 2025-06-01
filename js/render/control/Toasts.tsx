@@ -1,12 +1,10 @@
 import React from "react";
 import {Toast, ToastContainer} from "react-bootstrap";
-import {CoilID} from "../../common/constants";
-import {IPC_CONSTANTS_TO_RENDERER, ToastData, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {TTComponent} from "../TTComponent";
 import {ShownToastData} from "./ToastManager";
 
 export interface ToastsProps {
-    darkMode: boolean;
     closeToast: (toast: ShownToastData) => any;
     toasts: ShownToastData[];
 }
@@ -26,7 +24,7 @@ export class Toasts extends TTComponent<ToastsProps, {}> {
             onClose={() => this.props.closeToast(data)}
             bg={this.getStyleFor(data.level)}
             key={data.uniqueIndex}
-            className={'me-2 tt-' + (this.props.darkMode ? 'dark' : 'light') + '-toast'}
+            className={'me-2'}
         >
             <Toast.Header>
                 <div className={'me-auto'}>{data.title}</div>
@@ -39,7 +37,7 @@ export class Toasts extends TTComponent<ToastsProps, {}> {
     private getStyleFor(level: ToastSeverity) {
         switch (level) {
             case ToastSeverity.info:
-                return this.props.darkMode ? 'dark' : 'light';
+                return undefined;
             case ToastSeverity.warning:
                 return 'warning';
             case ToastSeverity.error:

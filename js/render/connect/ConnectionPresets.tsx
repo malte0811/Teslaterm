@@ -14,7 +14,6 @@ export interface PresetsProps {
     mainAdvanced: AdvancedOptions;
     setMainAdvanced: (opts: Partial<AdvancedOptions>) => any;
     connecting: boolean;
-    darkMode: boolean;
     presets: ConnectionPreset[];
 }
 
@@ -68,7 +67,6 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                     disabled={this.props.presets.length === 0}
                 >"Show" mode (Multiconnect)</Button>
                 <MulticonnectPopup
-                    darkMode={this.props.darkMode}
                     presets={this.props.presets}
                     visible={this.state.inMulticonnect}
                     close={() => this.setState({inMulticonnect: false})}
@@ -120,7 +118,7 @@ export class ConnectionPresets extends TTComponent<PresetsProps, PresetsState> {
                 value={this.state.newEntryName}
                 disabled={this.props.connecting}
                 onChange={(s) => this.setState({newEntryName: s.target.value})}
-                className={'tt-align-left ' + (this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input')}
+                className={'tt-align-left'}
             />
             <Button
                 disabled={this.props.connecting || !canAdd}

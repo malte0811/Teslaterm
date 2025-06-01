@@ -223,7 +223,6 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
         };
         return <Modal
             show={this.state.scriptPopupShown}
-            className={this.props.config.darkMode && 'tt-dark-modal-root'}
             onHide={() => confirm(false)}
         >
             {this.state.scriptPopup.title && <Modal.Title>{this.state.scriptPopup.title}</Modal.Title>}
@@ -242,7 +241,6 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
     private toastsForCoil(coil?: CoilID): ToastsProps {
         return {
             closeToast: makeToastRemover(this.toastUpdater()),
-            darkMode: this.props.config.darkMode,
             toasts: getToasts(this.state.toasts, (coil) => this.getCoilStatus(coil).name, coil),
         };
     }

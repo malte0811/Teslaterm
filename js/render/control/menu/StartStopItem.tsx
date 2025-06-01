@@ -12,7 +12,6 @@ export interface StartStopProps {
     startKey: IPCToMainKey<undefined>;
     stopKey: IPCToMainKey<undefined>;
     disabled: boolean;
-    darkMode: boolean;
 }
 
 export interface StartStopState {
@@ -30,7 +29,7 @@ export class StartStopMenuItem extends TTComponent<StartStopProps, StartStopStat
     }
 
     public render(): React.ReactNode {
-        return <TTDropdown title={this.state.current} darkMode={this.props.darkMode}>
+        return <TTDropdown title={this.state.current}>
             <Dropdown.Item
                 as={Button}
                 onClick={() => processIPC.send(this.props.startKey, undefined)}

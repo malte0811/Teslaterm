@@ -113,7 +113,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 setOptions={setOptions}
                 setAdvancedOptions={setAdvancedOptions}
                 connecting={this.props.connecting}
-                darkMode={this.props.config.darkMode}
             />
             <ConnectionPresets
                 mainAdvanced={this.state.currentAdvancedOptions}
@@ -121,7 +120,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 mainOptions={this.state.currentOptions}
                 setMainOptions={setOptions}
                 connecting={this.props.connecting}
-                darkMode={this.props.config.darkMode}
                 presets={this.props.config.connectionPresets}
             />
             {this.makeDarkmodeToggle()}
@@ -142,12 +140,10 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
     }
 
     private makeToast() {
-        const style = this.props.config.darkMode ? 'dark' : 'light';
         return <ToastContainer position={'bottom-end'}>
             <Toast
                 show={this.state.showingError}
                 onClose={() => this.setState({showingError: false})}
-                className={'tt-' + style + '-toast'}
                 bg={'danger'}
             >
                 <Toast.Header>Failed to connect</Toast.Header>

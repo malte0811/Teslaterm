@@ -6,7 +6,6 @@ import {TTComponent} from "./TTComponent";
 export interface DropdownProps {
     children: React.JSX.Element[];
     title: string;
-    darkMode: boolean;
 }
 
 interface DropdownState {
@@ -30,7 +29,6 @@ export class TTDropdown extends TTComponent<DropdownProps, DropdownState> {
             </Button>
             <DropdownMenu
                 show={this.state.shown}
-                className={this.props.darkMode && 'dark-dropdown-menu'}
                 onClick={() => this.setState({shown: false})}
             >
                 {this.props.children}

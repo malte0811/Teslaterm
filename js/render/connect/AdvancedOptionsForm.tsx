@@ -18,7 +18,6 @@ import {FormHelper} from "./FormHelper";
 export interface AdvancedFormProps {
     currentOptions: AdvancedOptions;
     setOptions: (newOptions: Partial<AdvancedOptions>) => any;
-    darkMode: boolean;
     connecting: boolean;
     keyPrefix?: string;
     showMixer: boolean;
@@ -43,7 +42,7 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
             }
         })();
         return (
-            <Accordion defaultActiveKey={'-1'} className={this.props.darkMode && 'dark-accordion'}>
+            <Accordion defaultActiveKey={'-1'}>
                 <Accordion.Item eventKey={'0'}>
                     <Accordion.Header>Advanced Settings</Accordion.Header>
                     <Accordion.Body style={({
@@ -136,7 +135,7 @@ export class AdvancedOptionsForm extends TTComponent<AdvancedFormProps, {}> {
         return <Form.Group as={Row} className={'tt-connect-form-row'} key={'mixer-select'}>
             <Form.Label style={({fontSize: 'large'})} column>Physical Mixer</Form.Label>
             <Col sm={8}>
-                <TTDropdown title={getMixerTypeName(current)} darkMode={this.props.darkMode}>
+                <TTDropdown title={getMixerTypeName(current)}>
                     {possibleTypes}
                 </TTDropdown>
             </Col>

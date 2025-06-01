@@ -7,7 +7,6 @@ import {Gauge, GaugeProps} from "./Gauge";
 export const NUM_GAUGES = 7;
 
 export interface GaugesProps {
-    darkMode: boolean;
     coil: CoilID;
 }
 
@@ -28,7 +27,6 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
                     name: "Meter " + i,
                     scale: 1,
                 },
-                darkMode: this.props.darkMode,
                 value: 0,
             });
         }
@@ -42,7 +40,6 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
                 const newGauges: GaugeProps[] = [...oldState.gauges];
                 newGauges[config.meterId] = {
                     config,
-                    darkMode: this.props.darkMode,
                     value: newGauges[config.meterId]?.value || 0,
                 };
                 return {gauges: newGauges};
@@ -57,7 +54,7 @@ export class Gauges extends TTComponent<GaugesProps, GaugeState> {
                         continue;
                     }
                     const config = newGauges[id].config;
-                    newGauges[id] = {value, config, darkMode: this.props.darkMode};
+                    newGauges[id] = {value, config};
                 }
                 return {gauges: newGauges};
             });

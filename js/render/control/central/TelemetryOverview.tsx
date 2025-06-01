@@ -10,7 +10,6 @@ import {TelemetrySelector} from "./TelemetrySelector";
 
 export interface CentralTelemetryProps {
     coils: CoilState[];
-    darkMode: boolean;
 }
 
 interface GaugeData {
@@ -96,7 +95,6 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
                             name: "",
                             scale: 1,
                         }}
-                        darkMode={this.props.darkMode}
                     />;
                 } else {
                     return <div/>;
@@ -127,7 +125,6 @@ export class TelemetryOverview extends TTComponent<CentralTelemetryProps, Centra
                     availableNames={this.state.allAvailableTelemetry}
                     close={() => this.closeSelector()}
                     shown={this.state.showingSelector}
-                    darkMode={this.props.darkMode}
                 />
             </div>
         );

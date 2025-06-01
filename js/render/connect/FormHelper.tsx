@@ -4,7 +4,6 @@ import {TTComponent} from "../TTComponent";
 
 export interface FormPropsBase {
     connecting: boolean;
-    darkMode: boolean;
 }
 
 export class FormHelper {
@@ -68,7 +67,6 @@ export class FormHelper {
                         value={current}
                         onChange={ev => set(ev.target.value)}
                         disabled={this.component.props.connecting}
-                        className={this.component.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                     />
                 </Col>
             </Form.Group>
@@ -110,7 +108,6 @@ export class FormHelper {
                     list={'suggestions'}
                     ref={ref}
                     disabled={this.component.props.connecting}
-                    className={this.component.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                 />
                 <datalist id={'suggestions'}>
                     {suggestions.map((s, i) => <option value={s} key={i}/>)}

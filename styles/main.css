@@ -1,6 +1,5 @@
 .tt-top-level {
     overflow: hidden;
-    background: var(--dark-background);
 }
 
 .tt-coil-tabs {
@@ -64,70 +63,17 @@
     overflow: hidden;
 }
 
-.tt-light-root, .tt-dark-root {
+.tt-root {
     overflow: hidden;
     height: 100vh;
-}
-
-.tt-dark-root, .tt-dark-modal-root {
-    --dark-background: #414141;
-    --dark-foreground: white;
-    color: var(--dark-foreground);
-    --bs-warning-rgb: 192, 139, 20;
-    --bs-warning: rgb(var(--bs-warning-rgb));
-    --bs-modal-color: var(--dark-foreground);
-    --bs-modal-bg: var(--dark-background);
-    --bs-body-color: var(--dark-foreground);
-    --bs-body-bg: var(--dark-background);
-    --bs-emphasis-color: var(--dark-foreground);
-    --bs-tertiary-bg: #a2a2a2;
-}
-
-.tt-dark-root {
-    background: var(--dark-background);
-}
-
-.tt-light-form-input {}
-
-.dark-dropdown-menu {
-    --bs-dropdown-link-color: var(--dark-foreground);
-    --bs-dropdown-bg: #707070;
-}
-
-.dark-accordion {
-    --bs-accordion-color: var(--dark-foreground);
-    --bs-accordion-btn-color: var(--dark-foreground);
-    --bs-accordion-bg: var(--dark-background);
-    --bs-accordion-active-color: #e7f1ff;
-    --bs-accordion-active-bg: #414152;
-}
-
-.dark-dropdown-menu.show {
-    background: #707070;
-    color: var(--dark-foreground);
-}
-
-.tt-dark-form-input, .tt-dark-form-input:focus {
-    background: var(--dark-background);
-    color: var(--dark-foreground);
-}
-
-.tt-dark-form-input:disabled {
-    background: #555555;
-    color: #bbbbbb;
-}
-
-.tt-dark-tabs {
-    --bs-nav-tabs-link-active-bg: #555555;
-    --bs-nav-tabs-link-active-border-color: #999999;
-    --bs-nav-tabs-link-active-color: white;
-}
-
-.tt-dark-text-muted {
-    color: #bbbbbb;
 }
 
 .tt-darkmode-toggle {
     position: absolute;
     bottom: 0;
+}
+
+/*TODO this should really be in bootstrap itself in some form!*/
+.bg-warning {
+    color: black !important;
 }

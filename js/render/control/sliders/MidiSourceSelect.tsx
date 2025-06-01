@@ -7,7 +7,6 @@ import {TTDropdown} from "../../TTDropdown";
 import MIDIInput = WebMidi.MIDIInput;
 
 export interface MidiSelectProps {
-    darkMode: boolean;
 }
 
 interface MidiSelectState {
@@ -21,12 +20,12 @@ export class MidiSourceSelect extends TTComponent<MidiSelectProps, MidiSelectSta
         this.state = {};
     }
 
-    componentDidMount() {
+    public componentDidMount() {
         this.setupMidiAccess()
             .catch((e) => console.warn("Failed to get MIDI access:", e));
     }
 
-    render() {
+    public render() {
         if (!this.state.access) {
             return <></>;
         }
@@ -54,13 +53,13 @@ export class MidiSourceSelect extends TTComponent<MidiSelectProps, MidiSelectSta
         }
         const title = (this.state.currentInput && this.state.currentInput.name) || 'Choose MIDI input';
         return (
-            <TTDropdown title={title} darkMode={this.props.darkMode}>
+            <TTDropdown title={title}>
                 {items}
             </TTDropdown>
         );
     }
 
-    componentWillUnmount() {
+    public componentWillUnmount() {
         super.componentWillUnmount();
         this.selectInput(this.state, undefined);
         if (this.state.access) {

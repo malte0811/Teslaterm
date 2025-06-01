@@ -1,12 +1,13 @@
 import 'justgage/dist/justgage';
 import React from "react";
 import {MeterConfig} from "../../../common/IPCConstantsToRenderer";
+
+import {DarkModeContext} from "../../DarkModeContext";
 import {TTComponent} from "../../TTComponent";
 
 export interface GaugeProps {
     value: number;
     config: MeterConfig;
-    darkMode: boolean;
 }
 
 const DARK_GAUGE_PROPS = {
@@ -16,7 +17,10 @@ const DARK_GAUGE_PROPS = {
 };
 
 export class Gauge extends TTComponent<GaugeProps, {}> {
+    public static contextType = DarkModeContext;
+
     private static nextId: number = 0;
+    public declare context: React.ContextType<typeof DarkModeContext>;
     private readonly id: string;
     private gauge?: JustGage;
     private readonly ref: React.RefObject<HTMLDivElement>;
@@ -84,7 +88,7 @@ export class Gauge extends TTComponent<GaugeProps, {}> {
             refreshAnimationTime: 0,
             startAnimationTime: 0,
             value: this.props.value,
-            ...(this.props.darkMode ? DARK_GAUGE_PROPS : {}),
+            ...(this.context.valueOf() ? DARK_GAUGE_PROPS : {}),
         });
     }
 }

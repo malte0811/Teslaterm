@@ -8,7 +8,6 @@ import {AdvancedOptionsForm} from "./AdvancedOptionsForm";
 import {ConnectionPresets} from "./ConnectionPresets";
 
 export interface MulticonnectProps {
-    darkMode: boolean;
     presets: ConnectionPreset[];
     visible: boolean;
     close: () => any;
@@ -43,7 +42,6 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
         return <Modal
             show={this.props.visible}
             size={"lg"}
-            className={this.props.darkMode && 'tt-dark-modal-root'}
         >
             <Modal.Header>Connect to multiple coils</Modal.Header>
             <Modal.Body>
@@ -51,7 +49,6 @@ export class MulticonnectPopup extends TTComponent<MulticonnectProps, Multiconne
                 <AdvancedOptionsForm
                     currentOptions={this.props.advanced}
                     setOptions={this.props.setAdvanced}
-                    darkMode={this.props.darkMode}
                     connecting={false}
                     keyPrefix={'multiconnect-advanced'}
                     showMixer={true}

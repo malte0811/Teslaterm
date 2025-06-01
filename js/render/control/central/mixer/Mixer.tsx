@@ -18,7 +18,6 @@ import {InstrumentChoice, MixerColumn, MuteState} from "./MixerColumn";
 import {Playlist} from "./Playlist";
 
 export interface MixerProps {
-    darkMode: boolean;
     coils: CoilState[];
     ttConfig: TTConfig;
     availablePrograms: string[];

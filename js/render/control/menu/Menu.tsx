@@ -19,7 +19,6 @@ export interface MenuProps {
     >;
     connectionStatus: ConnectionStatus;
     ttConfig: TTConfig;
-    darkMode: boolean;
     returnToConnect: () => any;
 }
 
@@ -93,7 +92,6 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
                 udState={this.props.level.level === 'central-control' ? undefined : this.props.level.state}
                 ttConfig={this.props.ttConfig}
                 disabled={!allowInteraction}
-                darkMode={this.props.darkMode}
                 level={this.props.level}
             />
         );
@@ -108,14 +106,12 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
                         stopKey={IPC_CONSTANTS_TO_MAIN.menu.stopMedia}
                         dataKey={IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle}
                         disabled={!allowInteraction}
-                        darkMode={this.props.darkMode}
                     />
                     <StartStopMenuItem
                         startKey={IPC_CONSTANTS_TO_MAIN.script.startScript}
                         stopKey={IPC_CONSTANTS_TO_MAIN.script.stopScript}
                         dataKey={IPC_CONSTANTS_TO_RENDERER.menu.setScriptName}
                         disabled={!allowInteraction}
-                        darkMode={this.props.darkMode}
                     />
                 </>
             );

@@ -12,7 +12,6 @@ import {SimpleSliderFixedTitle} from "../control/sliders/SimpleSlider";
 import {TTComponent} from "../TTComponent";
 
 export interface TelemetryTabProps {
-    darkMode: boolean;
     events: FRDisplayData;
 }
 
@@ -160,7 +159,6 @@ export class TelemetryTab extends TTComponent<TelemetryTabProps, TelemetryTabSta
     private makeMeter(config: MeterConfig): GaugeProps {
         return {
             config,
-            darkMode: this.props.darkMode,
             value: config.min,
         };
     }

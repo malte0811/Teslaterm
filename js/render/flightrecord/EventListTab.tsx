@@ -10,7 +10,6 @@ interface FREventsTabState {
 }
 
 export interface FREVentsTabProps {
-    darkMode: boolean;
     events: ParsedEvent[];
 }
 

@@ -12,7 +12,6 @@ export interface UD3ConfigProps {
     original: UD3ConfigOption[];
     close: () => any;
     ttConfig: TTConfig;
-    darkMode: boolean;
     coil: CoilID;
 }
 
@@ -74,7 +73,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
     private makeOptionsTab(tabIndex: number, options: IndexedOption[]): React.JSX.Element {
         const title = TAB_NAMES[tabIndex] || 'Unknown';
         return (
-            <Tab title={title} key={tabIndex} eventKey={tabIndex} tabClassName={this.props.darkMode && 'tt-dark-tabs'}>
+            <Tab title={title} key={tabIndex} eventKey={tabIndex}>
                 <Form className={'tt-modal-scrollable'}>
                     {options.map((o) => this.makeOption(o))}
                 </Form>
@@ -96,11 +95,10 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
                             this.setState({current: newValues});
                         }}
                         value={option.option.current}
-                        className={this.props.darkMode ? 'tt-dark-form-input' : 'tt-light-form-input'}
                     />
                     {option.option.type !== UD3ConfigType.TYPE_STRING && this.makeMinMaxDesc(option.option)}<br/>
                     <Form.Text
-                        className={this.getMutedClass()}
+                        className={'text-muted'}
                     >{option.option.help}</Form.Text>
                 </Col>
             </Form.Group>
@@ -120,7 +118,7 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
     }
 
     private makeMinMaxDesc(option: UD3ConfigOption) {
-        return <Form.Text className={this.getMutedClass()}>
+        return <Form.Text className={'text-muted'}>
             Min: {option.min} Max: {option.max}
         </Form.Text>;
     }
@@ -135,10 +133,6 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         }
         processIPC.send(getToMainIPCPerCoil(this.props.coil).commands.setParms, changeMap);
         this.props.close();
-    }
-
-    private getMutedClass() {
-        return this.props.darkMode ? 'tt-dark-text-muted' : 'text-muted';
     }
 
     private saveJSON() {

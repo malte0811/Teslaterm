@@ -7,7 +7,6 @@ import {TTComponent} from "../TTComponent";
 export interface AlarmProps {
     alarms: UD3Alarm[];
     close: () => any;
-    darkMode: boolean;
 }
 
 export class Alarms extends TTComponent<AlarmProps, {}> {
@@ -37,35 +36,30 @@ export class Alarms extends TTComponent<AlarmProps, {}> {
     }
 
     private makeRow(alarm: UD3Alarm, id: number) {
+        let cssClass: string = '';
         let levelName: string;
-        let background: string;
-        let color: string;
         switch (alarm.level) {
             case UD3AlarmLevel.info:
                 levelName = 'info';
                 break;
             case UD3AlarmLevel.warn:
                 levelName = 'warn';
-                background = this.props.darkMode ? 'darkgoldenrod' : 'yellow';
-                color = this.props.darkMode ? 'white' : 'black';
+                cssClass = 'bg-warning';
                 break;
             case UD3AlarmLevel.alarm:
                 levelName = 'alarm';
-                background = 'orange';
-                color = 'white';
+                cssClass = 'bg-danger';
                 break;
             case UD3AlarmLevel.critical:
                 levelName = 'critical';
-                background = 'red';
-                color = 'white';
+                cssClass = 'bg-danger';
                 break;
         }
-        const style = {background, color};
-        return <tr style={style} key={id}>
-            <td style={style}>{alarm.timestamp}</td>
-            <td style={style}>{levelName}</td>
-            <td style={style}>{alarm.message}</td>
-            <td style={style}>{alarm.value || ''}</td>
+        return <tr key={id}>
+            <td className={cssClass}>{alarm.timestamp}</td>
+            <td className={cssClass}>{levelName}</td>
+            <td className={cssClass}>{alarm.message}</td>
+            <td className={cssClass}>{alarm.value || ''}</td>
         </tr>;
     }
 }

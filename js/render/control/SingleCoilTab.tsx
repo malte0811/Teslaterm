@@ -42,7 +42,6 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                     <MenuBar
                         connectionStatus={this.props.connectionStatus}
                         ttConfig={this.props.ttConfig}
-                        darkMode={this.props.config.darkMode}
                         level={{level: this.props.level, coil: this.props.coil, state: this.props.ud3State}}
                         returnToConnect={this.props.returnToConnect}
                     />
@@ -54,7 +53,6 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                             <Sliders
                                 disabled={!this.props.allowInteraction}
                                 enableMIDI={this.props.config.advancedOptions.enableMIDIInput}
-                                darkMode={this.props.config.darkMode}
                                 level={{level: this.props.level, coil: this.props.coil, ud3State: this.props.ud3State}}
                             />
                         </div>
@@ -63,7 +61,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                             coil={this.props.coil}
                         />
                     </div>
-                    <Gauges darkMode={this.props.config.darkMode} coil={this.props.coil}/>
+                    <Gauges coil={this.props.coil}/>
                 </div>
                 <Toasts {...this.props.toasts}/>
             </div>

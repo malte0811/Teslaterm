@@ -7,7 +7,6 @@ import {EventListTab} from "./EventListTab";
 import {TelemetryTab} from "./TelemetryTab";
 
 export interface FRScreenProps {
-    darkMode: boolean;
     events: FRDisplayData;
     close: () => any;
 }
@@ -46,10 +45,10 @@ export class FlightRecordingScreen extends TTComponent<FRScreenProps, FRScreenSt
                         <Row sm={9} style={{height: 'calc(100% - 40px)', width: '100%'}}>
                             <Tab.Content style={{height: '100%', width: '100%'}}>
                                 <Tab.Pane eventKey="list" style={{height: '100%', width: '100%'}}>
-                                    <EventListTab darkMode={this.props.darkMode} events={this.state.eventsForList}/>
+                                    <EventListTab events={this.state.eventsForList}/>
                                 </Tab.Pane>
                                 <Tab.Pane eventKey="telemetry">
-                                    <TelemetryTab darkMode={this.props.darkMode} events={this.props.events}/>
+                                    <TelemetryTab events={this.props.events}/>
                                 </Tab.Pane>
                             </Tab.Content>
                         </Row>

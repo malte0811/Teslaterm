@@ -30,7 +30,6 @@ export interface CommandsMenuProps {
     udState?: IUD3State;
     ttConfig: TTConfig;
     disabled: boolean;
-    darkMode: boolean;
 }
 
 export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsState> {
@@ -88,7 +87,7 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             );
         }
         return <>
-            <TTDropdown title={'Commands'} darkMode={this.props.darkMode}>{items}</TTDropdown>
+            <TTDropdown title={'Commands'}>{items}</TTDropdown>
             {this.makeWarningModal()}
             {this.makeConfigModal()}
             {this.makeAlarmListModal()}
@@ -134,7 +133,6 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         };
         return <Modal
             show={this.state.warningText !== undefined}
-            className={this.props.darkMode && 'tt-dark-modal-root'}
             onHide={closeModal}
         >
             <Modal.Header>
@@ -158,7 +156,6 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
         return <Modal
             show={this.state.originalSettings !== undefined}
             size={'lg'}
-            className={this.props.darkMode && 'tt-dark-modal-root'}
             onHide={closeModal}
         >
             <Modal.Body>
@@ -166,7 +163,6 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
                     original={this.state.originalSettings || []}
                     close={closeModal}
                     ttConfig={this.props.ttConfig}
-                    darkMode={this.props.darkMode}
                     coil={this.props.level.coil}
                 />
             </Modal.Body>
@@ -179,10 +175,9 @@ export class CommandsMenuItem extends TTComponent<CommandsMenuProps, CommandsSta
             show={this.state.alarmList !== undefined}
             size={'lg'}
             onHide={close}
-            className={this.props.darkMode && 'tt-dark-modal-root'}
         >
             <Modal.Body>
-                <Alarms alarms={this.state.alarmList || []} close={close} darkMode={this.props.darkMode}/>
+                <Alarms alarms={this.state.alarmList || []} close={close}/>
             </Modal.Body>
         </Modal>;
     }

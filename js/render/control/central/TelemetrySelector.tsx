@@ -7,7 +7,6 @@ export interface TelemetrySelectorProps {
     shown: boolean;
     availableNames: string[];
     close: () => any;
-    darkMode: boolean;
 }
 
 interface TelemetrySelectorState {
@@ -36,7 +35,6 @@ export class TelemetrySelector extends TTComponent<TelemetrySelectorProps, Telem
             <Modal
                 show={this.props.shown}
                 size={"lg"}
-                className={this.props.darkMode && 'tt-dark-modal-root'}
             >
                 <Modal.Header>Select telemetry to show</Modal.Header>
                 <Modal.Body>{...checkboxes}</Modal.Body>

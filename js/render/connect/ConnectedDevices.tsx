@@ -11,7 +11,6 @@ export interface ConnectedDevicesProps {
     rows: DeviceInfo[];
 
     shown: boolean;
-    darkMode: boolean;
 
     close: () => any;
 }
@@ -36,7 +35,6 @@ export class ConnectedDevices extends TTComponent<ConnectedDevicesProps, {}> {
             show={this.props.shown}
             onHide={this.props.close}
             size={"lg"}
-            className={this.props.darkMode && 'tt-dark-modal-root'}
         >
             <Modal.Header>Available devices</Modal.Header>
             <Modal.Body>{table}</Modal.Body>

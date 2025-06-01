@@ -12,7 +12,6 @@ import {SimpleSlider} from './SimpleSlider';
 export interface SlidersProps {
     disabled: boolean;
     enableMIDI: boolean;
-    darkMode: boolean;
     level: TabControlLevelBase<{ coil: CoilID, ud3State: IUD3State }, {}>;
 }
 
@@ -151,7 +150,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 visuallyEnabled={trOn}
                 disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
             />
-            {this.props.enableMIDI && <MidiSourceSelect darkMode={this.props.darkMode}/>}
+            {this.props.enableMIDI && <MidiSourceSelect/>}
         </div>;
     }
 }

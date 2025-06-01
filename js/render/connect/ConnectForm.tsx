@@ -23,7 +23,6 @@ export interface ConnectFormProps {
     setOptions: (newOptions: Partial<MergedConnectionOptions>) => any;
     setAdvancedOptions: (newOptions: Partial<AdvancedOptions>) => any;
     connecting: boolean;
-    darkMode: boolean;
 }
 
 enum ShownPopup {
@@ -103,7 +102,6 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         return <div className={'tt-connect-form'}>
             <TTDropdown
                 title={'Connection type: ' + CONNECTION_TYPE_DESCS.get(currentType)}
-                darkMode={this.props.darkMode}
             >
                 {possibleTypes}
             </TTDropdown>
@@ -112,7 +110,6 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
                 <AdvancedOptionsForm
                     currentOptions={this.props.currentAdvancedOptions}
                     setOptions={this.props.setAdvancedOptions}
-                    darkMode={this.props.darkMode}
                     connecting={this.props.connecting}
                     showMixer={false}
                 />
@@ -216,7 +213,6 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         return <ConnectedDevices
             columnTitles={['Port', 'Manufacturer', 'Vendor ID', 'Product ID']}
             rows={rows}
-            darkMode={this.props.darkMode}
             shown={this.state.shownPopup === ShownPopup.serial}
             close={() => this.setState({shownPopup: ShownPopup.none})}
             key={'serial-suggestions'}
@@ -231,7 +227,6 @@ export class ConnectForm extends TTComponent<ConnectFormProps, ConnectFormState>
         return <ConnectedDevices
             columnTitles={['Description', 'Remote address']}
             rows={rows}
-            darkMode={this.props.darkMode}
             shown={this.state.shownPopup === ShownPopup.udp}
             close={() => this.setState({shownPopup: ShownPopup.none})}
             key={'udp-suggestions'}

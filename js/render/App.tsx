@@ -7,6 +7,7 @@ import {TTConfig} from "../common/TTConfig";
 import {SyncedUIConfig} from "../common/UIConfig";
 import {ConnectScreen, FRDisplayData} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
+import {DarkModeContext} from "./DarkModeContext";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
@@ -43,7 +44,10 @@ export class App extends TTComponent<{}, TopLevelState> {
             IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
         );
         this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.uiConfig, (cfg) => this.setState({config: cfg}),
+            IPC_CONSTANTS_TO_RENDERER.uiConfig, (cfg) => {
+                this.setState({config: cfg});
+                document.documentElement.setAttribute('data-bs-theme', cfg.darkMode ? 'dark' : 'light');
+            },
         );
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, ([coil, multicoil]) => {
             this.setState((oldState) => {
@@ -63,12 +67,11 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     public render(): React.ReactNode {
-        const darkMode = this.state.config && this.state.config.darkMode;
-        return <>
-            <div className={darkMode ? 'tt-dark-root' : 'tt-light-root'}>
+        return <div className={'tt-root'}>
+            <DarkModeContext.Provider value={this.state.config && this.state.config.darkMode}>
                 {this.getMainElement()}
-            </div>
-        </>;
+            </DarkModeContext.Provider>
+        </div>;
     }
 
     private getMainElement(): React.JSX.Element {
@@ -76,7 +79,6 @@ export class App extends TTComponent<{}, TopLevelState> {
             return <>Initializing...</>;
         } else if (this.state.screen === TopScreen.flight_recording) {
             return <FlightRecordingScreen
-                darkMode={this.state.config.darkMode}
                 events={this.state.flightEvents}
                 close={() => this.setState({screen: TopScreen.connect})}
             />;

@@ -34,7 +34,6 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                     <MenuBar
                         connectionStatus={ConnectionStatus.CONNECTED}
                         ttConfig={this.props.ttConfig}
-                        darkMode={this.props.config.darkMode}
                         level={{
                             level: 'central-control',
                             numCoils: this.props.coils.length,
@@ -46,16 +45,14 @@ export class CentralControlTab extends TTComponent<ControlTabProps, {}> {
                     />
                 </div>
                 <div className={'tt-central-telemetry-and-sliders'}>
-                    <TelemetryOverview coils={this.props.coils} darkMode={this.props.config.darkMode}/>
+                    <TelemetryOverview coils={this.props.coils}/>
                     <Sliders
                         disabled={false}
                         enableMIDI={this.props.config.advancedOptions.enableMIDIInput}
-                        darkMode={this.props.config.darkMode}
                         level={{level: 'central-control'}}
                     />
                 </div>
                 <Mixer
-                    darkMode={this.props.config.darkMode}
                     coils={this.props.coils}
                     ttConfig={this.props.ttConfig}
                     availablePrograms={this.props.config.midiPrograms}
