@@ -1,5 +1,6 @@
 import {CoilID} from "../../common/constants";
-import {getConnectionState, getOptionalUD3Connection} from "./connection";
+import {UD3_MAX_VOLUME} from "../media/mixer/MixerState";
+import {getOptionalUD3Connection} from "./connection";
 import {TerminalHandle} from "./types/UD3Connection";
 
 export class CommandInterface {
@@ -54,6 +55,11 @@ export class CommandInterface {
         await this.setParam('pwd', pwd.toFixed(0));
     }
 
+    public async setVolumeFraction(volumeFraction: number) {
+        const coilVolume = volumeFraction * UD3_MAX_VOLUME;
+        await this.setParam('vol', coilVolume.toFixed(0));
+    }
+
     public async setParam(param: string, value: string) {
         await this.sendCommand('set ' + param + ' ' + value + '\r');
     }
@@ -69,9 +75,5 @@ export class CommandInterface {
         } catch (x) {
             console.log("Error while sending: ", x);
         }
-    }
-
-    private get connectionState() {
-        return getConnectionState(this.coil);
     }
 }

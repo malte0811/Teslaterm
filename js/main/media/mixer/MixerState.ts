@@ -14,7 +14,7 @@ import {NUM_SPECIFIC_FADERS, VolumeMap} from "../VolumeMap";
 import {makeMixer, PhysicalMixer} from "./PhysicalMixer";
 import {Playlist} from "./Playlist";
 
-const UD3_MAX_VOLUME = (1 << 15) - 1;
+export const UD3_MAX_VOLUME = (1 << 15) - 1;
 
 export class MixerState {
     private programByVoice: Map<ChannelID, number> = new Map<ChannelID, number>();
@@ -179,8 +179,7 @@ export class MixerState {
 
     private async sendVolume(coil: number, channel: VolumeChannel | undefined) {
         if (channel === undefined) {
-            const coilVolume = this.volumes.getCoilMasterFraction(coil) * UD3_MAX_VOLUME;
-            await getCoilCommands(coil).setParam('vol', coilVolume.toFixed(0));
+            await getCoilCommands(coil).setVolumeFraction(this.volumes.getCoilMasterFraction(coil));
         } else if (channel === 'sidSpecial') {
             const sidConnection = getActiveSIDConnection(coil);
             if (sidConnection) {

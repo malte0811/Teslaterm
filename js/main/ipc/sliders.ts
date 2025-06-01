@@ -22,6 +22,7 @@ export async function setRelativeOntime(newRelative: number) {
 
 export class SliderState {
     public ontimeAbs: number;
+    public volumeFraction: number = 1;
     public bps: number = 20;
     public burstOntime: number = 500;
     public burstOfftime: number = 0;
@@ -74,6 +75,7 @@ export class SlidersIPC {
         this.commands = getCoilCommands(coil);
         const channels = getToMainIPCPerCoil(coil);
         this.addDelayedListener(channels.sliders.setOntimeAbsolute, (ot) => this.setAbsoluteOntime(ot));
+        this.addDelayedListener(channels.sliders.setVolumeFraction, (vol) => this.setVolume(vol));
         this.addDelayedListener(channels.sliders.setBPS, (bps) => this.setBPS(bps));
         this.addDelayedListener(channels.sliders.setBurstOntime, (bon) => this.setBurstOntime(bon));
         this.addDelayedListener(channels.sliders.setBurstOfftime, (boff) => this.setBurstOfftime(boff));
@@ -105,6 +107,12 @@ export class SlidersIPC {
     public async setAbsoluteOntime(val: number) {
         this.state.ontimeAbs = val;
         await this.commands.setOntime(this.state.ontime);
+        this.sendSliderSync();
+    }
+
+    public async setVolume(volumeFraction: number) {
+        this.state.volumeFraction = volumeFraction;
+        await this.commands.setVolumeFraction(this.state.volumeFraction);
         this.sendSliderSync();
     }
 

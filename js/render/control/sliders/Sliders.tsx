@@ -33,6 +33,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
             onlyMaxOntimeSettable: false,
             ontimeAbs: 0,
             ontimeRel: this.props.level.level === 'central-control' ? 0 : 100,
+            volumeFraction: 1,
         };
     }
 
@@ -80,6 +81,23 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                  return [busOn, busOn && udState.transientActive];
             }
         })();
+        let volumeSlider: React.JSX.Element;
+        if (this.props.level.level === 'combined') {
+            volumeSlider = <SimpleSlider
+                title={'Volume'}
+                unit={'%'}
+                value={Math.floor(this.state.volumeFraction * 100)}
+                min={0}
+                max={100}
+                setValue={(volumePercent) => {
+                    const volume = volumePercent / 100;
+                    this.setState({volumeFraction: volume});
+                    processIPC.send(coilIPC.sliders.setVolumeFraction, volume);
+                }}
+                visuallyEnabled={true}
+                disabled={this.props.disabled}
+            />;
+        }
         return <div className={'tt-sliders-container'}>
             <OntimeSlider
                 max={this.state.maxOntime}
@@ -106,6 +124,7 @@ export class Sliders extends TTComponent<SlidersProps, SliderUIState> {
                 visuallyEnabled={trOn}
                 disabled={this.props.disabled || this.state.onlyMaxOntimeSettable}
             />
+            {volumeSlider}
             <SimpleSlider
                 title={'Burst Ontime'}
                 unit={'ms'}

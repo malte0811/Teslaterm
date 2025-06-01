@@ -177,6 +177,7 @@ export interface ISliderState {
     readonly onlyMaxOntimeSettable: boolean;
     readonly maxOntime: number;
     readonly maxBPS: number;
+    readonly volumeFraction: number;
 }
 
 export interface IUDPConnectionSuggestion {
