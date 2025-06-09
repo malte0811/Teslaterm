@@ -2,8 +2,15 @@ import React from "react";
 import {Button, ButtonGroup, ButtonToolbar} from "react-bootstrap";
 import {CoilID} from "../../../common/constants";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {ConnectionStatus, IPC_CONSTANTS_TO_RENDERER, IUD3State} from "../../../common/IPCConstantsToRenderer";
+import {
+    ConnectionStatus,
+    IPC_CONSTANTS_TO_RENDERER,
+    IUD3State,
+    MediaState
+} from "../../../common/IPCConstantsToRenderer";
+import {MediaFileType, PlayerActivity} from "../../../common/MediaTypes";
 import {TTConfig} from "../../../common/TTConfig";
+import {buildGradientDefinition} from "../../Gradient";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TabControlLevelBase} from "../SingleCoilTab";
@@ -22,6 +29,10 @@ export interface MenuProps {
     returnToConnect: () => any;
 }
 
+interface MenuState {
+    mediaState: MediaState;
+}
+
 function getConnectionButtonText(status: ConnectionStatus) {
     switch (status) {
         case ConnectionStatus.CONNECTING:
@@ -36,7 +47,18 @@ function getConnectionButtonText(status: ConnectionStatus) {
     }
 }
 
-export class MenuBar extends TTComponent<MenuProps, {}> {
+export class MenuBar extends TTComponent<MenuProps, MenuState> {
+    constructor(props: MenuProps) {
+        super(props);
+        this.state = {
+            mediaState: {progressPercent: 0, state: PlayerActivity.idle, title: "", type: MediaFileType.none},
+        };
+    }
+
+    public componentDidMount() {
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.redrawMedia, (mediaState) => this.setState({mediaState}));
+    }
+
     public render(): React.ReactNode {
         const allowInteraction = this.props.connectionStatus === ConnectionStatus.CONNECTED;
         const killbitElement = (() => {
@@ -101,12 +123,7 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
             return (
                 <>
                     {commandsMenuItem}
-                    <StartStopMenuItem
-                        startKey={IPC_CONSTANTS_TO_MAIN.menu.startMedia}
-                        stopKey={IPC_CONSTANTS_TO_MAIN.menu.stopMedia}
-                        dataKey={IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle}
-                        disabled={!allowInteraction}
-                    />
+                    {this.makePlayProgressItem(allowInteraction)}
                     <StartStopMenuItem
                         startKey={IPC_CONSTANTS_TO_MAIN.script.startScript}
                         stopKey={IPC_CONSTANTS_TO_MAIN.script.stopScript}
@@ -116,5 +133,29 @@ export class MenuBar extends TTComponent<MenuProps, {}> {
                 </>
             );
         }
+    }
+
+    private makePlayProgressItem(allowInteraction: boolean) {
+        const progress = this.state.mediaState.progressPercent;
+        const overlayGradient = buildGradientDefinition(
+            0,
+            {color: 'var(--bs-btn-bg)', size: 1},
+            {color: 'transparent', size: 3},
+            {color: 'var(--bs-btn-bg)', size: 1},
+        );
+        const playGradient = buildGradientDefinition(
+            90,
+            {color: 'var(--bs-btn-bg)', size: 1},
+            {color: 'red', size: progress},
+            {color: 'color-mix(in hsl, var(--bs-btn-bg) 60%, white 40%)', size: 100 - progress},
+            {color: 'var(--bs-btn-bg)', size: 1},
+        );
+        return <StartStopMenuItem
+            startKey={IPC_CONSTANTS_TO_MAIN.menu.startMedia}
+            stopKey={IPC_CONSTANTS_TO_MAIN.menu.stopMedia}
+            dataKey={IPC_CONSTANTS_TO_RENDERER.menu.setMediaTitle}
+            disabled={!allowInteraction}
+            style={{background: overlayGradient + ', ' + playGradient}}
+        />;
     }
 }

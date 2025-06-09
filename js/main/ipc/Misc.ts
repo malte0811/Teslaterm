@@ -106,9 +106,9 @@ export class CommonMiscIPC {
     }
 
     public updateMediaInfo() {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia,
+        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.redrawMedia,
             {
-                progress: media_state.progress,
+                progressPercent: media_state.progress,
                 state: media_state.state,
                 title: media_state.title,
                 type: media_state.type,

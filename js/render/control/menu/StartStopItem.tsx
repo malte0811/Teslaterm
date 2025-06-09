@@ -1,4 +1,4 @@
-import React from "react";
+import React, {CSSProperties} from "react";
 import {Button} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {IPCToMainKey} from "../../../common/IPCConstantsToMain";
@@ -11,6 +11,7 @@ export interface StartStopProps {
     dataKey: IPCToRendererKey<string>;
     startKey: IPCToMainKey<undefined>;
     stopKey: IPCToMainKey<undefined>;
+    style?: CSSProperties;
     disabled: boolean;
 }
 
@@ -19,7 +20,7 @@ export interface StartStopState {
 }
 
 export class StartStopMenuItem extends TTComponent<StartStopProps, StartStopState> {
-    constructor(props) {
+    constructor(props: StartStopProps) {
         super(props);
         this.state = {current: ''};
     }
@@ -29,7 +30,7 @@ export class StartStopMenuItem extends TTComponent<StartStopProps, StartStopStat
     }
 
     public render(): React.ReactNode {
-        return <TTDropdown title={this.state.current}>
+        return <TTDropdown title={this.state.current} style={this.props.style}>
             <Dropdown.Item
                 as={Button}
                 onClick={() => processIPC.send(this.props.startKey, undefined)}

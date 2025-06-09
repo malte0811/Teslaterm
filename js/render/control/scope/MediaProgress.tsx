@@ -30,7 +30,7 @@ export class MediaProgress extends TTComponent<MediaState, {}> {
                     if (this.props.type === MediaFileType.sid_emulated) {
                         return 'playing';
                     } else {
-                        return 'playing ' + this.props.progress + '% / 100%';
+                        return 'playing ' + this.props.progressPercent + '% / 100%';
                     }
                 case PlayerActivity.idle:
                     return 'idle';

@@ -35,9 +35,9 @@ export function stopMidiFile() {
         return;
     }
     activeMidiPlayer.stop();
-    activeMidiPlayer = undefined;
     stopMidiOutput();
     scripting.onMediaStopped();
+    activeMidiPlayer = undefined;
 }
 
 export function stopMidiOutput() {

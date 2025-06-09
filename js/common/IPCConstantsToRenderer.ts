@@ -36,10 +36,8 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         ud3State: makeKey<[CoilID, UD3State]>('menu-ud3-state'),
     },
     openToastOn: makeKey<[ToastData, CoilID?]>('open-toast-coil'),
+    redrawMedia: makeKey<MediaState>('scope-draw-media'),
     registerCoil: makeKey<[coil: CoilID, multicoil: boolean]>('register-coil'),
-    scope: {
-        redrawMedia: makeKey<MediaState>('scope-draw-media'),
-    },
     script: {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
@@ -156,7 +154,7 @@ export interface ScopeText {
 }
 
 export interface MediaState {
-    readonly progress: number;
+    readonly progressPercent: number;
     readonly state: PlayerActivity;
     readonly title: string;
     readonly type: MediaFileType;

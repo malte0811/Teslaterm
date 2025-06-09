@@ -52,7 +52,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         }
         this.state = {
             controlledDraws: [],
-            media: {progress: 0, state: PlayerActivity.idle, title: "", type: MediaFileType.none},
+            media: {progressPercent: 0, state: PlayerActivity.idle, title: "", type: MediaFileType.none},
             selectedTab: 0,
             traces,
         };
@@ -80,7 +80,7 @@ export class Oscilloscope extends TTComponent<OscilloscopeProps, OscilloscopeSta
         this.addIPCListener(channels.scope.drawLine, (data: ScopeLine) => {
             this.setState((state) => Oscilloscope.addDrawCommand(state.controlledDraws, {data, type: "line"}));
         });
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.scope.redrawMedia, (data: MediaState) => {
+        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.redrawMedia, (data: MediaState) => {
             this.setState({media: data});
         });
     }
