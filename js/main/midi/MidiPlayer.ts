@@ -1,4 +1,5 @@
 import {MidiData, MidiEvent} from "midi-file";
+import {guessMicrosecondsPerQuarter} from "./midi_file";
 
 class PlayerTrack {
     private readonly events: MidiEvent[];
@@ -54,14 +55,14 @@ export class MidiPlayer {
 
     public constructor(
         data: MidiData, skipStartSilence: boolean, playCallback: (ev: MidiEvent) => any, stopCallback: () => any,
-        ) {
+    ) {
         this.tracks = data.tracks.map((track) => new PlayerTrack(track));
         this.playCallback = playCallback;
         this.stopCallback = stopCallback;
         this.skipStartSilence = skipStartSilence;
         this.ticksPerQuarter = data.header.ticksPerBeat || 120;
         this.lengthInTicks = Math.max(...this.tracks.map((track) => track.getTotalTicks()));
-        this.microsecondsPerQuarter = 500_000;
+        this.microsecondsPerQuarter = guessMicrosecondsPerQuarter(data) ?? 500_000;
         this.currentTick = 0;
         this.foundNoteOn = false;
     }
@@ -75,8 +76,8 @@ export class MidiPlayer {
         if (this.currentWait) {
             clearTimeout(this.currentWait);
             this.currentWait = undefined;
+            this.stopCallback();
         }
-        this.stopCallback();
     }
 
     public isPlaying() {

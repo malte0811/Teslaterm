@@ -14,7 +14,7 @@ import {
 import {getUD3State} from "../connection/telemetry/UD3State";
 import {sleep} from "../helper";
 import {ipcs} from "../ipc/IPCProvider";
-import {clearMidiFile, loadMidiFile} from "../midi/midi_file";
+import {clearMidiFile, currentMidiFile, guessMicrosecondsPerQuarter, loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
 import {clearSidFile, loadSidFile} from "../sid/sid";
 import {getDefaultVolumes, getUIConfig, overwriteStoredMixerState} from "../UIConfigHandler";
@@ -68,6 +68,15 @@ async function doPrecount() {
     if (!(isMulticoil() && precountOptions.enabled)) {
         return;
     }
+    const delayMs = (() => {
+        if (precountOptions.useMIDIQuarters && currentMidiFile) {
+            const usPerQuarter = guessMicrosecondsPerQuarter(currentMidiFile);
+            if (usPerQuarter) {
+                return usPerQuarter / 1000;
+            }
+        }
+        return precountOptions.delayMs;
+    })();
     for (let i = 0; i < precountOptions.numBeats; ++i) {
         await forEachCoilAsync(async (coil) => {
             if (!hasUD3Connection(coil)) {
@@ -77,7 +86,7 @@ async function doPrecount() {
             const volume = precountOptions.volumePercent * getMixer().getCoilVolumeMultiplier(coil);
             await getCoilCommands(coil).singlePulse(ontime, volume);
         });
-        await sleep(precountOptions.delayMs);
+        await sleep(delayMs);
     }
 }
 

@@ -5,6 +5,7 @@ import {FullConnectionOptions} from "./SingleConnectionOptions";
 
 export interface PrecountSettings {
     enabled: boolean;
+    useMIDIQuarters: boolean;
     volumePercent: number;
     ontimePercent: number;
     delayMs: number;

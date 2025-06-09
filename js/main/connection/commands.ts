@@ -1,6 +1,5 @@
 import {CoilID} from "../../common/constants";
 import {UD3_MAX_VOLUME} from "../media/mixer/MixerState";
-import {UD3_MAX_VOLUME} from "../media/mixer/MixerState";
 import {getOptionalUD3Connection} from "./connection";
 import {TerminalHandle} from "./types/UD3Connection";
 

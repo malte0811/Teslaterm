@@ -105,6 +105,7 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
                 enabled: false,
                 numBeats: 3,
                 ontimePercent: 50,
+                useMIDIQuarters: true,
                 volumePercent: 20,
             },
             saveMixerToMIDI: false,

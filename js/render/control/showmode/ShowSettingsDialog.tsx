@@ -83,7 +83,15 @@ export class ShowSettingsDialog extends TTComponent<ShowSettingsProps, ShowSetti
     }
 
     private buildPrecountForm() {
+        const settings = this.getSettings().precount;
         return <>
+            <Form.Check
+                checked={settings.useMIDIQuarters}
+                onChange={(ev) => this.setSettings({
+                    precount: {...settings, useMIDIQuarters: ev.target.checked},
+                })}
+                label={'Use MIDI tempo as period for MIDI files'}
+            />
             {this.makePrecountSlider('Ontime', '%', 1, 100, 'ontimePercent')}
             {this.makePrecountSlider('Volume', '%', 1, 100, 'volumePercent')}
             {this.makePrecountSlider('Period', 'ms', 100, 1000, 'delayMs')}

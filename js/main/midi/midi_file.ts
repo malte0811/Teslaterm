@@ -22,6 +22,18 @@ interface MIDIStoredMixerState {
 }
 
 const META_PREFIX = 'ud3_teslaterm__';
+
+export function guessMicrosecondsPerQuarter(data: MidiData) {
+    for (const track of data.tracks) {
+        for (const event of track) {
+            if (event.type === 'setTempo') {
+                return event.microsecondsPerBeat;
+            }
+        }
+    }
+    return undefined;
+}
+
 function findStoredMixerData(data: MidiData) {
     for (const track of data.tracks) {
         for (const event of track) {
