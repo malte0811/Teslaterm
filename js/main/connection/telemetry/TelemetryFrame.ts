@@ -1,5 +1,5 @@
 import {CoilID, DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
-import {ScopeTraceConfig, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
+import {UD3Alarm, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {ChartText, TelemetryFrame} from "../../../common/TelemetryTypes";
 import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
 import {ipcs} from "../../ipc/IPCProvider";
@@ -146,6 +146,14 @@ export class TelemetryFrameParser {
     }
 }
 
+export function ud3ToTTAlarm(data: string): UD3Alarm {
+    const [levelStr, timestampStr, message, valueStr] = data.split(';');
+    const level = Number.parseInt(levelStr, 10) as UD3AlarmLevel;
+    const timestamp = Number.parseInt(timestampStr, 10);
+    const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr, 10);
+    return {message, value, level, timestamp};
+}
+
 export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, initializing: boolean) {
     switch (frame.type) {
         case TelemetryEvent.GAUGE32:
@@ -225,11 +233,7 @@ export function sendTelemetryFrame(frame: TelemetryFrame, coil: CoilID, initiali
             break;
         }
         case TelemetryEvent.EVENT: {
-            const [levelStr, timestampStr, message, valueStr] = frame.data.split(';');
-            const level = Number.parseInt(levelStr, 10) as UD3AlarmLevel;
-            const timestamp = Number.parseInt(timestampStr, 10);
-            const value = valueStr === 'NULL' ? undefined : Number.parseInt(valueStr, 10);
-            addAlarm(coil, {message, value, level, timestamp}, initializing);
+            addAlarm(coil, ud3ToTTAlarm(frame.data), initializing);
             break;
         }
     }

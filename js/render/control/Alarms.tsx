@@ -9,6 +9,36 @@ export interface AlarmProps {
     close: () => any;
 }
 
+export function getAlarmColor(severity: UD3AlarmLevel, classPrefix: string) {
+    switch (severity) {
+        case UD3AlarmLevel.info:
+            return '';
+        case UD3AlarmLevel.warn:
+            return classPrefix + '-warning';
+        case UD3AlarmLevel.alarm:
+            return classPrefix + '-danger';
+        case UD3AlarmLevel.critical:
+            return classPrefix + '-danger';
+        default:
+            severity satisfies never;
+    }
+}
+
+function getSeverityName(severity: UD3AlarmLevel) {
+    switch (severity) {
+        case UD3AlarmLevel.info:
+            return 'info';
+        case UD3AlarmLevel.warn:
+            return 'warn';
+        case UD3AlarmLevel.alarm:
+            return 'alarm';
+        case UD3AlarmLevel.critical:
+            return 'critical';
+        default:
+            severity satisfies never;
+    }
+}
+
 export class Alarms extends TTComponent<AlarmProps, {}> {
     public render() {
         return <>
@@ -36,28 +66,10 @@ export class Alarms extends TTComponent<AlarmProps, {}> {
     }
 
     private makeRow(alarm: UD3Alarm, id: number) {
-        let cssClass: string = '';
-        let levelName: string;
-        switch (alarm.level) {
-            case UD3AlarmLevel.info:
-                levelName = 'info';
-                break;
-            case UD3AlarmLevel.warn:
-                levelName = 'warn';
-                cssClass = 'bg-warning';
-                break;
-            case UD3AlarmLevel.alarm:
-                levelName = 'alarm';
-                cssClass = 'bg-danger';
-                break;
-            case UD3AlarmLevel.critical:
-                levelName = 'critical';
-                cssClass = 'bg-danger';
-                break;
-        }
+        const cssClass = getAlarmColor(alarm.level, 'bg');
         return <tr key={id}>
             <td className={cssClass}>{alarm.timestamp}</td>
-            <td className={cssClass}>{levelName}</td>
+            <td className={cssClass}>{getSeverityName(alarm.level)}</td>
             <td className={cssClass}>{alarm.message}</td>
             <td className={cssClass}>{alarm.value || ''}</td>
         </tr>;

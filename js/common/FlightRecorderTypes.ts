@@ -1,4 +1,4 @@
-import {MeterConfig, ScopeTraceConfig} from "./IPCConstantsToRenderer";
+import {MeterConfig, ScopeTraceConfig, UD3Alarm} from "./IPCConstantsToRenderer";
 import {TelemetryFrame} from "./TelemetryTypes";
 
 export enum FlightEventType {
@@ -35,6 +35,7 @@ export enum FRDisplayEventType {
     feature_sync,
     set_synth,
     event_info,
+    alarm,
     unknown,
 }
 
@@ -54,6 +55,10 @@ export function getEventTypeDesc(ev: FRDisplayEventType) {
             return 'Event/info';
         case FRDisplayEventType.unknown:
             return 'Unknown';
+        case FRDisplayEventType.alarm:
+            return 'Alarm';
+        default:
+            ev satisfies never;
     }
 }
 
@@ -66,6 +71,7 @@ interface ParsedEventBase {
 type ParsedEventExtra = {type: FRDisplayEventType.terminal_data, printed: string} |
     {type: FRDisplayEventType.telemetry, frame: TelemetryFrame} |
     {type: FRDisplayEventType.event_info, infoObject?: any} |
+    {type: FRDisplayEventType.alarm, data: UD3Alarm} |
     {
         type: FRDisplayEventType.feature_sync |
             FRDisplayEventType.terminal_start_stop |
@@ -87,6 +93,7 @@ export function makeEmptyEventSet(): FREventSet {
         [FRDisplayEventType.feature_sync]: false,
         [FRDisplayEventType.set_synth]: false,
         [FRDisplayEventType.event_info]: false,
+        [FRDisplayEventType.alarm]: false,
         [FRDisplayEventType.unknown]: false,
     };
 }

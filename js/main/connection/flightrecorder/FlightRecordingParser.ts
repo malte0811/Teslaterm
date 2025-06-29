@@ -1,11 +1,13 @@
 import fs from "fs";
 import JSZip from "jszip";
-import {InitialFRState, FRDisplayEventType, ParsedEvent, FlightEventType} from "../../../common/FlightRecorderTypes";
+import {TelemetryEvent} from "../../../common/constants";
+import {FlightEventType, FRDisplayEventType, InitialFRState, ParsedEvent} from "../../../common/FlightRecorderTypes";
 import {synthTypeToString} from "../../../common/MediaTypes";
 import {TelemetryFrame} from "../../../common/TelemetryTypes";
 import {ACK_BYTE, RESET} from "../../min/MINConstants";
 import {MINReceiver, ReceivedMINFrame} from "../../min/MINReceiver";
 import {TelemetryChannel} from "../telemetry/TelemetryChannel";
+import {ud3ToTTAlarm} from "../telemetry/TelemetryFrame";
 import {EVENT_GET_INFO, parseEventInfo, SYNTH_CMD_FLUSH, UD3MinIDs} from "../types/UD3MINConstants";
 import {FlightRecorderEvent} from "./FlightRecorder";
 import {FlightRecorderJSON} from "./FlightRecordingWorker";
@@ -122,6 +124,11 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
     const humanEvents: ParsedEvent[] = [];
     const telemetryParsers = [new TelemetryChannel(), new TelemetryChannel(), new TelemetryChannel()];
     for (const minEvent of minEvents) {
+        const lastTime = humanEvents.length > 0 ? humanEvents[humanEvents.length - 1].time : -Infinity;
+        // Handle case where 4-byte unsigned microsecond time rolls over during the recording
+        while (minEvent.time < lastTime) {
+            minEvent.time += Math.pow(2, 32);
+        }
         // TODO handle seq mismatches and other MIN issues, partially already during conversion to MIN
         const frame = minEvent.frame;
         if (frame.id_control === ACK_BYTE || frame.id_control === RESET) {
@@ -143,7 +150,14 @@ export function parseEventsForDisplay(minEvents: MINFlightEvent[], skipTelemetry
                     frame.payload,
                     (s) => printed += s,
                     (tFrame) => {
-                        if (!skipTelemetry) {
+                        if (tFrame.type === TelemetryEvent.EVENT) {
+                            humanEvents.push({
+                                ...baseEvent,
+                                data: ud3ToTTAlarm(tFrame.data),
+                                desc: 'Alarm',
+                                type: FRDisplayEventType.alarm,
+                            });
+                        } else if (!skipTelemetry) {
                             humanEvents.push({
                                 ...baseEvent,
                                 desc: describeTelemetry(tFrame, appID),

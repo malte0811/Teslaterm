@@ -1,5 +1,5 @@
 import React from "react";
-import {FREventSet, FRDisplayEventType, makeEmptyEventSet, ParsedEvent} from "../../common/FlightRecorderTypes";
+import {FRDisplayEventType, FREventSet, makeEmptyEventSet, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {TTComponent} from "../TTComponent";
 import {EventFilter, FRFilter} from "./EventFilter";
 import {FREventList} from "./EventList";
@@ -11,6 +11,7 @@ interface FREventsTabState {
 
 export interface FREVentsTabProps {
     events: ParsedEvent[];
+    endTime: number;
 }
 
 export class EventListTab extends TTComponent<FREVentsTabProps, FREventsTabState> {
@@ -43,7 +44,11 @@ export class EventListTab extends TTComponent<FREVentsTabProps, FREventsTabState
                         },
                     )}
                 />
-                <FREventList filter={this.state.filter} events={this.props.events}/>
+                <FREventList
+                    filter={this.state.filter}
+                    events={this.props.events}
+                    endTime={this.props.endTime}
+                />
             </div>
         );
     }

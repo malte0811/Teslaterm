@@ -7,6 +7,7 @@ import {FREventRow} from "./FREventRow";
 export interface EventListProps {
     filter: FRFilter;
     events: ParsedEvent[];
+    endTime: number;
 }
 
 export class FREventList extends TTComponent<EventListProps, {}> {
@@ -15,13 +16,12 @@ export class FREventList extends TTComponent<EventListProps, {}> {
     }
 
     public render() {
-        const endTime = this.props.events[this.props.events.length - 1]?.time;
         const rows = this.props.events.filter((ev) => this.shouldShow(ev))
             .map((ev, i) => {
                 return <FREventRow
                     event={ev}
                     key={i}
-                    endTime={endTime}
+                    endTime={this.props.endTime}
                 />;
             });
         // TODO move everything to proper classes, same in the row element
