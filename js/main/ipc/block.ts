@@ -14,7 +14,15 @@ class VMSDataMap {
     }
 
     public getAsBool(key: string) {
-        return this.getAsString(key) === 'true';
+        const value = this.getAsString(key);
+        if (value === 'true') {
+            return true;
+        } else if (value === 'false') {
+            return false;
+        } else {
+            console.log('Unexpected boolean: "' + value + '"');
+            throw new Error('Failed to parse VMS file');
+        }
     }
 
     public getMapped(key: string, map: Map<string, number>) {
@@ -143,8 +151,7 @@ export function loadVMS(file: DroppedFile) {
 function parseVMSToStructuredMap(data: number[]) {
     const lines = Buffer.from(data)
         .toString('utf8')
-        .replace(/[\t,\u0000]*/g, '')
-        .replace('\r', '')
+        .replace(/[\t,\u0000\r]*/g, '')
         .split('\n');
     const toplevel = new VMSDataMap();
     const currentStack: VMSDataMap[] = [toplevel];
