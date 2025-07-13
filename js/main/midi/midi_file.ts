@@ -5,7 +5,7 @@ import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {MediaFileType} from "../../common/MediaTypes";
 import {VolumeSetting} from "../../common/MixerTypes";
 import {SavedMixerState} from "../../common/UIConfig";
-import {isMulticoil} from "../connection/connection";
+import {getMixer, isMulticoil} from "../connection/connection";
 import {ipcs} from "../ipc/IPCProvider";
 import {LoadedMixerState, media_state} from "../media/media_player";
 import {getDefaultVolumes, getUIConfig} from "../UIConfigHandler";
@@ -163,14 +163,12 @@ function updateMixerState(mixer: SavedMixerState): LoadedMixerState {
     currentMidiFile.tracks.forEach((track, trackArrayIndex) => {
         for (const event of track) {
             if (event.type === 'trackName') {
-                // TODO +1 on track idx?
                 addValue(namesByTrack, trackArrayIndex, event.text);
             }
             if ('channel' in event) {
                 if (!uniqueChannels.includes(event.channel)) {
                     uniqueChannels.push(event.channel);
                 }
-                // TODO ditto on idx
                 addValue(tracksByChannel, event.channel, trackArrayIndex);
             }
             if (event.type === 'programChange') {
@@ -207,6 +205,7 @@ function updateMixerState(mixer: SavedMixerState): LoadedMixerState {
             };
         }
     }
+    console.log(JSON.stringify(result));
     return result;
 }
 

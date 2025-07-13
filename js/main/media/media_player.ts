@@ -13,7 +13,8 @@ import {
 } from "../connection/connection";
 import {getUD3State} from "../connection/telemetry/UD3State";
 import {sleep} from "../helper";
-import {ipcs} from "../ipc/IPCProvider";
+import {IPCCollection, ipcs, processIPC} from "../ipc/IPCProvider";
+import {CommonMenuIPC} from "../ipc/Menu";
 import {clearMidiFile, currentMidiFile, guessMicrosecondsPerQuarter, loadMidiFile} from "../midi/midi_file";
 import * as scripting from "../scripting";
 import {clearSidFile, loadSidFile} from "../sid/sid";
@@ -208,6 +209,12 @@ export class PlayerState {
 
 export let media_state = new PlayerState();
 
+export function resetMediaPlayer() {
+    media_state = new PlayerState();
+    ipcs.misc.updateMediaInfo();
+    ipcs.menu.setMediaName(CommonMenuIPC.INITIAL_MEDIA_TITLE);
+}
+
 const lastTimeoutReset: Map<CoilID, number> = new Map<CoilID, number>();
 
 export async function checkTransientDisabled(coil: CoilID) {
@@ -234,11 +241,11 @@ export async function loadMediaFile(file: DroppedFile): Promise<void> {
         media_state.stopPlaying();
     }
     const extension = path.extname(file.name).substring(1).toLowerCase();
+    clearSidFile();
+    clearMidiFile();
     if (extension === "mid") {
-        clearSidFile();
         await loadMidiFile(file);
     } else if (extension === "dmp" || extension === "sid") {
-        clearMidiFile();
         await loadSidFile(file);
     } else {
         ipcs.misc.openGenericToast('Media', "Unknown extension: " + extension, ToastSeverity.warning, 'unknown-extension');

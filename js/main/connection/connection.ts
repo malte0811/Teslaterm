@@ -8,8 +8,10 @@ import {sleep} from "../helper";
 import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";
-import {media_state} from "../media/media_player";
+import {media_state, resetMediaPlayer} from "../media/media_player";
 import {MixerState} from "../media/mixer/MixerState";
+import {clearMidiFile} from "../midi/midi_file";
+import {clearSidFile} from "../sid/sid";
 import {setLastConnectionOptions, setUIConfig} from "../UIConfigHandler";
 import {CommandInterface} from "./commands";
 import {ExtraConnections} from "./ExtraConnections";
@@ -62,7 +64,9 @@ export function clearCoils() {
     }
     nextCoilID = 0;
     resetAllAlarms();
-    // TODO clear e.g. SID caches
+    clearMidiFile();
+    clearSidFile();
+    resetMediaPlayer();
 }
 
 export function getMixer(): MixerState | undefined {

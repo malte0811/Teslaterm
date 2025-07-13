@@ -4,7 +4,7 @@ import {getToRenderIPCPerCoil} from "../../common/IPCConstantsToRenderer";
 import {CommandInterface} from "../connection/commands";
 import {
     forEachCoilAsync,
-    getCoilCommands,
+    getCoilCommands, getMixer,
 } from "../connection/connection";
 import {ipcs, MainIPC} from "./IPCProvider";
 import {TemporaryIPC} from "./TemporaryIPC";
@@ -112,7 +112,7 @@ export class SlidersIPC {
 
     public async setVolume(volumeFraction: number) {
         this.state.volumeFraction = volumeFraction;
-        await this.commands.setVolumeFraction(this.state.volumeFraction);
+        getMixer().updateVolume({}, {volumePercent: volumeFraction * 100}, false);
         this.sendSliderSync();
     }
 

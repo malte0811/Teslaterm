@@ -17,18 +17,16 @@ export class PerCoilMenuIPC {
     private lastUD3State: UD3State = UD3State.DEFAULT_STATE;
     private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
-    private readonly renderIPCs: PerCoilRenderIPCs;
 
     constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
-        this.renderIPCs = getToRenderIPCPerCoil(this.coil);
         const mainIPCs = getToMainIPCPerCoil(coil);
         processIPC.on(mainIPCs.menu.requestUDConfig, async () => {
             requestConfig(this.coil, (cfg) => ipcs.coilMisc(coil).openUDConfig(cfg));
         });
-        processIPC.on(mainIPCs.menu.disconnect, (source) => disconnectFrom(coil));
-        processIPC.on(mainIPCs.menu.reconnect, (source) => {
+        processIPC.on(mainIPCs.menu.disconnect, () => disconnectFrom(coil));
+        processIPC.on(mainIPCs.menu.reconnect, () => {
             const coilState = getConnectionState(coil);
             if (coilState instanceof Idle) {
                 coilState.connect(coil).catch((err) => console.error("While reconnecting", err));
@@ -49,8 +47,10 @@ export class PerCoilMenuIPC {
 }
 
 export class CommonMenuIPC {
+    public static INITIAL_MEDIA_TITLE = 'No song loaded';
+
     private lastScriptName: string = "Script: none";
-    private lastMediaName: string = "MIDI-File: none";
+    private lastMediaName: string = CommonMenuIPC.INITIAL_MEDIA_TITLE;
     private readonly processIPC: MainIPC;
 
     constructor(processIPC: MainIPC) {

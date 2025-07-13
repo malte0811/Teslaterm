@@ -76,10 +76,12 @@ export class CommonMiscIPC {
 
     constructor(processIPC: MainIPC) {
         this.processIPC = processIPC;
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, async () => {
+        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
             ipcs.menu.sendFullState();
             this.syncUIConfig();
             this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.ttConfig, config);
+            forEachCoil(sendCoilSync);
+            getMixer()?.sendFullState();
         });
         this.processIPC.on(IPC_CONSTANTS_TO_MAIN.midiMessage, (msg) => {
             playMidiData(msg).catch((e) => console.error('Playing MIDI from renderer', e));
@@ -89,10 +91,6 @@ export class CommonMiscIPC {
             IPC_CONSTANTS_TO_MAIN.centralTab.requestCentralTelemetrySync,
             () => forEachCoil((coil) => ipcs.meters(coil).sendCentralTelemetry()),
         );
-        this.processIPC.on(IPC_CONSTANTS_TO_MAIN.requestFullSync, () => {
-            forEachCoil(sendCoilSync);
-            getMixer()?.sendFullState();
-        });
     }
 
     public openGenericToast(title: string, message: any, severity: ToastSeverity, mergeKey?: string) {

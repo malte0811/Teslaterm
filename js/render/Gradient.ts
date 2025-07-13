@@ -13,10 +13,12 @@ export function buildGradientDefinition(angle: number, ...stripes: Stripe[]) {
         const totalSize = stripes.map((s) => s.size).reduce((a, b) => a + b, 0);
         let spec = `linear-gradient(${angle}deg`;
         let sizeNow = 0;
+        let lastPosition = 0;
         for (const color of stripes) {
-            const newSize = sizeNow + Math.floor(100 * color.size / totalSize);
-            spec += `, ${color.color} ${sizeNow}% ${newSize}%`;
-            sizeNow = newSize;
+            sizeNow += 100 * color.size / totalSize;
+            const newPosition = Math.floor(sizeNow);
+            spec += `, ${color.color} ${lastPosition}% ${newPosition}%`;
+            lastPosition = newPosition;
         }
         return spec + ')';
     }

@@ -5,7 +5,7 @@ import {VolumeChannel, VolumeKey, VolumeUpdate} from "../common/MixerTypes";
 import {AdvancedOptions, PhysicalMixerType} from "../common/Options";
 import {FullConnectionOptions, UD3ConnectionOptions} from "../common/SingleConnectionOptions";
 import {CoilMixerState, FullUIConfig, SavedMixerState, SyncedUIConfig} from "../common/UIConfig";
-import {getOptionalUD3Connection} from "./connection/connection";
+import {getOptionalUD3Connection, isMulticoil} from "./connection/connection";
 import {
     DEFAULT_SERIAL_PRODUCT,
     DEFAULT_SERIAL_VENDOR,
@@ -175,18 +175,21 @@ export function setLastConnectionOptions(options: UD3ConnectionOptions) {
 }
 
 export function getDefaultVolumes(mediaFile: string): SavedMixerState {
-    return getUIConfig().mixerStateBySong[mediaFile] || {
+    const emptyVolumes: SavedMixerState = {
         channelPrograms: [],
         coilSettings: {},
-        masterSettings: DEFAULT_COIL_MIXER_STATE,
+        masterSettings: {
+            channelSettings: [],
+            masterSetting: {},
+            sidSpecialSettings: {},
+        },
     };
+    if (isMulticoil()) {
+        return getUIConfig().mixerStateBySong[mediaFile] || emptyVolumes;
+    } else {
+        return emptyVolumes;
+    }
 }
-
-const DEFAULT_COIL_MIXER_STATE: CoilMixerState = {
-    channelSettings: [],
-    masterSetting: {},
-    sidSpecialSettings: {},
-};
 
 function updateVolume(
     channel: VolumeChannel | undefined, oldSettings: Partial<CoilMixerState> | undefined, update: VolumeUpdate,

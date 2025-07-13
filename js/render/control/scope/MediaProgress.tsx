@@ -1,21 +1,14 @@
 import React from 'react';
-import {MediaFileType, PlayerActivity} from '../../../common/MediaTypes';
 import {MediaState} from '../../../common/IPCConstantsToRenderer';
-import {TTComponent} from "../../TTComponent";
+import {MediaFileType, PlayerActivity} from '../../../common/MediaTypes';
 
-export class MediaProgress extends TTComponent<MediaState, {}> {
-    render(): React.ReactNode {
-        return <div className={'tt-media-progress'}>
-            {this.getText()}
-        </div>;
-    }
-
-    private getText() {
-        if (this.props.type === MediaFileType.none) {
+export function MediaProgress(props: MediaState) {
+    const text = (() => {
+        if (props.type === MediaFileType.none) {
             return '';
         }
         const type = (() => {
-            switch (this.props.type) {
+            switch (props.type) {
                 case MediaFileType.midi:
                     return 'MIDI';
                 case MediaFileType.sid_dmp:
@@ -25,17 +18,20 @@ export class MediaProgress extends TTComponent<MediaState, {}> {
             }
         })();
         const state = (() => {
-            switch (this.props.state) {
+            switch (props.state) {
                 case PlayerActivity.playing:
-                    if (this.props.type === MediaFileType.sid_emulated) {
+                    if (props.type === MediaFileType.sid_emulated) {
                         return 'playing';
                     } else {
-                        return 'playing ' + this.props.progressPercent + '% / 100%';
+                        return 'playing ' + props.progressPercent + '% / 100%';
                     }
                 case PlayerActivity.idle:
                     return 'idle';
             }
         })();
-        return type + '-File: ' + this.props.title + ' State: ' + state;
-    }
+        return type + '-File: ' + props.title + ' State: ' + state;
+    })();
+    return <div className={'tt-media-progress'}>
+        {text}
+    </div>;
 }
