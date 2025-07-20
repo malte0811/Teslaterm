@@ -5,16 +5,11 @@
       "node_modules/@types",
       "js/types"
     ],
-    "downlevelIteration": true,
     "module": "commonjs",
-    "target": "es5",
+    "target": "es2021",
     "sourceMap": true,
-    "inlineSources": true,
     "lib": [
-      "es5",
-      "es2015",
-      "dom",
-      "scripthost"
+      "ES2021"
     ],
     "esModuleInterop": true,
     "jsx": "react-jsx"
