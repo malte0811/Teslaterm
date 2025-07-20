@@ -7,7 +7,7 @@ import {TTConfig} from "../common/TTConfig";
 import {SyncedUIConfig} from "../common/UIConfig";
 import {ConnectScreen, FRDisplayData} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
-import {DarkModeContext} from "./DarkModeContext";
+import {DarkModeContext, UIConfigContext} from "./Contexts";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
@@ -69,7 +69,9 @@ export class App extends TTComponent<{}, TopLevelState> {
     public render(): React.ReactNode {
         return <div className={'tt-root'}>
             <DarkModeContext.Provider value={this.state.config && this.state.config.darkMode}>
-                {this.getMainElement()}
+                <UIConfigContext.Provider value={this.state.config}>
+                    {this.getMainElement()}
+                </UIConfigContext.Provider>
             </DarkModeContext.Provider>
         </div>;
     }

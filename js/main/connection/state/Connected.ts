@@ -132,7 +132,7 @@ export class Connected implements IConnectionState {
 
     private async disconnectInternal() {
         try {
-            await this.activeConnection.commands().stop();
+            await this.activeConnection.commands().stopTelemetry();
         } catch (e) {
             console.error("Failed to send stop command:", e);
         }

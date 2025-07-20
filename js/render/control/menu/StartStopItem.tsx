@@ -4,7 +4,7 @@ import Dropdown from "react-bootstrap/Dropdown";
 import {IPCToMainKey} from "../../../common/IPCConstantsToMain";
 import {IPCToRendererKey} from "../../../common/IPCConstantsToRenderer";
 import {processIPC} from "../../ipc/IPCProvider";
-import {TTComponent, useIPCListener} from "../../TTComponent";
+import {useIPCListener} from "../../TTComponent";
 import {TTDropdown} from "../../TTDropdown";
 
 export interface StartStopProps {
