@@ -11,6 +11,7 @@ import {DarkModeContext} from "./DarkModeContext";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
+import { VMSTest } from "./Test";
 
 enum TopScreen {
     connect,
@@ -67,6 +68,7 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     public render(): React.ReactNode {
+        return <VMSTest/>;
         return <div className={'tt-root'}>
             <DarkModeContext.Provider value={this.state.config && this.state.config.darkMode}>
                 {this.getMainElement()}

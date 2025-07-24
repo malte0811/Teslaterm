@@ -1,0 +1,29 @@
+.vms-editor-block {
+    width: 100px;
+    height: 150px;
+    background: gray;
+    position: relative;
+}
+
+.vms-editor-block-output, .vms-editor-block-input, .vms-editor-block-off {
+    aspect-ratio: 1;
+    width: 10%;
+    position: absolute;
+}
+
+.vms-editor-block-output {
+    background: blue;
+    bottom: 0;
+}
+
+.vms-editor-block-input {
+    background: black;
+    top: 0;
+    left: 45%;
+}
+
+.vms-editor-block-off {
+    background: red;
+    left: 0;
+    top: 50%;
+}
