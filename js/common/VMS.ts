@@ -1,4 +1,4 @@
-type BlockId = number;
+export type BlockId = number;
 
 export enum NoteOffBehavior { NORMAL, INVERTED }
 export enum KnownValue {
@@ -34,7 +34,6 @@ interface KnownValueRef {
 }
 export type ConstantOrValue = ConstantRef | KnownValueRef;
 
-export enum OldModulation { VMS_EXP, VMS_EXP_INV, VMS_LIN, VMS_SIN, VMS_JUMP }
 interface ExpModulation {
     type: 'exp';
     // Multiply absolute value by this every cycle
@@ -67,9 +66,10 @@ export interface Block {
     // Own ID
     uid: BlockId;
     // Blocks to start after this one is done, assuming the note is still playing
+    // TODO does this need to be optional? All outputs can be unconnected, is that different from not present?
     outputBlocks?: BlockId[];
     // Block to jump to if the note stops during this block, at least if offBehavior=NORMAL
-    offBlock: BlockId;
+    offBlock?: BlockId;
     // "INVERTED" means (currently?) that the offBlock is ignored. This is intended for the "decay chain" describing the
     // sound after the key has been released.
     offBehavior: NoteOffBehavior;

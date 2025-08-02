@@ -11,7 +11,7 @@ import {DarkModeContext} from "./DarkModeContext";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
-import { VMSTest } from "./Test";
+import { VMSTest } from "./vms/Test";
 
 enum TopScreen {
     connect,
