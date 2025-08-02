@@ -1,4 +1,5 @@
 import {CSSProperties} from "react";
+import {BlockIO} from "../../common/VMS";
 
 export const BLOCK_WIDTH = 100;
 export const BLOCK_HEIGHT = 150;
@@ -19,7 +20,7 @@ export function outputCenterXOffset(outputId: number) {
 }
 
 interface BlockIOProps {
-    onClick: () => void;
+    onClick: (io: BlockIO) => void;
 }
 
 interface BlockOutputProps extends BlockIOProps {
@@ -29,7 +30,7 @@ interface BlockOutputProps extends BlockIOProps {
 export function BlockOutput(props: BlockOutputProps) {
     return <div
         style={{left: outputCenterXOffset(props.outputId) - BLOCK_IO_SIZE / 2, ...IO_BASE_CSS}}
-        onClick={props.onClick}
+        onClick={() => props.onClick(props.outputId)}
         onMouseDown={(ev) => ev.stopPropagation()}
         className={'vms-editor-block-output'}
     />;
@@ -38,7 +39,7 @@ export function BlockOutput(props: BlockOutputProps) {
 export function BlockInput(props: BlockIOProps) {
     return <div
         style={{left: INPUT_CENTER_X_OFFSET - BLOCK_IO_SIZE / 2, ...IO_BASE_CSS}}
-        onClick={props.onClick}
+        onClick={() => props.onClick('in')}
         onMouseDown={(ev) => ev.stopPropagation()}
         className={'vms-editor-block-input'}
     />;
@@ -47,7 +48,7 @@ export function BlockInput(props: BlockIOProps) {
 export function BlockOffout(props: BlockIOProps) {
     return <div
         style={{top: OFFOUT_CENTER_Y_OFFSET - BLOCK_IO_SIZE / 2, ...IO_BASE_CSS}}
-        onClick={props.onClick}
+        onClick={() => props.onClick('off')}
         onMouseDown={(ev) => ev.stopPropagation()}
         className={'vms-editor-block-off'}
     />;

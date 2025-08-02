@@ -1,5 +1,9 @@
 export type BlockId = number;
 
+export const OUTPUTS = 4;
+export type BlockOutput = number | 'off';
+export type BlockIO = BlockOutput | 'in';
+
 export enum NoteOffBehavior { NORMAL, INVERTED }
 export enum KnownValue {
     maxOnTime, minOnTime, onTime,
