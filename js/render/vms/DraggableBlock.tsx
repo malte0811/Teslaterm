@@ -4,7 +4,6 @@ import {Block} from "../../common/VMS";
 import {BlockComponent, VMSBlockProps} from "./Block";
 
 interface DraggableBlockProps extends VMSBlockProps {
-    block: Block;
     setDragging: (b: boolean) => void;
     scale: number;
 }

@@ -1,11 +1,17 @@
-import {CSSProperties} from "react";
-import {BlockIO} from "../../common/VMS";
+import React, {CSSProperties} from "react";
+import {ControlPosition} from "react-draggable";
+import {Block, BlockIO} from "../../common/VMS";
 
 export const BLOCK_WIDTH = 100;
 export const BLOCK_HEIGHT = 150;
 export const BLOCK_IO_SIZE = 0.1 * BLOCK_WIDTH;
 export const INPUT_CENTER_X_OFFSET = 0.5 * BLOCK_WIDTH;
 export const OFFOUT_CENTER_Y_OFFSET = 0.5 * BLOCK_HEIGHT;
+export const MODULATION_CENTER_X_OFFSET = 0.5 * BLOCK_WIDTH;
+export const MODULATION_CENTER_Y_OFFSET = 0.3 * BLOCK_HEIGHT;
+export const MODULATION_WIDTH = 0.8 * BLOCK_WIDTH;
+export const MODULATION_HEIGHT = 0.4 * BLOCK_HEIGHT;
+
 export const BLOCK_STYLE: CSSProperties = {
     height: BLOCK_HEIGHT,
     width: BLOCK_WIDTH,
@@ -15,25 +21,39 @@ const IO_BASE_CSS: CSSProperties = {
     width: BLOCK_IO_SIZE,
 };
 
-export function outputCenterXOffset(outputId: number) {
-    return (outputId + 1) * 0.2 * BLOCK_WIDTH;
+export function numShownOutputs(block: Block) {
+    return Math.min(block.outputBlocks.length + 1, 4);
+}
+
+export function outputCenterXOffset(block: Block, outputId: number) {
+    return (outputId + 1) / (numShownOutputs(block) + 1) * BLOCK_WIDTH;
+}
+
+export function getPosition(block: Block, blockPosition: ControlPosition, io: BlockIO): ControlPosition {
+    if (io === 'off') {
+        return {x: blockPosition.x, y: blockPosition.y + OFFOUT_CENTER_Y_OFFSET};
+    } else if (io === 'in') {
+        return {x: blockPosition.x + INPUT_CENTER_X_OFFSET, y: blockPosition.y};
+    } else {
+        return {x: blockPosition.x + outputCenterXOffset(block, io), y: blockPosition.y + BLOCK_HEIGHT};
+    }
 }
 
 interface BlockIOProps {
     onClick: (io: BlockIO) => void;
 }
 
-interface BlockOutputProps extends BlockIOProps {
-    outputId: number;
-}
-
-export function BlockOutput(props: BlockOutputProps) {
-    return <div
-        style={{left: outputCenterXOffset(props.outputId) - BLOCK_IO_SIZE / 2, ...IO_BASE_CSS}}
-        onClick={() => props.onClick(props.outputId)}
-        onMouseDown={(ev) => ev.stopPropagation()}
-        className={'vms-editor-block-output'}
-    />;
+export function BlockOutputs(props: {block: Block, onClick: (output: number) => void}) {
+    const outputs: React.JSX.Element[] = [];
+    for (let i = 0; i < numShownOutputs(props.block); ++i) {
+        outputs.push(<div
+            style={{left: outputCenterXOffset(props.block, i) - BLOCK_IO_SIZE / 2, ...IO_BASE_CSS}}
+            onClick={() => props.onClick(i)}
+            onMouseDown={(ev) => ev.stopPropagation()}
+            className={'vms-editor-block-output'}
+        />);
+    }
+    return <>{...outputs}</>;
 }
 
 export function BlockInput(props: BlockIOProps) {

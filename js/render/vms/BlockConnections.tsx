@@ -1,44 +1,63 @@
+import React, {RefObject, useEffect, useRef, useState} from "react";
 import {ControlPosition} from "react-draggable";
-import {BlockIO, BlockOutput} from "../../common/VMS";
-import {BLOCK_HEIGHT, INPUT_CENTER_X_OFFSET, OFFOUT_CENTER_Y_OFFSET, outputCenterXOffset} from "./VMSBlockOffsets";
+import {BlockIO} from "../../common/VMS";
+import {INPUT_CENTER_X_OFFSET} from "./VMSBlockOffsets";
 
 export interface ArrowProps {
-    fromBlock: ControlPosition;
-    fromOutput: BlockIO;
-    toBlock: ControlPosition;
-    toType: 'in' | 'none';
+    startPosition: ControlPosition;
+    fromIO: BlockIO;
+    toBlock?: ControlPosition;
 }
 
-function Arrow({fromBlock, fromOutput, toBlock, toType}: ArrowProps) {
+interface FullArrowProps extends ArrowProps {
+    mousePos: ControlPosition;
+}
+
+function Arrow(props: FullArrowProps) {
     const bigM = 100;
-    const[fromOffset, fromCtrlX, fromCtrlY] = (() => {
-        if (fromOutput === 'off') {
-            return [{x: 0, y: OFFOUT_CENTER_Y_OFFSET}, -bigM, 0];
-        } else if (fromOutput === 'in') {
-            return [{x: INPUT_CENTER_X_OFFSET, y: 0}, 0, -bigM];
+    const[fromCtrlX, fromCtrlY] = (() => {
+        if (props.fromIO === 'off') {
+            return [-bigM, 0];
+        } else if (props.fromIO === 'in') {
+            return [0, -bigM];
         } else {
-            return [{x: outputCenterXOffset(fromOutput), y: BLOCK_HEIGHT}, 0, bigM];
+            return [0, bigM];
         }
     })();
-    const[toOffset, toCtrlX, toCtrlY] = (() => {
-        if (toType === 'none') {
-            // TODO ctrl?
-            return [{x: 0, y: 0}, 0, 0];
+    const realTo = (() => {
+        if (props.toBlock !== undefined) {
+            return {x: props.toBlock.x + INPUT_CENTER_X_OFFSET, y: props.toBlock.y};
         } else {
-            return [{x: INPUT_CENTER_X_OFFSET, y: 0}, 0, -bigM];
+            return props.mousePos;
         }
     })();
-    const realFrom = {x: fromBlock.x + fromOffset.x, y: fromBlock.y + fromOffset.y};
-    const realTo = {x: toBlock.x + toOffset.x, y: toBlock.y + toOffset.y};
     const pt = (point: ControlPosition, xOff: number = 0, yOff: number = 0) => `${point.x + xOff} ${point.y + yOff}`;
-    const pathStart = `M ${pt(realFrom)}`;
-    const pathToEnd = `C ${pt(realFrom, fromCtrlX, fromCtrlY)} ${pt(realTo, toCtrlX, toCtrlY)} ${pt(realTo)}`;
+    const pathStart = `M ${pt(props.startPosition)}`;
+    const pathToEnd = `C ${pt(props.startPosition, fromCtrlX, fromCtrlY)} ${pt(realTo, 0, -bigM)} ${pt(realTo)}`;
     return <path d={`${pathStart} ${pathToEnd}`} stroke={'black'} fill={'transparent'} strokeWidth={4}/>;
 }
 
-export function BlockConnections({arrows}: {arrows: ArrowProps[]}) {
-    return <svg width="100%" height="100%">
-        {arrows.map((props, i) => <Arrow {...props} key={i}/>)}
+function useRelativeMousePosition(relative: RefObject<SVGSVGElement>, scale: number): ControlPosition {
+    const [currentX, setCurrentX] = useState(0);
+    const [currentY, setCurrentY] = useState(0);
+    const setMousePosition = (ev: globalThis.MouseEvent) => {
+        if (relative.current) {
+            setCurrentX(ev.clientX - relative.current.getBoundingClientRect().left);
+            setCurrentY(ev.clientY - relative.current.getBoundingClientRect().top);
+        }
+    };
+    useEffect(() => {
+        window.addEventListener('mousemove', setMousePosition);
+        return () => window.removeEventListener('mousemove', setMousePosition);
+    }, []);
+    return {x: currentX / scale, y: currentY / scale};
+}
+
+export function BlockConnections({arrows, scale}: {arrows: ArrowProps[], scale: number}) {
+    const ref = useRef<SVGSVGElement>(undefined);
+    const mousePos = useRelativeMousePosition(ref, scale);
+    return <svg width="100%" height="100%" ref={ref}>
+        {arrows.map((props, i) => <Arrow {...props} mousePos={mousePos} key={i}/>)}
     </svg>;
 }
 

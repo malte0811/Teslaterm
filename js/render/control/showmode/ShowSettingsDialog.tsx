@@ -1,6 +1,7 @@
 import {Button, Form, FormCheck, Modal, OverlayTrigger, Tooltip} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {PrecountSettings, ShowModeOptions} from "../../../common/UIConfig";
+import {KeyOfType, makeFieldUpdater} from "../../../main/helper";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {SimpleSlider} from "../sliders/SimpleSlider";
@@ -99,18 +100,19 @@ export class ShowSettingsDialog extends TTComponent<ShowSettingsProps, ShowSetti
         </>;
     }
 
-    private makePrecountSlider(title: string, unit: string, min: number, max: number, key: keyof PrecountSettings) {
+    private makePrecountSlider(
+        title: string, unit: string, min: number, max: number, key: KeyOfType<PrecountSettings, number>
+    ) {
+        ;
         return <SimpleSlider
             title={title}
             unit={unit}
             min={min}
             max={max}
             value={this.getSettings().precount[key] as number}
-            setValue={(value) => {
-                const precount = {...this.getSettings().precount};
-                (precount as any)[key] = value;
-                this.setSettings({precount});
-            }}
+            setValue={makeFieldUpdater(
+                (s: PrecountSettings) => this.setSettings({precount: s}), this.getSettings().precount, key,
+            )}
             visuallyEnabled={true}
             disabled={false}
         />;

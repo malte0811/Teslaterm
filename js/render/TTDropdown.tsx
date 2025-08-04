@@ -8,24 +8,20 @@ export interface DropdownProps {
     style?: CSSProperties;
 }
 
-interface DropdownState {
-    shown: boolean;
-}
-
 export function TTDropdown(props: DropdownProps) {
-    const [state, setState] = useState<DropdownState>({shown: false});
-    return <div className={'dropdown' + (state.shown ? ' show' : '')}>
+    const [shown, setShown] = useState(false);
+    return <div className={'dropdown' + (shown ? ' show' : '')}>
         <Button
-            onClick={() => setState(oldState => ({shown: !oldState.shown}))}
+            onClick={() => setShown(!shown)}
             className={'dropdown-toggle'}
-            aria-expanded={state.shown}
+            aria-expanded={shown}
             style={props.style}
         >
             {props.title}
         </Button>
         <DropdownMenu
-            show={state.shown}
-            onClick={() => setState({shown: false})}
+            show={shown}
+            onClick={() => setShown(false)}
         >
             {props.children}
         </DropdownMenu>

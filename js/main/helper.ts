@@ -77,3 +77,15 @@ export async function withTimeout<T>(base: Promise<T>, timeout: number, name?: s
 export async function sleep(delayMs: number): Promise<void> {
     return new Promise<void>((res) => setTimeout(res, delayMs));
 }
+
+export type KeyOfType<T, V> = keyof {
+    [P in keyof T as T[P] extends V ? P : never]: any
+};
+
+export function makeFieldUpdater<T extends object, V>(updateFull: (t: T) => void, oldT: T, key: KeyOfType<T, V>) {
+    return (newV: V) => {
+        const newT: T = {...oldT};
+        (newT as any)[key] = newV;
+        return newT;
+    };
+}
