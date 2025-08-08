@@ -1,11 +1,12 @@
 import React, {useState} from "react";
 import {ControlPosition} from "react-draggable";
-import {Block, BlockId, BlockIO, BlockOutput} from "../../common/VMS";
+import {Block, BlockId, BlockIO} from "../../common/VMS";
 import {VMSBlockProps} from "./Block";
 import {BlockConfig} from "./BlockConfig";
 import {ArrowProps} from "./BlockConnections";
 import {getPosition} from "./VMSBlockOffsets";
 import {VMSEditorCanvas} from "./VMSEditorCanvas";
+import {addConnection, findBlock, findBlockIndex, removeConnectionAt} from "./VMSOperations";
 
 export interface VMSEditorProps {
     blocks: Block[];
@@ -17,49 +18,22 @@ export interface StartedArrow {
     startIO: BlockIO;
 }
 
-function setOutput(block: Block, output: BlockOutput, value: BlockId) {
-    if (value === block.uid) {
-        return;
-    }
-    if (output === 'off') {
-        block.offBlock = value;
-    } else if (value !== undefined && !block.outputBlocks.includes(value)) {
-        block.outputBlocks[output] = value;
-        block.outputBlocks = block.outputBlocks.filter((x) => x !== undefined);
-    }
-}
-
-export function findBlockIndex(blocks: Block[], block: BlockId) {
-    return blocks.findIndex((b) => b.uid === block);
-}
-
-export function findBlock(blocks: Block[], block: BlockId) {
-    return blocks[findBlockIndex(blocks, block)];
-}
-
 export function VMSEditor({blocks, setBlocks}: VMSEditorProps) {
     const [startedArrow, setStartedArrow] = useState<StartedArrow>();
     // TODO some sort of unselect mechanism
     const [selectedBlockID, setSelectedBlockID] = useState<BlockId>(undefined);
     const onIOClick = (blockId: BlockId, clickedIO: BlockIO) => {
-        if (startedArrow !== undefined && (startedArrow.startIO === 'in') === (clickedIO === 'in')) {
-            // Cannot connect in to in/out to out
-            return;
-        }
-        const newBlocks = blocks.map((b): Block => ({...b}));
-        const clickedBlock = findBlock(newBlocks, blockId);
-        if (clickedIO !== 'in') {
-            setOutput(clickedBlock, clickedIO, undefined);
-        }
-        if (startedArrow !== undefined) {
+        const newBlocks = structuredClone(blocks);
+        if (startedArrow === undefined) {
+            const clickedBlock = findBlock(newBlocks, blockId);
             if (clickedIO !== 'in') {
-                setOutput(clickedBlock, clickedIO, startedArrow.startBlock);
-            } else if (startedArrow.startIO !== 'in') {
-                setOutput(findBlock(newBlocks, startedArrow.startBlock), startedArrow.startIO, blockId);
+                removeConnectionAt(clickedBlock, clickedIO);
             }
-            setStartedArrow(undefined);
-        } else {
             setStartedArrow({startBlock: blockId, startIO: clickedIO});
+        } else {
+            addConnection(newBlocks, startedArrow.startBlock, startedArrow.startIO, blockId, clickedIO);
+            setStartedArrow(undefined);
+            console.log(newBlocks);
         }
         setBlocks(newBlocks);
     };

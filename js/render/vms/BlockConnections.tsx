@@ -34,7 +34,8 @@ function Arrow(props: FullArrowProps) {
     const pt = (point: ControlPosition, xOff: number = 0, yOff: number = 0) => `${point.x + xOff} ${point.y + yOff}`;
     const pathStart = `M ${pt(props.startPosition)}`;
     const pathToEnd = `C ${pt(props.startPosition, fromCtrlX, fromCtrlY)} ${pt(realTo, 0, -bigM)} ${pt(realTo)}`;
-    return <path d={`${pathStart} ${pathToEnd}`} stroke={'black'} fill={'transparent'} strokeWidth={4}/>;
+    const color = props.fromIO === 'off' ? 'red' : 'blue';
+    return <path d={`${pathStart} ${pathToEnd}`} stroke={color} fill={'transparent'} strokeWidth={4}/>;
 }
 
 function useRelativeMousePosition(relative: RefObject<SVGSVGElement>, scale: number): ControlPosition {

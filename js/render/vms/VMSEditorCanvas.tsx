@@ -1,12 +1,8 @@
-import React, {CSSProperties, MouseEventHandler, RefObject, useEffect, useRef, useState} from "react";
-import {ControlPosition} from "react-draggable";
+import React, {CSSProperties, MouseEventHandler, useRef, useState} from "react";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
-import {Block, BlockIO} from "../../common/VMS";
 import {VMSBlockProps} from "./Block";
 import {ArrowProps, BlockConnections} from "./BlockConnections";
 import {DraggableBlock} from "./DraggableBlock";
-import {getPosition} from "./VMSBlockOffsets";
-import {findBlock} from "./VMSEditor";
 
 export interface EditorCanvasProps {
     arrows: ArrowProps[];
