@@ -22,6 +22,8 @@ export function TTDropdown(props: DropdownProps) {
         <DropdownMenu
             show={shown}
             onClick={() => setShown(false)}
+            // TODO not working as intended
+            style={{overflowY: 'auto'}}
         >
             {props.children}
         </DropdownMenu>

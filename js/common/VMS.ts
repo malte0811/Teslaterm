@@ -28,6 +28,17 @@ export const AFFECTED_VALUES: AffectedValue[] = [
     KnownValue.circ2, KnownValue.circ3, KnownValue.circ4, KnownValue.HyperVoice_Count, KnownValue.HyperVoice_Phase,
     KnownValue.HyperVoice_Volume,
 ];
+// TODO better way?
+export const KNOWN_VALUES: KnownValue[] = [
+    KnownValue.maxOnTime, KnownValue.minOnTime, KnownValue.onTime, KnownValue.otCurrent, KnownValue.otTarget,
+    KnownValue.otFactor, KnownValue.frequency, KnownValue.freqCurrent, KnownValue.freqTarget, KnownValue.freqFactor,
+    KnownValue.noise, KnownValue.pTime, KnownValue.circ1, KnownValue.circ2, KnownValue.circ3, KnownValue.circ4,
+    KnownValue.CC_102, KnownValue.CC_103, KnownValue.CC_104, KnownValue.CC_105, KnownValue.CC_106, KnownValue.CC_107,
+    KnownValue.CC_108, KnownValue.CC_109, KnownValue.CC_110, KnownValue.CC_111, KnownValue.CC_112, KnownValue.CC_113,
+    KnownValue.CC_114, KnownValue.CC_115, KnownValue.CC_116, KnownValue.CC_117, KnownValue.CC_118, KnownValue.CC_119,
+    KnownValue.HyperVoice_Count, KnownValue.HyperVoice_Phase, KnownValue.HyperVoice_Volume, KnownValue.volume,
+    KnownValue.volumeCurrent, KnownValue.volumeTarget, KnownValue.volumeFactor,
+];
 export enum ThresholdDirection { RISING, FALLING, ANY, NONE }
 
 export function vmsValueToString(value: KnownValue) {
@@ -149,22 +160,22 @@ interface KnownValueRef {
 }
 export type ConstantOrValue = ConstantRef | KnownValueRef;
 
-interface ExpModulation {
+export interface ExpModulation {
     type: 'exp';
     // Multiply absolute value by this every cycle
     growthFactor: ConstantOrValue;
 }
-interface InverseExpModulation {
+export interface InverseExpModulation {
     type: 'exp-reverse';
     // Decrease difference to target by factor (1 - this) every cycle
     growthFactor: ConstantOrValue;
 }
-interface LinearModulation {
+export interface LinearModulation {
     type: 'linear';
     // Add this value every cycle
     slope: ConstantOrValue;
 }
-interface SineModulation {
+export interface SineModulation {
     type: 'sine';
     // Set current value as "offset + scale * sin(timeIncrement * t)" (for correctly scaled t)
     scale: ConstantOrValue;
@@ -172,7 +183,7 @@ interface SineModulation {
     // Scaled by pi/256 (TODO is there any scaling done within the UD3?)
     timeIncrement: ConstantOrValue;
 }
-interface StepModulation {
+export interface StepModulation {
     type: 'step';
 }
 export type Modulation = ExpModulation | InverseExpModulation | LinearModulation | SineModulation | StepModulation;
