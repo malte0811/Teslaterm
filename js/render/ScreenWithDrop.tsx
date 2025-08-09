@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 import {TTComponent} from "./TTComponent";
 
 export abstract class ScreenWithDrop<Props, State> extends TTComponent<Props, State> {
@@ -23,7 +23,6 @@ export abstract class ScreenWithDrop<Props, State> extends TTComponent<Props, St
 
     public componentDidMount() {
         if (this.mainDivRef.current) {
-            console.log("Mount", this);
             this.mainDivRef.current.addEventListener('dragover', this.dragoverListener);
             this.mainDivRef.current.addEventListener('drop', this.dropListener);
         }
@@ -32,11 +31,35 @@ export abstract class ScreenWithDrop<Props, State> extends TTComponent<Props, St
     public componentWillUnmount() {
         super.componentWillUnmount();
         if (this.mainDivRef.current) {
-            console.log("Unmount", this);
             this.mainDivRef.current.removeEventListener('dragover', this.dragoverListener);
             this.mainDivRef.current.removeEventListener('drop', this.dropListener);
         }
     }
 
     protected abstract onDrop(e: DragEvent): Promise<any>;
+}
+
+export function useDropCallback<T extends HTMLElement>(
+    mainDiv: React.RefObject<T>, onDrop: (e: DragEvent) => Promise<any>,
+) {
+    useEffect(() => {
+        const div = mainDiv.current;
+        if (!div) { return; }
+        const dropListener = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onDrop(e).catch((err) => console.error('While processing dropped files:', err));
+        };
+        const dragoverListener = (e: DragEvent) => {
+            e.stopPropagation();
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+        };
+        div.addEventListener('dragover', dragoverListener);
+        div.addEventListener('drop', dropListener);
+        return () => {
+            div.removeEventListener('dragover', dragoverListener);
+            div.removeEventListener('drop', dropListener);
+        };
+    }, [onDrop, mainDiv]);
 }

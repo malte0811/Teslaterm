@@ -86,6 +86,26 @@ export function makeFieldUpdater<T extends object, V>(updateFull: (t: T) => void
     return (newV: V) => {
         const newT: T = {...oldT};
         (newT as any)[key] = newV;
-        return newT;
+        updateFull(newT);
     };
+}
+
+export interface StandardEnum<T> {
+    [id: string]: T | string;
+    [nu: number]: string;
+}
+
+export function parseEnumValue<T>(storedString: string, enumType: StandardEnum<T>) {
+    for (const candidate of getEnumValues(enumType)) {
+        if (enumType[candidate as number] === storedString) {
+            return candidate;
+        }
+    }
+    // TODO error!
+}
+
+export function getEnumValues<T>(enumType: StandardEnum<T>) {
+    return Object.keys(enumType)
+        .filter((item) => isNaN(Number(item)))
+        .map((item) => enumType[item] as T);
 }

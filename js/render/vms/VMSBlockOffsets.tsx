@@ -1,6 +1,6 @@
 import React, {CSSProperties} from "react";
 import {ControlPosition} from "react-draggable";
-import {Block, BlockIO} from "../../common/VMS";
+import {Block, BlockIO, OUTPUTS} from "../../common/VMS";
 
 export const BLOCK_WIDTH = 100;
 export const BLOCK_HEIGHT = 150;
@@ -22,20 +22,20 @@ const IO_BASE_CSS: CSSProperties = {
 };
 
 export function numShownOutputs(block: Block) {
-    return Math.min(block.outputBlocks.length + 1, 4);
+    return Math.min(block.outputBlocks.length + 1, OUTPUTS);
 }
 
 export function outputCenterXOffset(block: Block, outputId: number) {
     return (outputId + 1) / (numShownOutputs(block) + 1) * BLOCK_WIDTH;
 }
 
-export function getPosition(block: Block, blockPosition: ControlPosition, io: BlockIO): ControlPosition {
+export function getPosition(block: Block, io: BlockIO): ControlPosition {
     if (io === 'off') {
-        return {x: blockPosition.x, y: blockPosition.y + OFFOUT_CENTER_Y_OFFSET};
+        return {x: block.visualX, y: block.visualY + OFFOUT_CENTER_Y_OFFSET};
     } else if (io === 'in') {
-        return {x: blockPosition.x + INPUT_CENTER_X_OFFSET, y: blockPosition.y};
+        return {x: block.visualX + INPUT_CENTER_X_OFFSET, y: block.visualY};
     } else {
-        return {x: blockPosition.x + outputCenterXOffset(block, io), y: blockPosition.y + BLOCK_HEIGHT};
+        return {x: block.visualX + outputCenterXOffset(block, io), y: block.visualY + BLOCK_HEIGHT};
     }
 }
 

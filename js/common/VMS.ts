@@ -1,10 +1,12 @@
+import {getEnumValues} from "../main/helper";
+
 export type BlockId = number;
 
 export const OUTPUTS = 4;
 export type BlockOutput = number | 'off';
 export type BlockIO = BlockOutput | 'in';
 
-export enum NoteOffBehavior { NORMAL, INVERTED }
+export enum NoteOffBehavior { INVERTED, NORMAL }
 export enum KnownValue {
     maxOnTime, minOnTime, onTime,
     otCurrent, otTarget, otFactor,
@@ -29,17 +31,7 @@ export const AFFECTED_VALUES: AffectedValue[] = [
     KnownValue.HyperVoice_Volume,
 ];
 // TODO better way?
-export const KNOWN_VALUES: KnownValue[] = [
-    KnownValue.maxOnTime, KnownValue.minOnTime, KnownValue.onTime, KnownValue.otCurrent, KnownValue.otTarget,
-    KnownValue.otFactor, KnownValue.frequency, KnownValue.freqCurrent, KnownValue.freqTarget, KnownValue.freqFactor,
-    KnownValue.noise, KnownValue.pTime, KnownValue.circ1, KnownValue.circ2, KnownValue.circ3, KnownValue.circ4,
-    KnownValue.CC_102, KnownValue.CC_103, KnownValue.CC_104, KnownValue.CC_105, KnownValue.CC_106, KnownValue.CC_107,
-    KnownValue.CC_108, KnownValue.CC_109, KnownValue.CC_110, KnownValue.CC_111, KnownValue.CC_112, KnownValue.CC_113,
-    KnownValue.CC_114, KnownValue.CC_115, KnownValue.CC_116, KnownValue.CC_117, KnownValue.CC_118, KnownValue.CC_119,
-    KnownValue.HyperVoice_Count, KnownValue.HyperVoice_Phase, KnownValue.HyperVoice_Volume, KnownValue.volume,
-    KnownValue.volumeCurrent, KnownValue.volumeTarget, KnownValue.volumeFactor,
-];
-export enum ThresholdDirection { RISING, FALLING, ANY, NONE }
+export const KNOWN_VALUES = getEnumValues(KnownValue);
 
 export function vmsValueToString(value: KnownValue) {
     // TODO not happy with this, look into alternatives
@@ -132,15 +124,15 @@ export function vmsValueToString(value: KnownValue) {
 
 export function modulationToString(mType: ModulationType) {
     switch (mType) {
-        case "step":
+        case ModulationType.step:
             return 'Step';
-        case "exp":
+        case ModulationType.exp:
             return 'Exponential';
-        case "exp-reverse":
+        case ModulationType.exp_inverse:
             return 'Reverse Exponential';
-        case "linear":
+        case ModulationType.linear:
             return 'Linear';
-        case "sine":
+        case ModulationType.sine:
             return 'Sine';
     }
     mType satisfies never;
@@ -148,35 +140,48 @@ export function modulationToString(mType: ModulationType) {
 
 interface ConstantRef {
     type: 'constant';
-    // TODO may have a 1e6 factor to it?
+    // TODO needs a 1e6 factor to it in legacy parser and wire serializer
     value: number;
 }
 interface KnownValueRef {
     type: 'value';
+    // On wire: Packed, from LSB to MSB (TODO verify):
+    //  - 8 bits value
+    //  - 12 bits rangeStart
+    //  - 12 bits rangeEnd
     value: KnownValue;
     // Rescale and shift the range of the KnownValue to this range
+    // TODO may not be encoded this way in legacy files? Those have tFRangeEnd etc?
     rangeStart: number;
     rangeEnd: number;
 }
 export type ConstantOrValue = ConstantRef | KnownValueRef;
 
+export enum ModulationType {
+    exp = 1,
+    exp_inverse,
+    linear,
+    sine,
+    step,
+}
+
 export interface ExpModulation {
-    type: 'exp';
+    type: ModulationType.exp;
     // Multiply absolute value by this every cycle
     growthFactor: ConstantOrValue;
 }
 export interface InverseExpModulation {
-    type: 'exp-reverse';
+    type: ModulationType.exp_inverse;
     // Decrease difference to target by factor (1 - this) every cycle
     growthFactor: ConstantOrValue;
 }
 export interface LinearModulation {
-    type: 'linear';
+    type: ModulationType.linear;
     // Add this value every cycle
     slope: ConstantOrValue;
 }
 export interface SineModulation {
-    type: 'sine';
+    type: ModulationType.sine;
     // Set current value as "offset + scale * sin(timeIncrement * t)" (for correctly scaled t)
     scale: ConstantOrValue;
     offset: ConstantOrValue;
@@ -184,10 +189,9 @@ export interface SineModulation {
     timeIncrement: ConstantOrValue;
 }
 export interface StepModulation {
-    type: 'step';
+    type: ModulationType.step;
 }
 export type Modulation = ExpModulation | InverseExpModulation | LinearModulation | SineModulation | StepModulation;
-export type ModulationType = Modulation['type'];
 
 export interface Block {
     // Own ID
@@ -204,17 +208,19 @@ export interface Block {
     modulation: Modulation;
     // The value to be updated
     target: AffectedValue;
-    // Move on to next block once the target value exceeds the targetFactor in this direction
-    thresholdDirection: ThresholdDirection;
     targetFactor: ConstantOrValue;
     // Length of the "cycle" referred to in the modulation descriptions
     periodMS: number;
+    // Only for editor, not relevant for actual synth
+    visualX: number;
+    visualY: number;
 }
 
 export type MapFrequency = { type: 'offset', midiNotes: number } | { type: 'fixed', frequencyHz: number };
 
 export interface BlockMap {
-    // Note range (closed interval) for which this map should be used
+    // Note range (closed interval) for which this map should be used. It is valid for multiple maps in the same program
+    // to include the same note, in this case multiple voices will be added for a single NoteOn event.
     startNote: number;
     endNote: number;
     noteFrequency: MapFrequency;
@@ -239,3 +245,5 @@ export interface Program {
     maps: BlockMap[];
     name: string;
 }
+
+export type FullVMSData = Program[];

@@ -2,12 +2,12 @@ import React from "react";
 import {
     Block,
     BlockId,
-    BlockIO,
-    BlockOutput, ConstantOrValue, Modulation,
+    BlockIO, BlockMap,
+    BlockOutput, ConstantOrValue, FullVMSData, Modulation,
     modulationToString,
     ModulationType,
     NoteOffBehavior
-} from "../../common/VMS";
+} from "./VMS";
 
 // TODO may want a general sanitization function! Also for cleaning up IDs over the whole program set
 
@@ -68,15 +68,48 @@ export function makeInitialModulation(type: ModulationType, existing: Modulation
     const constant = (v: number): ConstantOrValue => ({type: 'constant', value: v});
     // TODO double check all of these
     switch (type) {
-        case "step":
+        case ModulationType.step:
             return {type};
-        case "exp":
+        case ModulationType.exp:
             return {type, growthFactor: constant(1.1)};
-        case "exp-reverse":
+        case ModulationType.exp_inverse:
             return {type, growthFactor: constant(1.1)};
-        case "linear":
+        case ModulationType.linear:
             return {type, slope: constant(1)};
-        case "sine":
+        case ModulationType.sine:
             return {type, scale: constant(1), offset: constant(0), timeIncrement: constant(1)};
     }
+}
+
+function cleanVMSMap(map: BlockMap, firstBlock: BlockId): BlockId {
+    let nextBlock = firstBlock;
+    const blockMap = new Map<BlockId, BlockId>();
+    for (const block of map.blocks) {
+        blockMap.set(block.uid, nextBlock);
+        console.log(`Mapping ${block.uid} to ${nextBlock}`);
+        ++nextBlock;
+    }
+    const getNewId = (oldId: BlockId) => {
+        if (oldId === undefined) { return undefined; }
+        if (!blockMap.has(oldId)) { throw new Error(`Unknown block ID ${oldId}`); }
+        return blockMap.get(oldId);
+    };
+    map.startBlock = getNewId(map.startBlock);
+    for (const block of map.blocks) {
+        block.outputBlocks = block.outputBlocks.map(getNewId);
+        block.offBlock = getNewId(block.offBlock);
+    }
+    return nextBlock;
+}
+
+export function cleanVMSConfig(programs: FullVMSData) {
+    const newPrograms = structuredClone(programs);
+    // TODO is 0 a valid ID?
+    let nextBlock = 1;
+    for (const program of newPrograms) {
+        for (const map of program.maps) {
+            nextBlock = cleanVMSMap(map, nextBlock);
+        }
+    }
+    return newPrograms;
 }

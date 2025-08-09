@@ -20,8 +20,7 @@ export function VMSEditorCanvas(props: EditorCanvasProps) {
     const baseProps: CSSProperties = {height: '100%', width: '100%'};
     return <TransformWrapper
         disabled={draggingElement}
-        // TODO somehow make sure that the "bounds" are the same for all screen/window sizes
-        limitToBounds={true}
+        // TODO set initial bounds to cover all blocks
         onTransformed={(_, data) => setScale(data.scale)}
     >
         <TransformComponent

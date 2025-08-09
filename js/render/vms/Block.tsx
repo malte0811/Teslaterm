@@ -1,5 +1,4 @@
 import {CSSProperties} from "react";
-import {ControlPosition} from "react-draggable";
 import {Block, BlockIO, ModulationType} from "../../common/VMS";
 import {
     BLOCK_STYLE,
@@ -7,15 +6,13 @@ import {
     BlockOffout,
     BlockOutputs, MODULATION_CENTER_X_OFFSET, MODULATION_CENTER_Y_OFFSET,
     MODULATION_HEIGHT,
-    MODULATION_WIDTH
+    MODULATION_WIDTH,
 } from "./VMSBlockOffsets";
 
 export interface VMSBlockProps {
     block: Block;
     onClick: () => void;
     onIOClick: (io: BlockIO) => void;
-    setPosition: (p: ControlPosition) => void;
-    position: ControlPosition;
     updateBlock: (update: Partial<Block>) => void;
 }
 
@@ -27,16 +24,16 @@ function ModulationVisualizer({type}: {type: ModulationType}) {
     const centerX =  MODULATION_WIDTH / 2;
     const pathSpec = (() => {
         switch (type) {
-            case 'step':
+            case ModulationType.step:
                 return `M ${paddingX} ${maxY} L ${centerX} ${maxY} ${centerX} ${paddingY} ${maxX} ${paddingY}`;
-            case 'exp':
+            case ModulationType.exp:
                 return `M ${paddingX} ${maxY} C ${2 * paddingX} ${maxY - 8 * paddingY} ${maxX - 3 * paddingX} ${paddingY} ${maxX} ${paddingY}`;
-            case 'exp-reverse':
+            case ModulationType.exp_inverse:
                 // TODO fix!
                 return `M  ${paddingX} ${maxY} C ${4 * paddingX} ${maxY} ${maxX - paddingX} ${9 * paddingY} ${maxX} ${paddingY}`;
-            case 'linear':
+            case ModulationType.linear:
                 return `M ${paddingX} ${maxY} L ${maxX} ${paddingY}`;
-            case 'sine': {
+            case ModulationType.sine: {
                 const xOff = paddingX;
                 const yOff = 3 * paddingY;
                 const centerY = MODULATION_HEIGHT / 2;

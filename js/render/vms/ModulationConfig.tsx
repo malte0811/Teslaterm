@@ -1,12 +1,17 @@
 import React from "react";
 import {
-    ExpModulation, InverseExpModulation,
-    LinearModulation, Modulation,
+    ExpModulation,
+    InverseExpModulation,
+    LinearModulation,
+    Modulation,
     modulationToString,
-    ModulationType, SineModulation, StepModulation,
+    ModulationType,
+    SineModulation,
+    StepModulation,
 } from "../../common/VMS";
+import {getEnumValues} from "../../main/helper";
 import {ValueOrConstantSelector, ValueSelector, VMSColumnSubForm} from "./BlockConfig";
-import {makeInitialModulation} from "./VMSOperations";
+import {makeInitialModulation} from "../../common/VMSOperations";
 
 function LinearModulation({value, set}: {value: LinearModulation, set: (newVal: LinearModulation) => void}) {
     return <VMSColumnSubForm>
@@ -35,7 +40,7 @@ function SineModulation({value, set}: {value: SineModulation, set: (newVal: Sine
 }
 
 export function ModulationSelector({modulation, set}: {modulation: Modulation, set: (newMod: Modulation) => void}) {
-    const values: ModulationType[] = ['step', 'exp', 'exp-reverse', 'linear', 'sine'];
+    const values = getEnumValues(ModulationType);
     const typeSelector = <ValueSelector
         current={modulation.type}
         values={values}
@@ -44,12 +49,12 @@ export function ModulationSelector({modulation, set}: {modulation: Modulation, s
     />;
     const specificConfig = (() => {
         switch (modulation.type) {
-            case "exp":
-            case "exp-reverse":
+            case ModulationType.exp:
+            case ModulationType.exp_inverse:
                 return <ExpModulation value={modulation} set={set}/>;
-            case "linear":
+            case ModulationType.linear:
                 return <LinearModulation value={modulation} set={set}/>;
-            case "sine":
+            case ModulationType.sine:
                 return <SineModulation value={modulation} set={set}/>;
         }
         modulation satisfies StepModulation;
