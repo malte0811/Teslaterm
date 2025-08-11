@@ -83,6 +83,13 @@ class VMSBuffer {
     }
 }
 
+interface MaybeKnownValue {
+    value: number;
+    rangeStart: number;
+    rangeEnd: number;
+    maskFlag: number;
+}
+
 interface Block {
     uid: number;
     outsEnabled: boolean;
@@ -95,10 +102,10 @@ interface Block {
     type: number;
     target: number;
     thresholdDirection: number;
-    targetFactor: number;
-    param1: number;
-    param2: number;
-    param3: number;
+    targetFactor: MaybeKnownValue;
+    param1: MaybeKnownValue;
+    param2: MaybeKnownValue;
+    param3: MaybeKnownValue;
     periodUS: number;
     flags: number;
 }
@@ -178,6 +185,15 @@ function parseVMSToStructuredMap(data: number[]) {
     return toplevel;
 }
 
+function parseMaybeKnownValue(data: VMSDataMap, valueKey: string, rangePrefix: string, mask: number): MaybeKnownValue {
+    return {
+        value: data.getAsInt(valueKey),
+        rangeStart: data.getAsInt(rangePrefix + 'RangeStart'),
+        rangeEnd: data.getAsInt(rangePrefix + 'RangeEnd'),
+        maskFlag: mask,
+    };
+}
+
 function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block[] {
     const blocks: Block[] = [];
     for (const key of mapData.map.keys()) {
@@ -198,10 +214,10 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             type: blockMap.getMapped('type', VMS_MODTYPE),
             target: blockMap.getMapped('target', KNOWN_VALUE),
             thresholdDirection: blockMap.getMapped('thresholdDirection', DIRECTION),
-            targetFactor: blockMap.getAsInt('targetValue'),
-            param1: blockMap.getAsInt('param[0]'),
-            param2: blockMap.getAsInt('param[1]'),
-            param3: blockMap.getAsInt('param[2]'),
+            targetFactor: parseMaybeKnownValue(blockMap, 'targetValue', 'tF', 8),
+            param1: parseMaybeKnownValue(blockMap, 'param[0]', 'p1', 1),
+            param2: parseMaybeKnownValue(blockMap, 'param[1]', 'p2', 2),
+            param3: parseMaybeKnownValue(blockMap, 'param[2]', 'p3', 4),
             periodUS: blockMap.getAsInt('param[3]'),
             flags: blockMap.getAsInt('flags'),
         };
@@ -259,6 +275,14 @@ function prepareHeaderBuffer(newFormat: boolean) {
     return buffer;
 }
 
+function writeMaybeKnownValue(buffer: VMSBuffer, value: MaybeKnownValue, flags: number) {
+    if (flags & value.maskFlag) {
+        buffer.writeUint32(value.value | (value.rangeStart << 8) | (value.rangeEnd << 20));
+    } else {
+        buffer.writeUint32(value.value);
+    }
+}
+
 function serializeBlock(block: Block, newFormat: boolean) {
     if (block.uid === -1) {
         return undefined;
@@ -284,10 +308,10 @@ function serializeBlock(block: Block, newFormat: boolean) {
         // TODO Did this just get removed?
         buf.writeUint32(block.thresholdDirection);
     }
-    buf.writeUint32(block.targetFactor);
-    buf.writeUint32(block.param1);
-    buf.writeUint32(block.param2);
-    buf.writeUint32(block.param3);
+    writeMaybeKnownValue(buf, block.targetFactor, block.flags);
+    writeMaybeKnownValue(buf, block.param1, block.flags);
+    writeMaybeKnownValue(buf, block.param2, block.flags);
+    writeMaybeKnownValue(buf, block.param3, block.flags);
     // new format uses period in milliseconds instead of microseconds
     buf.writeUint32(newFormat ? (block.periodUS / 1000) : (block.periodUS));
     buf.writeUint32(block.flags);
