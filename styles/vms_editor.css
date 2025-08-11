@@ -1,3 +1,4 @@
+/* TODO make sure all of this works in light mode!*/
 .vms-editor-block {
     background: gray;
     position: relative;
@@ -20,4 +21,21 @@
 .vms-editor-block-off {
     background: red;
     left: 0;
+}
+
+.vms-mapsel-row-selected {
+    background: red;
+}
+
+.vms-mapsel-row-default {
+    background: blue;
+}
+
+.vms-mapsel-map-row, .vms-mapsel-program-row {
+    padding-left: 20px;
+    user-select: none;
+}
+
+.vms-mapsel-map-row {
+    margin-left: 10%;
 }

@@ -76,9 +76,9 @@ export function BlockEditor({blocks, setBlocks}: BlockEditorProps) {
         }
     })();
     return <>
-        <div style={{height: '100%', flexBasis: 'auto', flexGrow: 1, flexShrink: 1}}>
+        <div style={{height: '100%', flexBasis: 'auto', flexGrow: 1, flexShrink: 1, overflow: 'hidden'}}>
             <VMSEditorCanvas arrows={arrows} blocks={blockElements} onAuxClick={() => setStartedArrow(undefined)}/>
         </div>
-        <div style={{width: '20%', height: '100%'}}>{blockConfigElement}</div>
+        <div style={{width: '20%', height: '100%', overflowX: 'hidden', overflowY: 'auto'}}>{blockConfigElement}</div>
     </>;
 }

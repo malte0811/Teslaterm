@@ -246,4 +246,9 @@ export interface Program {
     name: string;
 }
 
+export interface MapReference {
+    programId: number;
+    mapId: number;
+}
+
 export type FullVMSData = Program[];
