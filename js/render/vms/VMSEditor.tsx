@@ -1,5 +1,8 @@
+import {Allotment} from "allotment";
 import React, {useState} from "react";
 import {Block, BlockId, BlockIO, FullVMSData, MapReference} from "../../common/VMS";
+import {findBlockIndex} from "../../common/VMSOperations";
+import {BlockConfig} from "./BlockConfig";
 import {BlockEditor} from "./BlockEditor";
 import {MapSelector} from "./MapSelector";
 
@@ -15,34 +18,50 @@ export interface StartedArrow {
 
 export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
     const [currentMap, setCurrentMap] = useState<MapReference>();
-    console.log(programs, currentMap);
-    const editorCanvas = (() => {
-        if (currentMap !== undefined) {
-            const {programId, mapId} = currentMap;
-            if (programId < programs.length && mapId < programs[programId].maps.length) {
-                const setBlocks = (newBlocks: Block[]) => {
-                    const newPrograms = [...programs];
-                    const newProgram = {...newPrograms[programId]};
-                    const newMap = {...newProgram.maps[mapId]};
-                    newMap.blocks = newBlocks;
-                    newProgram.maps[mapId] = newMap;
-                    newPrograms[programId] = newProgram;
-                    setPrograms(newPrograms);
-                };
-                return <BlockEditor
-                    blocks={programs[programId].maps[mapId].blocks}
-                    setBlocks={setBlocks}
-                    key={`${programId}/${mapId}`}
-                />;
-            }
+    const isValidMap = currentMap !== undefined &&
+        programs[currentMap.programId] !== undefined &&
+         programs[currentMap.programId].maps[currentMap.mapId] !== undefined;
+    const {programId, mapId} = currentMap || {programId: 0, mapId: 0};
+    const currentBlocks = isValidMap && programs[programId].maps[mapId].blocks;
+    const [selectedBlockId, setSelectedBlockId] = useState<number>(undefined);
+    const [canvas, blockConfig] = (() => {
+        if (!isValidMap) {
+            return [<div/>, <div/>];
         }
-        return <BlockEditor blocks={[]} setBlocks={() => 0}/>;
+        const setBlocks = (newBlocks: Block[]) => {
+            const newPrograms = [...programs];
+            const newProgram = {...newPrograms[programId]};
+            const newMap = {...newProgram.maps[mapId]};
+            newMap.blocks = newBlocks;
+            newProgram.maps[mapId] = newMap;
+            newPrograms[programId] = newProgram;
+            setPrograms(newPrograms);
+        };
+        const canvas = <BlockEditor
+            blocks={currentBlocks}
+            setBlocks={setBlocks}
+            key={`${programId}/${mapId}`}
+            selectBlock={setSelectedBlockId}
+        />;
+        if (selectedBlockId !== undefined) {
+            const index = findBlockIndex(currentBlocks, selectedBlockId);
+            const updateBlock = (update: Partial<Block>) => {
+                const updated = [...currentBlocks];
+                updated[index] = {...updated[index], ...update};
+                setBlocks(updated);
+            };
+            return [canvas, <BlockConfig block={currentBlocks[index]} updateBlock={(update) => updateBlock(update)}/>];
+        } else {
+            return [canvas, <div></div>];
+        }
     })();
     // TODO area separators
-    return <div style={{height: '100%', width: '100%', flexDirection: 'row', display: 'flex'}}>
-        <div style={{width: '20%', height: '100%', overflowY: 'auto'}}>
-            <MapSelector data={programs} currentSelection={currentMap} setSelection={setCurrentMap}/>
-        </div>
-        {editorCanvas}
-    </div>;
+    return <Allotment defaultSizes={[1, 4, 1]} >
+        <MapSelector data={programs} currentSelection={currentMap} setSelection={(newMap) => {
+            setCurrentMap(newMap);
+            setSelectedBlockId(undefined);
+        }}/>
+        {canvas}
+        {blockConfig}
+    </Allotment>;
 }

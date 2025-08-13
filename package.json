@@ -15,6 +15,7 @@
     "@headless-tree/react": "^1.2.1",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
+    "allotment": "^1.20.4",
     "basic-ftp": "^5.0.5",
     "bootstrap": "^5.3.3",
     "classnames": "^2.5.1",

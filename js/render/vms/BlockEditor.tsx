@@ -11,12 +11,12 @@ import {VMSEditorCanvas} from "./VMSEditorCanvas";
 export interface BlockEditorProps {
     blocks: Block[];
     setBlocks: (newBlocks: Block[]) => void;
+    // TODO some sort of unselect mechanism
+    selectBlock: (selectedId: BlockId) => void;
 }
 
-export function BlockEditor({blocks, setBlocks}: BlockEditorProps) {
+export function BlockEditor({blocks, setBlocks, selectBlock}: BlockEditorProps) {
     const [startedArrow, setStartedArrow] = useState<StartedArrow>();
-    // TODO some sort of unselect mechanism
-    const [selectedBlockID, setSelectedBlockID] = useState<BlockId>(undefined);
     const onIOClick = (blockId: BlockId, clickedIO: BlockIO) => {
         const newBlocks = structuredClone(blocks);
         if (startedArrow === undefined) {
@@ -43,7 +43,7 @@ export function BlockEditor({blocks, setBlocks}: BlockEditorProps) {
     blocks.forEach((block) => {
         blockElements.push({
             block,
-            onClick: () => setSelectedBlockID(block.uid),
+            onClick: () => selectBlock(block.uid),
             onIOClick: (io) => onIOClick(block.uid, io),
             updateBlock: (update) => updateBlock(block.uid, update),
         });
@@ -66,19 +66,5 @@ export function BlockEditor({blocks, setBlocks}: BlockEditorProps) {
     if (startedArrow) {
         addArrow(startedArrow.startBlock, startedArrow.startIO, undefined);
     }
-    const blockConfigElement = (() => {
-        if (selectedBlockID !== undefined) {
-            const block = findBlock(blocks, selectedBlockID);
-            return <BlockConfig
-                block={block}
-                updateBlock={(update) => updateBlock(block.uid, update)}
-            />;
-        }
-    })();
-    return <>
-        <div style={{height: '100%', flexBasis: 'auto', flexGrow: 1, flexShrink: 1, overflow: 'hidden'}}>
-            <VMSEditorCanvas arrows={arrows} blocks={blockElements} onAuxClick={() => setStartedArrow(undefined)}/>
-        </div>
-        <div style={{width: '20%', height: '100%', overflowX: 'hidden', overflowY: 'auto'}}>{blockConfigElement}</div>
-    </>;
+    return <VMSEditorCanvas arrows={arrows} blocks={blockElements} onAuxClick={() => setStartedArrow(undefined)}/>;
 }

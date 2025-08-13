@@ -46,7 +46,7 @@ function SubMapSelector(props: MapSelectorPropsBase<Program> & {ownId: number}) 
 }
 
 export function MapSelector(props: MapSelectorProps) {
-    return <>
+    return <div style={{height: '100%', width: '100%'}}>
         {props.data.map((p, i) => <SubMapSelector
             data={p}
             currentSelection={props.currentSelection}
@@ -54,5 +54,5 @@ export function MapSelector(props: MapSelectorProps) {
             ownId={i}
             key={i}
         />)}
-    </>;
+    </div>;
 }
