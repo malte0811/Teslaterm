@@ -1,7 +1,11 @@
 /* TODO make sure all of this works in light mode!*/
-.vms-editor-block {
+.vms-editor-block, .vms-editor-block-selected {
     background: gray;
     position: relative;
+}
+
+.vms-editor-block-selected {
+    box-shadow: 0 0 5px 5px red;
 }
 
 .vms-editor-block-output, .vms-editor-block-input, .vms-editor-block-off {

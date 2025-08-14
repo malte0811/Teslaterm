@@ -42,6 +42,7 @@ export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
             setBlocks={setBlocks}
             key={`${programId}/${mapId}`}
             selectBlock={setSelectedBlockId}
+            selectedBlock={selectedBlockId}
         />;
         if (selectedBlockId !== undefined) {
             const index = findBlockIndex(currentBlocks, selectedBlockId);
@@ -55,13 +56,16 @@ export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
             return [canvas, <div></div>];
         }
     })();
-    // TODO area separators
     return <Allotment defaultSizes={[1, 4, 1]} >
         <MapSelector data={programs} currentSelection={currentMap} setSelection={(newMap) => {
             setCurrentMap(newMap);
             setSelectedBlockId(undefined);
         }}/>
+        <div style={{width: '100%', height: '100%'}}>
         {canvas}
+        </div>
+        <div style={{width: '100%', height: '100%'}}>
         {blockConfig}
+        </div>
     </Allotment>;
 }

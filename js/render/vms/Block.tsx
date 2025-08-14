@@ -14,6 +14,7 @@ export interface VMSBlockProps {
     onClick: () => void;
     onIOClick: (io: BlockIO) => void;
     updateBlock: (update: Partial<Block>) => void;
+    selected: boolean;
 }
 
 function ModulationVisualizer({type}: {type: ModulationType}) {
@@ -65,7 +66,8 @@ export function BlockComponent(props: VMSBlockProps) {
     // - Target factor
     // - Period
     // - Something for the start box!
-    return <div className={'vms-editor-block'} style={BLOCK_STYLE} onClick={props.onClick}>
+    const className = 'vms-editor-block' + (props.selected ? '-selected' : '');
+    return <div className={className} style={BLOCK_STYLE} onClick={props.onClick}>
         <ModulationVisualizer type={props.block.modulation.type}/>
         <BlockOutputs block={props.block} onClick={props.onIOClick}/>
         <BlockInput onClick={props.onIOClick}/>
