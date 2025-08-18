@@ -1,10 +1,17 @@
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {
-    Block, BlockMap, ConstantOrValue, FullVMSData, Modulation, ModulationType, OUTPUTS, Program,
+    Block,
+    BlockMap,
+    ConstantOrValue,
+    FullVMSData,
+    Modulation,
+    ModulationType,
+    OUTPUTS,
+    Program,
 } from "../../common/VMS";
 import {UD3Connection} from "../connection/types/UD3Connection";
 import {ipcs} from "../ipc/IPCProvider";
-import {AmbiguousValue, CONSTANT_VALUE_SCALE, VARIABLE_VALUE_DATA} from "./LegacyVMSParser";
+import {AmbiguousValue, getConstantScale, VARIABLE_VALUE_DATA} from "./LegacyVMSParser";
 
 class VMSBuffer {
     private readonly buffer: ArrayBuffer;
@@ -46,9 +53,9 @@ class VMSBuffer {
         ++this.nextIndex;
     }
 
-    public writeConstOrValue(value: ConstantOrValue) {
+    public writeConstOrValue(value: ConstantOrValue, position: AmbiguousValue, modulation: ModulationType) {
         if (value.type === 'constant') {
-            this.writeUint32(value.value * CONSTANT_VALUE_SCALE);
+            this.writeUint32(value.value * getConstantScale(position, modulation));
         } else {
             const combinedValue = value.value | (value.rangeStart << 8) | (value.rangeEnd << 20);
             this.writeUint32(combinedValue);
@@ -111,12 +118,14 @@ function serializeBlock(block: Block) {
     buf.writeUint(block.offBehavior, 8);
     buf.writeUint(block.modulation.type, 8);
     buf.writeUint(block.target, 16);
-    buf.writeConstOrValue(block.targetFactor);
+    buf.writeConstOrValue(block.targetFactor, AmbiguousValue.targetFactor, block.modulation.type);
     const parameters = getModulationParms(block.modulation);
     while (parameters.length < 3) {
         parameters.push({type: 'constant', value: 0});
     }
-    parameters.forEach((value) => buf.writeConstOrValue(value));
+    buf.writeConstOrValue(parameters[0], AmbiguousValue.param1, block.modulation.type);
+    buf.writeConstOrValue(parameters[1], AmbiguousValue.param2, block.modulation.type);
+    buf.writeConstOrValue(parameters[2], AmbiguousValue.param3, block.modulation.type);
     buf.writeUint32(block.periodMS);
     buf.writeUint32(gatherBlockFlage(block.targetFactor, parameters));
     return buf.getBuffer();

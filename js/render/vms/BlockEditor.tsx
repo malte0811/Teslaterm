@@ -25,9 +25,9 @@ export function BlockEditor(props: BlockEditorProps) {
             if (clickedIO !== 'in') {
                 removeConnectionAt(clickedBlock, clickedIO);
             }
-            setStartedArrow({startBlock: blockId, startIO: clickedIO});
+            setStartedArrow({fromBlock: blockId, fromIO: clickedIO});
         } else {
-            addConnection(newBlocks, startedArrow.startBlock, startedArrow.startIO, blockId, clickedIO);
+            addConnection(newBlocks, startedArrow.fromBlock, startedArrow.fromIO, blockId, clickedIO);
             setStartedArrow(undefined);
             console.log(newBlocks);
         }
@@ -66,7 +66,13 @@ export function BlockEditor(props: BlockEditorProps) {
         }
     }
     if (startedArrow) {
-        addArrow(startedArrow.startBlock, startedArrow.startIO, undefined);
+        addArrow(startedArrow.fromBlock, startedArrow.fromIO, undefined);
     }
-    return <VMSEditorCanvas arrows={arrows} blocks={blockElements} onAuxClick={() => setStartedArrow(undefined)}/>;
+    const startBlock = findBlock(props.blocks, props.startBlock);
+    return <VMSEditorCanvas
+        arrows={arrows}
+        blocks={blockElements}
+        onAuxClick={() => setStartedArrow(undefined)}
+        startPos={startBlock && getPosition(startBlock, 'in')}
+    />;
 }

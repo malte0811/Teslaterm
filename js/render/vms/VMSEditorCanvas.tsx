@@ -7,6 +7,7 @@ import {DraggableBlock} from "./DraggableBlock";
 
 export interface EditorCanvasProps {
     arrows: ArrowProps[];
+    startPos?: ControlPosition;
     blocks: VMSBlockProps[];
     onAuxClick?: MouseEventHandler;
 }
@@ -21,7 +22,7 @@ export function VMSEditorCanvas(props: EditorCanvasProps) {
     const baseProps: CSSProperties = {height: '100%', width: '100%'};
     return <div style={{position: 'relative', ...baseProps}}>
         <div ref={mouseOwnerRef} style={{position: 'absolute', zIndex: 0, ...baseProps}}>
-            <BlockConnections arrows={props.arrows} transform={transform}/>
+            <BlockConnections arrows={props.arrows} transform={transform} startPos={props.startPos}/>
         </div>
         <div style={{position: 'relative', zIndex: 1, ...baseProps}} onAuxClick={props.onAuxClick}>
             <TransformWrapper

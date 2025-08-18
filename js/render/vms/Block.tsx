@@ -72,6 +72,5 @@ export function BlockComponent(props: VMSBlockProps) {
         <BlockOutputs block={props.block} onClick={props.onIOClick}/>
         <BlockInput onClick={props.onIOClick}/>
         <BlockOffout onClick={props.onIOClick}/>
-        <div style={{top: 0, right: 0}}>{props.block.uid}</div>
     </div>;
 }

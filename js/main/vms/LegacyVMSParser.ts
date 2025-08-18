@@ -1,5 +1,13 @@
 import {
-    AffectedValue, Block, BlockMap, ConstantOrValue, KnownValue, Modulation, ModulationType, NoteOffBehavior, Program,
+    AffectedValue,
+    Block,
+    BlockMap,
+    ConstantOrValue,
+    KnownValue,
+    Modulation,
+    ModulationType,
+    NoteOffBehavior,
+    Program,
 } from "../../common/VMS";
 import {cleanVMSConfig} from "../../common/VMSOperations";
 import {parseEnumValue} from "../helper";
@@ -17,7 +25,29 @@ export const VARIABLE_VALUE_DATA = new Map<AmbiguousValue, AmbiguousValueData>([
     [AmbiguousValue.param3, {flagMask: 4, mainKey: 'param[2]', rangePrefix: 'p3'}],
     [AmbiguousValue.targetFactor, {flagMask: 8, mainKey: 'targetValue', rangePrefix: 'tF'}],
 ]);
-export const CONSTANT_VALUE_SCALE = 1e6;
+
+export function getConstantScale(value: AmbiguousValue, modulation: ModulationType) {
+    if (value === AmbiguousValue.targetFactor) {
+        return 1e6;
+    }
+    switch (modulation) {
+        case ModulationType.exp:
+        case ModulationType.exp_inverse:
+            return 1e3;
+        case ModulationType.linear:
+            return 1e6;
+        case ModulationType.sine:
+            switch (value) {
+                case AmbiguousValue.param1:
+                    return 2e3;
+                case AmbiguousValue.param2:
+                    return 1e6;
+                case AmbiguousValue.param3:
+                    return 1;
+            }
+    }
+    return 1;
+}
 
 class VMSDataMap {
     public readonly map = new Map<string, string | VMSDataMap>();
@@ -82,7 +112,9 @@ function parseVMSToStructuredMap(data: Buffer) {
     return toplevel;
 }
 
-function parseConstOrValue(blockData: VMSDataMap, valueInBlock: AmbiguousValue): ConstantOrValue {
+function parseConstOrValue(
+    blockData: VMSDataMap, valueInBlock: AmbiguousValue, modulation: ModulationType,
+): ConstantOrValue {
     const data = VARIABLE_VALUE_DATA.get(valueInBlock);
     const rawValue = blockData.getAsInt(data.mainKey);
     const flags = blockData.getAsInt('flags');
@@ -92,24 +124,33 @@ function parseConstOrValue(blockData: VMSDataMap, valueInBlock: AmbiguousValue):
         const rangeEnd = blockData.getAsInt(data.rangePrefix + 'RangeEnd');
         return {type: 'value', value, rangeStart, rangeEnd};
     } else {
-        return {type: 'constant', value: rawValue / CONSTANT_VALUE_SCALE};
+        return {type: 'constant', value: rawValue / getConstantScale(valueInBlock, modulation)};
     }
 }
 
+const MODULATION_TYPE_NAMES = new Map<string, ModulationType>([
+    ['VMS_EXP',  ModulationType.exp],
+    ['VMS_EXP_INV',  ModulationType.exp_inverse],
+    ['VMS_JUMP',  ModulationType.step],
+    ['VMS_LIN',  ModulationType.linear],
+    ['VMS_SIN',  ModulationType.sine],
+]);
+
 function parseModulation(blockData: VMSDataMap): Modulation {
-    const param1 = parseConstOrValue(blockData, AmbiguousValue.param1);
-    const param2 = parseConstOrValue(blockData, AmbiguousValue.param2);
-    const param3 = parseConstOrValue(blockData, AmbiguousValue.param3);
-    switch (blockData.getAsString('type')) {
-        case 'VMS_EXP':
+    const type = MODULATION_TYPE_NAMES.get(blockData.getAsString('type'));
+    const param1 = parseConstOrValue(blockData, AmbiguousValue.param1, type);
+    const param2 = parseConstOrValue(blockData, AmbiguousValue.param2, type);
+    const param3 = parseConstOrValue(blockData, AmbiguousValue.param3, type);
+    switch (type) {
+        case ModulationType.exp:
             return {type: ModulationType.exp, growthFactor: param1};
-        case 'VMS_EXP_INV':
+        case ModulationType.exp_inverse:
             return {type: ModulationType.exp_inverse, growthFactor: param1};
-        case 'VMS_LIN':
+        case ModulationType.linear:
             return {type: ModulationType.linear, slope: param1};
-        case 'VMS_SIN':
+        case ModulationType.sine:
             return {type: ModulationType.sine, timeIncrement: param3, offset: param2, scale: param1};
-        case 'VMS_JUMP':
+        case ModulationType.step:
             return {type: ModulationType.step};
     }
 }
@@ -121,8 +162,9 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             continue;
         }
         const blockMap = mapData.getAsMap(key);
+        const modulation = parseModulation(blockMap);
         const newBlock: Block = {
-            modulation: parseModulation(blockMap),
+            modulation,
             offBehavior: parseEnumValue(blockMap.getAsString('offBehavior'), NoteOffBehavior),
             offBlock: blockMap.getAsIntOrUndef('offBlock'),
             outputBlocks: [
@@ -133,7 +175,7 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
             ],
             periodMS: blockMap.getAsInt('param[3]'),
             target: parseEnumValue(blockMap.getAsString('target'), KnownValue) as AffectedValue,
-            targetFactor: parseConstOrValue(blockMap, AmbiguousValue.targetFactor),
+            targetFactor: parseConstOrValue(blockMap, AmbiguousValue.targetFactor, modulation.type),
             uid: blockMap.getAsInt('uid'),
             visualX: blockMap.getAsInt('x'),
             visualY: blockMap.getAsInt('y'),

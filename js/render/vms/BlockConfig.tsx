@@ -14,6 +14,8 @@ import {ModulationSelector} from "./ModulationConfig";
 export interface BlockConfigProps {
     block: Block;
     updateBlock: (update: Partial<Block>) => void;
+    useAsStart: () => void;
+    isStart: boolean;
 }
 
 export function ValueSelector<T>(
@@ -99,21 +101,28 @@ function ConfigSection(props: {name: string, children: React.JSX.Element}) {
     </div>;
 }
 
-export function BlockConfig({block, updateBlock}: BlockConfigProps) {
+export function BlockConfig(props: BlockConfigProps) {
     return <div>
+        <Button onClick={props.useAsStart} disabled={props.isStart}>Use as start</Button>
         <ConfigSection name={'Target Value'}>
             <ValueSelector<AffectedValue>
-                current={block.target}
+                current={props.block.target}
                 values={AFFECTED_VALUES}
                 toString={vmsValueToString}
-                setValue={(newValue) => updateBlock({target: newValue})}
+                setValue={(newValue) => props.updateBlock({target: newValue})}
             />
         </ConfigSection>
         <ConfigSection name={'Target Factor'}>
-            <ValueOrConstantSelector current={block.targetFactor} setValue={(p) => updateBlock({targetFactor: p})}/>
+            <ValueOrConstantSelector
+                current={props.block.targetFactor}
+                setValue={(p) => props.updateBlock({targetFactor: p})}
+            />
         </ConfigSection>
         <ConfigSection name={'Modulation'}>
-            <ModulationSelector modulation={block.modulation} set={(modulation) => updateBlock({modulation})}/>
+            <ModulationSelector
+                modulation={props.block.modulation}
+                set={(modulation) => props.updateBlock({modulation})}
+            />
         </ConfigSection>
     </div>;
 }

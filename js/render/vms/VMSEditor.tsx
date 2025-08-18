@@ -1,6 +1,6 @@
 import {Allotment} from "allotment";
 import React, {useState} from "react";
-import {Block, BlockId, BlockIO, FullVMSData, MapReference} from "../../common/VMS";
+import {Block, BlockId, BlockIO, BlockMap, FullVMSData, MapReference} from "../../common/VMS";
 import {findBlockIndex} from "../../common/VMSOperations";
 import {BlockConfig} from "./BlockConfig";
 import {BlockEditor} from "./BlockEditor";
@@ -12,60 +12,64 @@ export interface VMSEditorProps {
 }
 
 export interface StartedArrow {
-    startBlock: BlockId;
-    startIO: BlockIO;
+    fromBlock: BlockId;
+    fromIO: BlockIO;
 }
 
 export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
-    const [currentMap, setCurrentMap] = useState<MapReference>();
-    const isValidMap = currentMap !== undefined &&
-        programs[currentMap.programId] !== undefined &&
-         programs[currentMap.programId].maps[currentMap.mapId] !== undefined;
-    const {programId, mapId} = currentMap || {programId: 0, mapId: 0};
-    const currentBlocks = isValidMap && programs[programId].maps[mapId].blocks;
+    const [currentMapId, setCurrentMapId] = useState<MapReference>();
+    const isValidMap = currentMapId !== undefined &&
+        programs[currentMapId.programId] !== undefined &&
+        programs[currentMapId.programId].maps[currentMapId.mapId] !== undefined;
+    const {programId, mapId} = currentMapId || {programId: 0, mapId: 0};
+    const currentMap = isValidMap && programs[programId].maps[mapId];
     const [selectedBlockId, setSelectedBlockId] = useState<number>(undefined);
-    const [canvas, blockConfig] = (() => {
+    const [mainCanvas, blockConfig] = (() => {
         if (!isValidMap) {
             return [<div/>, <div/>];
         }
-        const setBlocks = (newBlocks: Block[]) => {
+        const updateMap = (update: Partial<BlockMap>) => {
             const newPrograms = [...programs];
             const newProgram = {...newPrograms[programId]};
-            const newMap = {...newProgram.maps[mapId]};
-            newMap.blocks = newBlocks;
-            newProgram.maps[mapId] = newMap;
+            newProgram.maps[mapId] = {...currentMap, ...update};
             newPrograms[programId] = newProgram;
             setPrograms(newPrograms);
         };
         const canvas = <BlockEditor
-            blocks={currentBlocks}
-            setBlocks={setBlocks}
+            blocks={currentMap.blocks}
+            setBlocks={(blocks) => updateMap({blocks})}
             key={`${programId}/${mapId}`}
             selectBlock={setSelectedBlockId}
             selectedBlock={selectedBlockId}
+            startBlock={programs[programId].maps[mapId].startBlock}
         />;
         if (selectedBlockId !== undefined) {
-            const index = findBlockIndex(currentBlocks, selectedBlockId);
+            const arrayIndex = findBlockIndex(currentMap.blocks, selectedBlockId);
             const updateBlock = (update: Partial<Block>) => {
-                const updated = [...currentBlocks];
-                updated[index] = {...updated[index], ...update};
-                setBlocks(updated);
+                const updated = [...currentMap.blocks];
+                updated[arrayIndex] = {...updated[arrayIndex], ...update};
+                updateMap({blocks: updated});
             };
-            return [canvas, <BlockConfig block={currentBlocks[index]} updateBlock={(update) => updateBlock(update)}/>];
+            return [canvas, <BlockConfig
+                block={currentMap.blocks[arrayIndex]}
+                updateBlock={(update) => updateBlock(update)}
+                isStart={currentMap.startBlock === selectedBlockId}
+                useAsStart={() => updateMap({startBlock: selectedBlockId})}
+            />];
         } else {
             return [canvas, <div></div>];
         }
     })();
-    return <Allotment defaultSizes={[1, 4, 1]} >
-        <MapSelector data={programs} currentSelection={currentMap} setSelection={(newMap) => {
-            setCurrentMap(newMap);
+    return <Allotment defaultSizes={[1, 4, 1]}>
+        <MapSelector data={programs} currentSelection={currentMapId} setSelection={(newMap) => {
+            setCurrentMapId(newMap);
             setSelectedBlockId(undefined);
         }}/>
         <div style={{width: '100%', height: '100%'}}>
-        {canvas}
+            {mainCanvas}
         </div>
         <div style={{width: '100%', height: '100%'}}>
-        {blockConfig}
+            {blockConfig}
         </div>
     </Allotment>;
 }
