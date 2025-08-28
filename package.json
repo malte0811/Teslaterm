@@ -3,8 +3,6 @@
   "version": "0.1.0",
   "scripts": {
     "tsc": "tsc --build --incremental",
-    "build-dev": "npm run tsc && webpack --mode=development",
-    "build": "npm run tsc && webpack --mode=production",
     "start": "npm run tsc && electron .",
     "package-windows": "npm run tsc && electron-builder --windows --dir",
     "package-linux": "npm run tsc && electron-builder --linux --dir"
