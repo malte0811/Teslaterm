@@ -21,14 +21,14 @@ interface ConnectionProps extends ArrowProps {
     transform: ScaleAndOffset;
 }
 
-function applyTransform(xGlobal: number, yGlobal: number, transform: ScaleAndOffset): ControlPosition {
+export function logicToScreenCoords(xGlobal: number, yGlobal: number, transform: ScaleAndOffset): ControlPosition {
     return {
         x: xGlobal * transform.scale + transform.position.x,
         y: yGlobal * transform.scale + transform.position.y,
     };
 }
 
-function reverseTransform(screenPos: ControlPosition, transform: ScaleAndOffset): ControlPosition {
+export function screenToLogicCoords(screenPos: ControlPosition, transform: ScaleAndOffset): ControlPosition {
     return {
         x: (screenPos.x - transform.position.x) / transform.scale,
         y: (screenPos.y - transform.position.y) / transform.scale,
@@ -50,11 +50,11 @@ function Connection(props: ConnectionProps) {
         if (props.toBlock !== undefined) {
             return {x: props.toBlock.x + INPUT_CENTER_X_OFFSET, y: props.toBlock.y};
         } else {
-            return reverseTransform(props.mousePos, props.transform);
+            return screenToLogicCoords(props.mousePos, props.transform);
         }
     })();
     const pt = (point: ControlPosition, xOff: number = 0, yOff: number = 0) => {
-        const {x, y} = applyTransform(point.x + xOff, point.y + yOff, props.transform);
+        const {x, y} = logicToScreenCoords(point.x + xOff, point.y + yOff, props.transform);
         return `${x} ${y}`;
     };
     const pathStart = `M ${pt(props.startPosition)}`;
@@ -64,8 +64,8 @@ function Connection(props: ConnectionProps) {
 }
 
 function StartConnection({startPos, transform}: {startPos: ControlPosition, transform: ScaleAndOffset}) {
-    const strokeTo = applyTransform(startPos.x, startPos.y - 6, transform);
-    const strokeFrom = applyTransform(startPos.x, startPos.y - 30, transform);
+    const strokeTo = logicToScreenCoords(startPos.x, startPos.y - 6, transform);
+    const strokeFrom = logicToScreenCoords(startPos.x, startPos.y - 30, transform);
     return <path
         stroke={'green'}
         fill={'transparent'}

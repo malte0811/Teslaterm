@@ -1,19 +1,25 @@
-import {useState} from "react";
+import {KeyboardEvent, useState} from "react";
+import {ControlPosition} from "react-draggable";
 import {Block, BlockId, BlockIO} from "../../common/VMS";
-import {addConnection, findBlock, findBlockIndex, removeConnectionAt} from "../../common/VMSOperations";
+import {
+    addConnection, deleteBlock,
+    findBlock,
+    findBlockIndex, makeDefaultBlock,
+    removeConnectionAt,
+} from "../../common/VMSOperations";
 import {VMSBlockProps} from "./Block";
 import {ArrowProps} from "./BlockConnections";
+import {BlockEditorCanvas} from "./BlockEditorCanvas";
 import {getPosition} from "./VMSBlockOffsets";
 import {StartedArrow} from "./VMSEditor";
-import {VMSEditorCanvas} from "./VMSEditorCanvas";
 
 export interface BlockEditorProps {
     blocks: Block[];
     setBlocks: (newBlocks: Block[]) => void;
-    // TODO some sort of unselect mechanism
     selectedBlock?: BlockId;
     startBlock: BlockId;
     selectBlock: (selectedId: BlockId) => void;
+    nextFreeId: BlockId;
 }
 
 export function BlockEditor(props: BlockEditorProps) {
@@ -32,6 +38,26 @@ export function BlockEditor(props: BlockEditorProps) {
             console.log(newBlocks);
         }
         props.setBlocks(newBlocks);
+    };
+    const onKeyPress = (ev: KeyboardEvent) => {
+        if (ev.key === 'Delete' && props.selectedBlock !== undefined) {
+            if (props.startBlock === props.selectedBlock) {
+                // TODO toast or something
+            } else {
+                const newBlocks = structuredClone(props.blocks);
+                deleteBlock(newBlocks, props.selectedBlock);
+                props.setBlocks(newBlocks);
+                props.selectBlock(undefined);
+            }
+        } else if (ev.key === 'Escape') {
+            props.selectBlock(undefined);
+        }
+    };
+    const addBlockAt = (position: ControlPosition) => {
+        const addedBlock = makeDefaultBlock(props.nextFreeId);
+        addedBlock.visualX = position.x;
+        addedBlock.visualY = position.y;
+        props.setBlocks([...props.blocks, addedBlock]);
     };
 
     const updateBlock = (blockId: number, update: Partial<Block>) => {
@@ -69,10 +95,12 @@ export function BlockEditor(props: BlockEditorProps) {
         addArrow(startedArrow.fromBlock, startedArrow.fromIO, undefined);
     }
     const startBlock = findBlock(props.blocks, props.startBlock);
-    return <VMSEditorCanvas
+    return <BlockEditorCanvas
         arrows={arrows}
         blocks={blockElements}
         onAuxClick={() => setStartedArrow(undefined)}
         startPos={startBlock && getPosition(startBlock, 'in')}
+        onKeyPress={onKeyPress}
+        addBlock={addBlockAt}
     />;
 }

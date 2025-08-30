@@ -38,7 +38,6 @@ function FloatField({current, setValue}: {current: number, setValue: (newVal: nu
 }
 
 export function VMSColumnSubForm(props: {children: Array<string | React.JSX.Element>}) {
-    console.log(props.children);
     const rightCol = 8;
     const rows: React.JSX.Element[] = [];
     for (let i = 0; i + 1 < props.children.length; i += 2) {

@@ -1,12 +1,15 @@
-import React from "react";
 import {
     Block,
     BlockId,
-    BlockIO, BlockMap,
-    BlockOutput, ConstantOrValue, FullVMSData, Modulation,
-    modulationToString,
+    BlockIO,
+    BlockMap,
+    BlockOutput,
+    ConstantOrValue,
+    FullVMSData,
+    KnownValue,
+    Modulation,
     ModulationType,
-    NoteOffBehavior
+    NoteOffBehavior,
 } from "./VMS";
 
 // TODO may want a general sanitization function! Also for cleaning up IDs over the whole program set
@@ -36,6 +39,35 @@ export function removeConnectionTo(from: Block, to: BlockId) {
 
 export function removeConnectionsTo(blocks: Block[], to: BlockId) {
     blocks.forEach((b) => removeConnectionTo(b, to));
+}
+
+export function deleteBlock(blocks: Block[], toRemove: BlockId) {
+    removeConnectionsTo(blocks, toRemove);
+    blocks[findBlockIndex(blocks, toRemove)] = blocks[blocks.length - 1];
+    blocks.pop();
+}
+
+export function makeDefaultBlock(id: BlockId): Block {
+    return {
+        modulation: {type: ModulationType.step},
+        offBehavior: NoteOffBehavior.NORMAL,
+        outputBlocks: [],
+        periodMS: 1,
+        target: KnownValue.frequency,
+        targetFactor: {type: 'constant', value: 1},
+        uid: id,
+        visualX: 0,
+        visualY: 0,
+    };
+}
+
+export function findFreeId(programs: FullVMSData): BlockId {
+    const usedIds = programs.flatMap((p) => p.maps).flatMap((m) => m.blocks).map((b) => b.uid);
+    if (usedIds.length === 0) {
+        return 0;
+    } else {
+        return Math.max(...usedIds) + 1;
+    }
 }
 
 export function addConnection(blocks: Block[], blockA: BlockId, connA: BlockIO, blockB: BlockId, connB: BlockIO) {

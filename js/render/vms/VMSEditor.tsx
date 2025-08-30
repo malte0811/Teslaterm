@@ -1,7 +1,7 @@
 import {Allotment} from "allotment";
 import React, {useState} from "react";
 import {Block, BlockId, BlockIO, BlockMap, FullVMSData, MapReference} from "../../common/VMS";
-import {findBlockIndex} from "../../common/VMSOperations";
+import {findBlockIndex, findFreeId} from "../../common/VMSOperations";
 import {BlockConfig} from "./BlockConfig";
 import {BlockEditor} from "./BlockEditor";
 import {MapSelector} from "./MapSelector";
@@ -42,6 +42,7 @@ export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
             selectBlock={setSelectedBlockId}
             selectedBlock={selectedBlockId}
             startBlock={programs[programId].maps[mapId].startBlock}
+            nextFreeId={findFreeId(programs)}
         />;
         if (selectedBlockId !== undefined) {
             const arrayIndex = findBlockIndex(currentMap.blocks, selectedBlockId);

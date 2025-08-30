@@ -22,13 +22,16 @@ export function DraggableBlock(props: DraggableBlockProps) {
         defaultPosition={{x: 0, y: 0}}
         position={{x: props.block.visualX, y: props.block.visualY}}
         scale={props.scale}
-        onDrag={(_, data) => {
+        onStart={(ev) => ev.stopPropagation()}
+        onDrag={(ev, data) => {
             props.setDragging(true);
             props.updateBlock({visualX: data.x, visualY: data.y});
+            ev.stopPropagation();
         }}
-        onStop={(_, data) => {
+        onStop={(ev, data) => {
             props.setDragging(false);
             props.updateBlock({visualX: data.x, visualY: data.y});
+            ev.stopPropagation();
         }}
         nodeRef={nodeRef}
         // TODO bounds!
