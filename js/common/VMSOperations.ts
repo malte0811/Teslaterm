@@ -9,7 +9,7 @@ import {
     KnownValue,
     Modulation,
     ModulationType,
-    NoteOffBehavior,
+    NoteOffBehavior, Program,
 } from "./VMS";
 
 // TODO may want a general sanitization function! Also for cleaning up IDs over the whole program set
@@ -59,6 +59,27 @@ export function makeDefaultBlock(id: BlockId): Block {
         visualX: 0,
         visualY: 0,
     };
+}
+
+export function makeDefaultMap(startId: BlockId): BlockMap {
+    return {
+        ENA_PORTAMENTO: false,
+        blocks: [makeDefaultBlock(startId)],
+        // TODO good defaults
+        enableDamper: true,
+        enablePitchbend: true,
+        enableStereo: true,
+        enableVolume: true,
+        endNote: 127,
+        noteFrequency: {type: 'offset', midiNotes: 0},
+        startBlock: startId,
+        startNote: 0,
+        volumeModifier: 255,
+    };
+}
+
+export function makeDefaultProgram(startId: BlockId): Program {
+    return {maps: [makeDefaultMap(startId)], name: 'New Program'};
 }
 
 export function findFreeId(programs: FullVMSData): BlockId {

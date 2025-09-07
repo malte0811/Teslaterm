@@ -24,6 +24,7 @@ export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
     const {programId, mapId} = currentMapId || {programId: 0, mapId: 0};
     const currentMap = isValidMap && programs[programId].maps[mapId];
     const [selectedBlockId, setSelectedBlockId] = useState<number>(undefined);
+    const newBlockId = findFreeId(programs);
     const [mainCanvas, blockConfig] = (() => {
         if (!isValidMap) {
             return [<div/>, <div/>];
@@ -42,7 +43,7 @@ export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
             selectBlock={setSelectedBlockId}
             selectedBlock={selectedBlockId}
             startBlock={programs[programId].maps[mapId].startBlock}
-            nextFreeId={findFreeId(programs)}
+            nextFreeId={newBlockId}
         />;
         if (selectedBlockId !== undefined) {
             const arrayIndex = findBlockIndex(currentMap.blocks, selectedBlockId);
@@ -62,10 +63,16 @@ export function VMSEditor({programs, setPrograms}: VMSEditorProps) {
         }
     })();
     return <Allotment defaultSizes={[1, 4, 1]}>
-        <MapSelector data={programs} currentSelection={currentMapId} setSelection={(newMap) => {
-            setCurrentMapId(newMap);
-            setSelectedBlockId(undefined);
-        }}/>
+        <MapSelector
+            data={programs}
+            currentSelection={currentMapId}
+            setSelection={(newMap) => {
+                setCurrentMapId(newMap);
+                setSelectedBlockId(undefined);
+            }}
+            newBlockId={newBlockId}
+            setData={setPrograms}
+        />
         <div style={{width: '100%', height: '100%'}}>
             {mainCanvas}
         </div>
