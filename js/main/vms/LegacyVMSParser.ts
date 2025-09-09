@@ -206,17 +206,22 @@ function parseMapFromStructure(mapData: VMSDataMap): BlockMap {
     const freqIsOffset = mapData.getAsBool('FREQ_MODE');
     const freqValue = mapData.getAsInt('noteFrequency');
     return {
-        ENA_PORTAMENTO: mapData.getAsBool('ENA_PORTAMENTO'),
         blocks,
-        enableDamper: mapData.getAsBool('ENA_DAMPER'),
-        enablePitchbend: mapData.getAsBool('ENA_PITCHBEND'),
-        enableStereo: mapData.getAsBool('ENA_STEREO'),
-        enableVolume: mapData.getAsBool('ENA_VOLUME'),
-        endNote: mapData.getAsInt('endNote'),
-        noteFrequency: freqIsOffset ? {type: 'offset', midiNotes: freqValue} : {type: 'fixed', frequencyHz: freqValue},
+        options: {
+            enablePortamento: mapData.getAsBool('ENA_PORTAMENTO'),
+            enableDamper: mapData.getAsBool('ENA_DAMPER'),
+            enablePitchbend: mapData.getAsBool('ENA_PITCHBEND'),
+            enableStereo: mapData.getAsBool('ENA_STEREO'),
+            enableVolume: mapData.getAsBool('ENA_VOLUME'),
+            endNote: mapData.getAsInt('endNote'),
+            noteFrequency: freqIsOffset ? {type: 'offset', midiNotes: freqValue} : {
+                frequencyHz: freqValue,
+                type: 'fixed',
+            },
+            startNote: mapData.getAsInt('startNote'),
+            volumeScale: mapData.getAsInt('volumeModifier') / 255,
+        },
         startBlock: mapData.getAsInt('startBlock'),
-        startNote: mapData.getAsInt('startNote'),
-        volumeModifier: mapData.getAsInt('volumeModifier'),
     };
 }
 

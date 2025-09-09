@@ -1,8 +1,9 @@
 import {useState} from "react";
 import {Button, ButtonGroup} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {BlockId, BlockMap, FullVMSData, MapReference, Program} from "../../common/VMS";
+import {BlockId, BlockMap, FullVMSData, MapFrequency, MapReference, Program} from "../../common/VMS";
 import {makeDefaultMap, makeDefaultProgram} from "../../common/VMSOperations";
+import {MapConfig} from "./MapConfig";
 
 interface MapSelectorPropsBase<T> {
     data: T;
@@ -33,19 +34,35 @@ function MapSelectorButton(props: MapButtonProps) {
     const selectedMap = props.currentSelection;
     const selected = selectedMap?.programId === props.ownProgram && selectedMap?.mapId === props.ownMap;
     const variant = selected ? 'success' : 'info';
-    return <Dropdown as={ButtonGroup}>
-        <Button
-            variant={variant}
-            onClick={() => props.setSelection({programId: props.ownProgram, mapId: props.ownMap})}
-        >
-            {map.startNote} - {map.endNote}
-        </Button>
-        <Dropdown.Toggle split variant={variant} style={{flexGrow: 0}}/>
-        <Dropdown.Menu>
-            <Dropdown.Item>Configure map</Dropdown.Item>
-            <Dropdown.Item style={{background: 'red'}} onClick={props.deleteMap}>Delete map</Dropdown.Item>
-        </Dropdown.Menu>
-    </Dropdown>;
+    const [overlayState, setOverlayState] = useState({options: map.options, visible: false});
+    const showOverlay = () => setOverlayState({options: map.options, visible: true});
+    const closeOverlay = (save: boolean) => {
+        if (save) {
+            props.setData({...map, options: overlayState.options});
+        }
+        setOverlayState({options: overlayState.options, visible: false});
+    };
+    return <>
+        <Dropdown as={ButtonGroup}>
+            <Button
+                variant={variant}
+                onClick={() => props.setSelection({programId: props.ownProgram, mapId: props.ownMap})}
+            >
+                {map.options.startNote} - {map.options.endNote}
+            </Button>
+            <Dropdown.Toggle split variant={variant} style={{flexGrow: 0}}/>
+            <Dropdown.Menu>
+                <Dropdown.Item onClick={showOverlay}>Configure map</Dropdown.Item>
+                <Dropdown.Item style={{background: 'red'}} onClick={props.deleteMap}>Delete map</Dropdown.Item>
+            </Dropdown.Menu>
+        </Dropdown>
+        <MapConfig
+            options={overlayState.options}
+            setOptions={(o) => setOverlayState({visible: true, options: {...overlayState.options, ...o}})}
+            close={closeOverlay}
+            visible={overlayState.visible}
+        />
+    </>;
 }
 
 function SubMapSelector(props: SubMapSelectorProps) {

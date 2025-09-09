@@ -161,27 +161,28 @@ enum FLAGS {
 }
 
 function serializeMapEntry(entry: BlockMap, littleEndian: boolean) {
+    const options = entry.options;
     const buf = new VMSBuffer(11, littleEndian);
     buf.writeUint8(3);
-    buf.writeUint8(entry.startNote);
-    buf.writeUint8(entry.endNote);
-    const frequency = entry.noteFrequency;
+    buf.writeUint8(options.startNote);
+    buf.writeUint8(options.endNote);
+    const frequency = options.noteFrequency;
     buf.writeUint16(frequency.type === 'fixed' ? frequency.frequencyHz : frequency.midiNotes);
-    buf.writeUint8(entry.volumeModifier);
+    buf.writeUint8(options.volumeScale * 255);
     let flag = 0;
-    if (entry.enablePitchbend) {
+    if (options.enablePitchbend) {
         flag |= FLAGS.MAP_ENA_PITCHBEND;
     }
-    if (entry.enableStereo) {
+    if (options.enableStereo) {
         flag |= FLAGS.MAP_ENA_STEREO;
     }
-    if (entry.enableVolume) {
+    if (options.enableVolume) {
         flag |= FLAGS.MAP_ENA_VOLUME;
     }
-    if (entry.enableDamper) {
+    if (options.enableDamper) {
         flag |= FLAGS.MAP_ENA_DAMPER;
     }
-    if (entry.ENA_PORTAMENTO) {
+    if (options.enablePortamento) {
         flag |= FLAGS.MAP_ENA_PORTAMENTO;
     }
     if (frequency.type === 'offset') {

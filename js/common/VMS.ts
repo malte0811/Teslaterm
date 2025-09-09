@@ -218,14 +218,14 @@ export interface Block {
 
 export type MapFrequency = { type: 'offset', midiNotes: number } | { type: 'fixed', frequencyHz: number };
 
-export interface BlockMap {
+export interface MapOptions {
     // Note range (closed interval) for which this map should be used. It is valid for multiple maps in the same program
     // to include the same note, in this case multiple voices will be added for a single NoteOn event.
     startNote: number;
     endNote: number;
     noteFrequency: MapFrequency;
-    // Scale note volume by value/255 while map is active
-    volumeModifier: number;
+    // Scale note volume by this while map is active
+    volumeScale: number;
     // Should MIDI pitchbend affect notes handled by this block?
     enablePitchbend: boolean;
     // TODO seem to be various volume multipliers? enableVolume also depends on note velocity
@@ -233,7 +233,11 @@ export interface BlockMap {
     enableVolume: boolean;
     enableDamper: boolean;
     // TODO a bit magical, not clear if this is active in the current UD3 code?
-    ENA_PORTAMENTO: boolean;
+    enablePortamento: boolean;
+}
+
+export interface BlockMap {
+    options: MapOptions;
     // ID of the first block of this map
     // TODO maybe use a different ID concept in memory? In UD3, IDs are global across maps.
     startBlock: number;

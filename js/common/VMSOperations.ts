@@ -63,18 +63,20 @@ export function makeDefaultBlock(id: BlockId): Block {
 
 export function makeDefaultMap(startId: BlockId): BlockMap {
     return {
-        ENA_PORTAMENTO: false,
         blocks: [makeDefaultBlock(startId)],
-        // TODO good defaults
-        enableDamper: true,
-        enablePitchbend: true,
-        enableStereo: true,
-        enableVolume: true,
-        endNote: 127,
-        noteFrequency: {type: 'offset', midiNotes: 0},
+        options: {
+            // TODO good defaults
+            enableDamper: true,
+            enablePitchbend: true,
+            enablePortamento: false,
+            enableStereo: true,
+            enableVolume: true,
+            endNote: 127,
+            noteFrequency: {type: 'offset', midiNotes: 0},
+            startNote: 0,
+            volumeScale: 1,
+        },
         startBlock: startId,
-        startNote: 0,
-        volumeModifier: 255,
     };
 }
 
