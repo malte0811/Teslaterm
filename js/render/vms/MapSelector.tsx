@@ -1,7 +1,7 @@
 import {useState} from "react";
 import {Button, ButtonGroup} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {BlockId, BlockMap, FullVMSData, MapFrequency, MapReference, Program} from "../../common/VMS";
+import {BlockId, BlockMap, FullVMSData, MapReference, Program} from "../../common/VMS";
 import {makeDefaultMap, makeDefaultProgram} from "../../common/VMSOperations";
 import {MapConfig} from "./MapConfig";
 
@@ -114,8 +114,6 @@ function SubMapSelector(props: SubMapSelectorProps) {
 // TODO
 // - Program context
 //   - Renaming programs
-// - Map context
-//   - Maps need a general settings popup!
 export function MapSelector(props: MapSelectorProps) {
     const setProgram = (index: number, newProgram: Program) => {
         const newPrograms = [...props.data];
@@ -130,7 +128,7 @@ export function MapSelector(props: MapSelectorProps) {
         if (props.currentSelection?.programId === toDelete) {
             props.setSelection(undefined);
         }
-        props.setData(props.data.filter((p, i) => i !== toDelete));
+        props.setData(props.data.filter((_, i) => i !== toDelete));
     };
     const addProgram = () => props.setData([...props.data, makeDefaultProgram(props.newBlockId)]);
     return <div style={{height: '100%', width: '100%', overflowY: 'auto'}}>

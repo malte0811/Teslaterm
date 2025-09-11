@@ -1,10 +1,34 @@
 import React, {CSSProperties, KeyboardEventHandler, MouseEventHandler, useRef, useState} from "react";
 import {Button} from "react-bootstrap";
-import {ControlPosition} from "react-draggable";
+import Draggable, {ControlPosition, DraggableData, DraggableEvent} from "react-draggable";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
-import {VMSBlockProps} from "./Block";
+import {BlockComponent, VMSBlockProps} from "./Block";
 import {ArrowProps, BlockConnections, ScaleAndOffset, screenToLogicCoords} from "./BlockConnections";
-import {DraggableBlock} from "./DraggableBlock";
+
+interface DraggableBlockProps extends VMSBlockProps {
+    setDragging: (b: boolean) => void;
+    scale: number;
+}
+
+export function DraggableBlock(props: DraggableBlockProps) {
+    const nodeRef = useRef(null);
+    const handleDrag = (ev: DraggableEvent, data: DraggableData, start: boolean) => {
+        props.setDragging(start);
+        props.updateBlock({visualX: data.x, visualY: data.y});
+        ev.stopPropagation();
+    };
+    return <Draggable
+        position={{x: props.block.visualX, y: props.block.visualY}}
+        scale={props.scale}
+        onStart={(ev) => ev.stopPropagation()}
+        onDrag={(ev, data) => handleDrag(ev, data, true)}
+        onStop={(ev, data) => handleDrag(ev, data, false)}
+        nodeRef={nodeRef}
+        // TODO bounds!
+    >
+        <div ref={nodeRef} className={'vms-block-draggable-wrapper'}><BlockComponent {...props}/></div>
+    </Draggable>;
+}
 
 export interface EditorCanvasProps {
     arrows: ArrowProps[];
@@ -20,7 +44,6 @@ export function BlockEditorCanvas(props: EditorCanvasProps) {
     const [draggingElement, setDraggingElement] = useState(false);
     const [transform, setTransform] = useState<ScaleAndOffset>({position: {x: 0, y: 0}, scale: 1});
     const mainRef = useRef<HTMLDivElement>();
-    // TODO hack
     const wrappedBlocks = props.blocks.map((block, i) => <DraggableBlock
         {...block}
         onClick={() => {

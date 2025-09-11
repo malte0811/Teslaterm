@@ -43,3 +43,11 @@
 .vms-mapsel-map-row {
     margin-left: 10%;
 }
+
+.vms-block-draggable-wrapper {
+    height: min-content;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: min-content;
+}

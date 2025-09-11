@@ -1,4 +1,5 @@
 import React from "react";
+import {useCaseSensitiveFileNames} from "ts-loader/dist/utils";
 import {
     ExpModulation,
     InverseExpModulation,
@@ -9,9 +10,9 @@ import {
     SineModulation,
     StepModulation,
 } from "../../common/VMS";
+import {makeInitialModulation} from "../../common/VMSOperations";
 import {getEnumValues} from "../../main/helper";
 import {ValueOrConstantSelector, ValueSelector, VMSColumnSubForm} from "./BlockConfig";
-import {makeInitialModulation} from "../../common/VMSOperations";
 
 function LinearModulation({value, set}: {value: LinearModulation, set: (newVal: LinearModulation) => void}) {
     return <VMSColumnSubForm>
@@ -56,9 +57,9 @@ export function ModulationSelector({modulation, set}: {modulation: Modulation, s
                 return <LinearModulation value={modulation} set={set}/>;
             case ModulationType.sine:
                 return <SineModulation value={modulation} set={set}/>;
+            case ModulationType.step:
+                return <></>;
         }
-        modulation satisfies StepModulation;
-        return <></>;
     })();
     return <div>
         {typeSelector}
