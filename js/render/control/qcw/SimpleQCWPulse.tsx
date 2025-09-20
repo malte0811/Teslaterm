@@ -5,6 +5,9 @@ import {UIConfigContext} from "../../Contexts";
 import {processIPC} from "../../ipc/IPCProvider";
 import {SimpleSlider} from "../sliders/SimpleSlider";
 
+export const QCW_STEPS_PER_MS = 8;
+export const QCW_STEPS = 400;
+
 interface ExtraOptions {
     step?: number;
     displayScale?: number;
@@ -27,9 +30,9 @@ const QCW_SLIDERS: QCWSliderSpec[] = (() => {
     // TODO check unit for frequency
     return [
         makeSpec('Pulse Width', 'ms', 0, 15, 'pulseWidth', {step: 0.05}),
-        makeSpec('Slope', 'cnt/ms', 0, 5, 'slope', {step: 0.1, displayScale: 8}),
+        makeSpec('Slope', 'cnt/ms', 0, 5, 'slope', {step: 0.1, displayScale: QCW_STEPS_PER_MS}),
         makeSpec('Offset', 'cnt', 0, 255, 'initialValue'),
-        makeSpec('Holdoff', 'ms', 0, 400, 'initialTime', {displayScale: 0.125}),
+        makeSpec('Holdoff', 'ms', 0, 400, 'initialTime', {displayScale: 1 / QCW_STEPS_PER_MS}),
         makeSpec('Maximum', 'cnt', 0, 255, 'maxValue'),
         makeSpec('Modulation volume', 'cnt', 0, 255, 'modulationAmplitude'),
         makeSpec('Modulation frequency', 'Hz', 10, 2000, 'modulationFreq'),

@@ -14,6 +14,7 @@ import {MediaFileType, PlayerActivity} from "../../../common/MediaTypes";
 import {useIPCListener} from "../../TTComponent";
 import {ControlledDraw, ControlledDrawProps, DrawCommand} from "./ControlledDraw";
 import {MediaProgress} from "./MediaProgress";
+import {QCWRamp} from "./QCWRamp";
 import {ScopeSettings} from "./ScopeSettings";
 import {ScopeStatistics} from "./ScopeStatistics";
 import {OscilloscopeTrace, TraceConfig} from "./Trace";
@@ -161,8 +162,12 @@ export function Oscilloscope(props: OscilloscopeProps) {
         content: <MainOscilloscope traces={traces} media={mediaState} clearStats={clearStats}/>,
         title: "Telemetry",
     }];
-    // TODO if QCW, add "live" ramp plot tab! If not fully live (for bandwidth during music?), at least with a update
-    //  button in the UI
+    // TODO only if QCW!
+    const fakeQCWData: number[] = new Array(200).fill(0);
+    for (let i = 0; i < 110; ++i) {
+        fakeQCWData[i] = 2 * i;
+    }
+    tabContents.push({content: <QCWRamp points={fakeQCWData}/>, title: 'QCW ramp'});
     const fixedTabs = tabContents.length;
     const [controlledDraws, deleteDraw] = useControlledDraw(props.coil, setCurrentTab);
     controlledDraws.forEach((draw, i) => tabContents.push({

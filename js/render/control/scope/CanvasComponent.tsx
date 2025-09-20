@@ -78,7 +78,7 @@ export function NewCanvasComponent(props: CanvasProps) {
         resizeObserver.observe(div);
         return () => resizeObserver.unobserve(div);
     }, []);
-    return <div ref={divRef}>
+    return <div ref={divRef} style={{width: '100%', height: '100%'}}>
         <canvas ref={canvasRef} className={'tt-canvas'}/>
     </div>;
 }
