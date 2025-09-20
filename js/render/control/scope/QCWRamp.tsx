@@ -1,5 +1,5 @@
 import {QCW_STEPS_PER_MS} from "../qcw/SimpleQCWPulse";
-import {NewCanvasComponent} from "./CanvasComponent";
+import {CanvasComponent} from "./CanvasComponent";
 import {drawGrid, interpolate, Interval, uniformGrid} from "./Traces";
 
 export interface QCWRampProps {
@@ -15,7 +15,7 @@ const TEXT_SIZE = 15;
 const Y_SIZE = 256;
 
 export function QCWRamp(props: QCWRampProps) {
-    return <NewCanvasComponent render={(ctx, width, height) => {
+    return <CanvasComponent render={(ctx, width, height) => {
         const relativeYInterval: Interval = [TOP_SPACE / height, 1 - BOTTOM_SPACE / height];
         const horizontalLines = uniformGrid(Y_GRID_SIZE, relativeYInterval);
         const xSize = props.points.length;

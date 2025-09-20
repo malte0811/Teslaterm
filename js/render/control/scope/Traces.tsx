@@ -1,4 +1,4 @@
-import {NewCanvasComponent} from "./CanvasComponent";
+import {CanvasComponent} from "./CanvasComponent";
 import {NUM_VERTICAL_DIVS, OscilloscopeTrace, TraceConfig} from "./Trace";
 
 const PIXELS_PER_HORIZONTAL_DIV = 100;
@@ -75,7 +75,7 @@ function drawTrace(
 }
 
 export function Traces(props: TraceProps) {
-    return <NewCanvasComponent
+    return <CanvasComponent
         render={(ctx, width, height) => {
             const horizontalLines = uniformGrid(NUM_VERTICAL_DIVS);
             const verticalLines: number[] = [0];
