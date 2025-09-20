@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect, useRef} from "react";
 import {TTComponent} from "../../TTComponent";
 
 export abstract class CanvasComponent<Props, State> extends TTComponent<Props, State> {
@@ -48,4 +48,37 @@ export abstract class CanvasComponent<Props, State> extends TTComponent<Props, S
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         this.draw(ctx, canvas.width, canvas.height);
     }
+}
+
+export interface CanvasProps {
+    render: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+    renderDeps: React.DependencyList;
+}
+
+export function NewCanvasComponent(props: CanvasProps) {
+    const canvasRef: React.RefObject<HTMLCanvasElement> = useRef();
+    const divRef: React.RefObject<HTMLDivElement> = useRef();
+    const refresh = () => {
+        const canvas = canvasRef.current;
+        const div = divRef.current;
+        const ctx = canvas && canvas.getContext('2d');
+        if (!canvas || !div || !ctx) {
+            return;
+        }
+        canvas.height = div.offsetHeight;
+        canvas.width = div.offsetWidth;
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        props.render(ctx, canvas.width, canvas.height);
+    };
+    useEffect(refresh, [props.renderDeps]);
+    const resizeObserver: ResizeObserver = new ResizeObserver(refresh);
+    useEffect(() => {
+        const div = divRef.current;
+        resizeObserver.observe(div);
+        return () => resizeObserver.unobserve(div);
+    }, []);
+    return <div ref={divRef}>
+        <canvas ref={canvasRef} className={'tt-canvas'}/>
+    </div>;
 }
