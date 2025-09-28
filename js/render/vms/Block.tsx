@@ -1,12 +1,10 @@
 import {CSSProperties} from "react";
-import {Block, BlockIO, ModulationType} from "../../common/VMS";
+import {Block, BlockIO, ModulationType, vmsValueToString} from "../../common/VMS";
 import {
     BLOCK_STYLE,
     BlockInput,
     BlockOffout,
-    BlockOutputs, MODULATION_CENTER_X_OFFSET, MODULATION_CENTER_Y_OFFSET,
-    MODULATION_HEIGHT,
-    MODULATION_WIDTH,
+    BlockOutputs, MODULATION_HEIGHT, MODULATION_WIDTH,
 } from "./VMSBlockOffsets";
 
 export interface VMSBlockProps {
@@ -43,15 +41,11 @@ function ModulationVisualizer({type}: {type: ModulationType}) {
             }
         }
     })();
-    const style: CSSProperties = {
-        background: 'white',
+    const extraStyle: CSSProperties = {
         height: MODULATION_HEIGHT,
-        left: MODULATION_CENTER_X_OFFSET - MODULATION_WIDTH / 2,
-        position: "absolute",
-        top: MODULATION_CENTER_Y_OFFSET - MODULATION_HEIGHT / 2,
         width: MODULATION_WIDTH,
     };
-    return <svg style={style}>
+    return <svg className={'vms-block-modulation'} style={extraStyle}>
         <path d={pathSpec} stroke={'orange'} fill={'transparent'} strokeWidth={4}/>
     </svg>;
 }
@@ -59,16 +53,25 @@ function ModulationVisualizer({type}: {type: ModulationType}) {
 export function BlockComponent(props: VMSBlockProps) {
     // TODO move styles to CSS file, make a bit fancier
     // TODO to show:
-    // - Window with waveform illustration
     // - Target value
     // - Target factor
     // - Period
-    // - Something for the start box!
     const className = 'vms-editor-block' + (props.selected ? '-selected' : '');
+    const targetFactorString = (() => {
+        const targetFactor = props.block.targetFactor;
+        if (targetFactor.type === 'constant') {
+            return targetFactor.value.toFixed(2);
+        } else {
+            return vmsValueToString(targetFactor.value);
+        }
+    })();
     return <div className={className} style={BLOCK_STYLE} onClick={props.onClick}>
         <ModulationVisualizer type={props.block.modulation.type}/>
         <BlockOutputs block={props.block} onClick={props.onIOClick}/>
         <BlockInput onClick={props.onIOClick}/>
         <BlockOffout onClick={props.onIOClick}/>
+        <div className={'vms-block-target'}>{vmsValueToString(props.block.target)}</div>
+        <div className={'vms-block-factor'}>{targetFactorString}</div>
+        <div className={'vms-block-period'}>{props.block.periodMS.toFixed(0)}ms</div>
     </div>;
 }

@@ -2,6 +2,7 @@
 .vms-editor-block, .vms-editor-block-selected {
     background: gray;
     position: relative;
+    border-radius: 10px;
 }
 
 .vms-editor-block-selected {
@@ -15,16 +16,22 @@
 .vms-editor-block-output {
     background: blue;
     bottom: 0;
+    border-top-left-radius: 50%;
+    border-top-right-radius: 50%;
 }
 
 .vms-editor-block-input {
     background: black;
     top: 0;
+    border-bottom-left-radius: 50%;
+    border-bottom-right-radius: 50%;
 }
 
 .vms-editor-block-off {
     background: red;
     left: 0;
+    border-bottom-right-radius: 50%;
+    border-top-right-radius: 50%;
 }
 
 .vms-mapsel-row-selected {
@@ -50,4 +57,33 @@
     position: absolute;
     top: 0;
     width: min-content;
+}
+
+.vms-block-target, .vms-block-factor, .vms-block-period {
+    font-size: 12px;
+    color: black;
+    position: absolute;
+}
+
+.vms-block-target {
+    position: relative;
+    text-align: center;
+    top: 8px;
+}
+
+.vms-block-factor {
+    left: 1px;
+    bottom: 30%;
+}
+
+.vms-block-period {
+    right: 1px;
+    bottom: 30%;
+}
+
+.vms-block-modulation {
+    background: white;
+    position: absolute;
+    left: 12.5%;
+    top: 25px;
 }

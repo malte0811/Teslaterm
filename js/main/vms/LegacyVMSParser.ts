@@ -173,7 +173,7 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
                 blockMap.getAsIntOrUndef('nextBlock[2]'),
                 blockMap.getAsIntOrUndef('nextBlock[3]'),
             ],
-            periodMS: blockMap.getAsInt('param[3]'),
+            periodMS: blockMap.getAsInt('param[3]') / 1000,
             target: parseEnumValue(blockMap.getAsString('target'), KnownValue) as AffectedValue,
             targetFactor: parseConstOrValue(blockMap, AmbiguousValue.targetFactor, modulation.type),
             uid: blockMap.getAsInt('uid'),

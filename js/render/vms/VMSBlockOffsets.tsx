@@ -7,9 +7,7 @@ export const BLOCK_HEIGHT = 150;
 export const BLOCK_IO_SIZE = 0.1 * BLOCK_WIDTH;
 export const INPUT_CENTER_X_OFFSET = 0.5 * BLOCK_WIDTH;
 export const OFFOUT_CENTER_Y_OFFSET = 0.5 * BLOCK_HEIGHT;
-export const MODULATION_CENTER_X_OFFSET = 0.5 * BLOCK_WIDTH;
-export const MODULATION_CENTER_Y_OFFSET = 0.3 * BLOCK_HEIGHT;
-export const MODULATION_WIDTH = 0.8 * BLOCK_WIDTH;
+export const MODULATION_WIDTH = 0.75 * BLOCK_WIDTH;
 export const MODULATION_HEIGHT = 0.4 * BLOCK_HEIGHT;
 
 export const BLOCK_STYLE: CSSProperties = {
