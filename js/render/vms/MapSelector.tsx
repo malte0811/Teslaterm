@@ -1,8 +1,8 @@
 import {useState} from "react";
 import {Button, ButtonGroup} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
-import {BlockId, BlockMap, FullVMSData, MapReference, Program} from "../../common/VMS";
-import {makeDefaultMap, makeDefaultProgram} from "../../common/VMSOperations";
+import {BlockId, BlockMap, FullVMSData, MapReference, Program} from "../../common/vms/VMS";
+import {makeDefaultMap, makeDefaultProgram} from "../../common/vms/VMSOperations";
 import {MapConfig} from "./MapConfig";
 
 interface MapSelectorPropsBase<T> {

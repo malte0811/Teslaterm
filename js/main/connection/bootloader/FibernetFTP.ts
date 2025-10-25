@@ -1,7 +1,7 @@
 import {Client} from "basic-ftp";
 import net from "net";
 import {promisify} from "util";
-import {withTimeout} from "../../helper";
+import {withTimeout} from "../../../common/helper";
 import {getCoilCommands} from "../connection";
 import {BootloadableConnection} from "./bootloadable_connection";
 

@@ -1,5 +1,5 @@
 // Based on https://github.com/og2t/jsSID/blob/master/source/jsSID.js
-import {convertArrayBufferToString} from "../helper";
+import {convertArrayBufferToString} from "../../common/helper";
 import {FRAME_LENGTH, ISidSource, SidFrame} from "./sid_api";
 import {NTSC, PAL, TimingStandard} from "./SIDConstants";
 

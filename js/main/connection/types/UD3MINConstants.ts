@@ -1,4 +1,4 @@
-import {convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
+import {convertBufferToString, Endianness, from_32_bit_bytes} from "../../../common/helper";
 
 export enum UD3MinIDs {
     WATCHDOG = 10,

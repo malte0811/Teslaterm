@@ -1,7 +1,7 @@
 import os from "os";
 import {SerialPort} from "serialport";
 import {AvailableSerialPort, IUDPConnectionSuggestion} from "../../../common/IPCConstantsToRenderer";
-import {convertArrayBufferToString, sleep} from "../../helper";
+import {convertArrayBufferToString, sleep} from "../../../common/helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {computeBroadcastAddress, createBroadcastSocket} from "../udp_helper";
 

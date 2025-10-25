@@ -1,5 +1,5 @@
 import {jspack} from "jspack";
-import {withTimeout} from "../../helper";
+import {withTimeout} from "../../../common/helper";
 import {CyacdRow} from "./CyacdRow";
 
 const DATA = 0x37;

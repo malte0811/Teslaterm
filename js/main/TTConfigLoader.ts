@@ -8,7 +8,7 @@ import {
     FEATURE_TIMECOUNT,
 } from "../common/constants";
 import {TTConfig} from "../common/TTConfig";
-import {convertArrayBufferToString} from "./helper";
+import {convertArrayBufferToString} from "../common/helper";
 
 interface ChangedFlag {
     changed: boolean;

@@ -1,7 +1,7 @@
 import {useRef, useState} from "react";
-import {FullVMSData} from "../../common/VMS";
-import {makeDefaultProgram} from "../../common/VMSOperations";
-import {parseLegacyVMSFile} from "../../main/vms/LegacyVMSParser";
+import {FullVMSData} from "../../common/vms/VMS";
+import {makeDefaultProgram} from "../../common/vms/VMSOperations";
+import {parseLegacyVMSFile} from "../../common/vms/LegacyVMSParser";
 import {useDropCallback} from "../ScreenWithDrop";
 import {VMSEditor} from "./VMSEditor";
 

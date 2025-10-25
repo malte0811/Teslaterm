@@ -1,7 +1,7 @@
 import {Allotment} from "allotment";
 import React, {useState} from "react";
-import {Block, BlockId, BlockIO, BlockMap, FullVMSData, MapReference} from "../../common/VMS";
-import {findBlockIndex, findFreeId} from "../../common/VMSOperations";
+import {Block, BlockId, BlockIO, BlockMap, FullVMSData, MapReference} from "../../common/vms/VMS";
+import {findBlockIndex, findFreeId} from "../../common/vms/VMSOperations";
 import {BlockConfig} from "./BlockConfig";
 import {BlockEditor} from "./BlockEditor";
 import {MapSelector} from "./MapSelector";

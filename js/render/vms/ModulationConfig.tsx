@@ -9,9 +9,9 @@ import {
     ModulationType,
     SineModulation,
     StepModulation,
-} from "../../common/VMS";
-import {makeInitialModulation} from "../../common/VMSOperations";
-import {getEnumValues} from "../../main/helper";
+} from "../../common/vms/VMS";
+import {makeInitialModulation} from "../../common/vms/VMSOperations";
+import {getEnumValues} from "../../common/helper";
 import {ValueOrConstantSelector, ValueSelector, VMSColumnSubForm} from "./BlockConfig";
 
 function LinearModulation({value, set}: {value: LinearModulation, set: (newVal: LinearModulation) => void}) {

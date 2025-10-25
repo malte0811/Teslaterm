@@ -1,4 +1,5 @@
 import {ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {AmbiguousValue, getConstantScale, VARIABLE_VALUE_DATA} from "../../common/vms/LegacyVMSParser";
 import {
     Block,
     BlockMap,
@@ -8,10 +9,9 @@ import {
     ModulationType,
     OUTPUTS,
     Program,
-} from "../../common/VMS";
+} from "../../common/vms/VMS";
 import {UD3Connection} from "../connection/types/UD3Connection";
 import {ipcs} from "../ipc/IPCProvider";
-import {AmbiguousValue, getConstantScale, VARIABLE_VALUE_DATA} from "./LegacyVMSParser";
 
 class VMSBuffer {
     private readonly buffer: ArrayBuffer;
@@ -188,6 +188,7 @@ function serializeMapEntry(entry: BlockMap, littleEndian: boolean) {
     if (frequency.type === 'offset') {
         flag |= FLAGS.MAP_FREQ_MODE;
     }
+    // TODO Blocks with no outputs should get VMS_FLAG_ISBLOCKPERSISTENT (?) May be done in UD3?
     buf.writeUint8(flag);
     buf.writeUint32(entry.startBlock);
     return buf.getBuffer();

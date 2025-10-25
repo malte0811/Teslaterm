@@ -1,12 +1,12 @@
 import {KeyboardEvent, useState} from "react";
 import {ControlPosition} from "react-draggable";
-import {Block, BlockId, BlockIO} from "../../common/VMS";
+import {Block, BlockId, BlockIO} from "../../common/vms/VMS";
 import {
     addConnection, deleteBlock,
     findBlock,
     findBlockIndex, makeDefaultBlock,
     removeConnectionAt,
-} from "../../common/VMSOperations";
+} from "../../common/vms/VMSOperations";
 import {VMSBlockProps} from "./Block";
 import {ArrowProps} from "./BlockConnections";
 import {BlockEditorCanvas} from "./BlockEditorCanvas";

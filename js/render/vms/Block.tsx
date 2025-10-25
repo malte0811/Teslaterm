@@ -1,5 +1,5 @@
 import {CSSProperties} from "react";
-import {Block, BlockIO, ModulationType, vmsValueToString} from "../../common/VMS";
+import {Block, BlockIO, ModulationType, vmsValueToString} from "../../common/vms/VMS";
 import {
     BLOCK_STYLE,
     BlockInput,
@@ -51,11 +51,6 @@ function ModulationVisualizer({type}: {type: ModulationType}) {
 }
 
 export function BlockComponent(props: VMSBlockProps) {
-    // TODO move styles to CSS file, make a bit fancier
-    // TODO to show:
-    // - Target value
-    // - Target factor
-    // - Period
     const className = 'vms-editor-block' + (props.selected ? '-selected' : '');
     const targetFactorString = (() => {
         const targetFactor = props.block.targetFactor;

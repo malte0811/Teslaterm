@@ -1,8 +1,8 @@
 import React from "react";
 import {Button, Form, Modal} from "react-bootstrap";
 import ReactRangeSliderInput from "react-range-slider-input";
-import {MapFrequency, MapOptions} from "../../common/VMS";
-import {KeyOfType} from "../../main/helper";
+import {MapFrequency, MapOptions} from "../../common/vms/VMS";
+import {KeyOfType} from "../../common/helper";
 import {SimpleSlider} from "../control/sliders/SimpleSlider";
 
 export interface MapConfigProps {

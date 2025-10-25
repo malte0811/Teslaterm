@@ -98,7 +98,6 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
         ];
     }
     if (object.showmodeOptions === undefined) {
-        // TODO check if these are OK settings!
         object.showmodeOptions = {
             precount: {
                 delayMs: 500,

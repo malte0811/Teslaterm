@@ -12,8 +12,6 @@ import {
     NoteOffBehavior, Program,
 } from "./VMS";
 
-// TODO may want a general sanitization function! Also for cleaning up IDs over the whole program set
-
 export function findBlockIndex(blocks: Block[], block: BlockId) {
     return blocks.findIndex((b) => b.uid === block);
 }
@@ -65,7 +63,7 @@ export function makeDefaultMap(startId: BlockId): BlockMap {
     return {
         blocks: [makeDefaultBlock(startId)],
         options: {
-            // TODO good defaults
+            // TODO (Thorben) good defaults
             enableDamper: true,
             enablePitchbend: true,
             enablePortamento: false,
@@ -141,7 +139,6 @@ function cleanVMSMap(map: BlockMap, firstBlock: BlockId): BlockId {
     const blockMap = new Map<BlockId, BlockId>();
     for (const block of map.blocks) {
         blockMap.set(block.uid, nextBlock);
-        console.log(`Mapping ${block.uid} to ${nextBlock}`);
         ++nextBlock;
     }
     const getNewId = (oldId: BlockId) => {
@@ -159,7 +156,8 @@ function cleanVMSMap(map: BlockMap, firstBlock: BlockId): BlockId {
 
 export function cleanVMSConfig(programs: FullVMSData) {
     const newPrograms = structuredClone(programs);
-    // TODO is 0 a valid ID?
+    // Avoid using block ID 0 for now, it looks like the VMS code sometimes uses this as the invalid block ID, e.g. for
+    // the off-block. TODO (Thorben) is this intended?
     let nextBlock = 1;
     for (const program of newPrograms) {
         for (const map of program.maps) {

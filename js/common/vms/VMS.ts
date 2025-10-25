@@ -1,4 +1,4 @@
-import {getEnumValues} from "../main/helper";
+import {getEnumValues} from "../helper";
 
 export type BlockId = number;
 
@@ -30,96 +30,10 @@ export const AFFECTED_VALUES: AffectedValue[] = [
     KnownValue.circ2, KnownValue.circ3, KnownValue.circ4, KnownValue.HyperVoice_Count, KnownValue.HyperVoice_Phase,
     KnownValue.HyperVoice_Volume,
 ];
-// TODO better way?
 export const KNOWN_VALUES = getEnumValues(KnownValue);
 
 export function vmsValueToString(value: KnownValue) {
-    // TODO not happy with this, look into alternatives
-    switch (value) {
-        case KnownValue.maxOnTime:
-            return 'maxOnTime';
-        case KnownValue.minOnTime:
-            return 'minOnTime';
-        case KnownValue.onTime:
-            return "onTime";
-        case KnownValue.otCurrent:
-            return 'otCurrent';
-        case KnownValue.otTarget:
-            return 'otTarget';
-        case KnownValue.otFactor:
-            return 'otFactor';
-        case KnownValue.frequency:
-            return 'frequency';
-        case KnownValue.freqCurrent:
-            return 'freqCurrent';
-        case KnownValue.freqTarget:
-            return 'freqTarget';
-        case KnownValue.freqFactor:
-            return 'freqFactor';
-        case KnownValue.noise:
-            return 'noise';
-        case KnownValue.pTime:
-            return 'pTime';
-        case KnownValue.circ1:
-            return 'circ1';
-        case KnownValue.circ2:
-            return 'circ2';
-        case KnownValue.circ3:
-            return 'circ3';
-        case KnownValue.circ4:
-            return 'circ4';
-        case KnownValue.CC_102:
-            return 'CC_102';
-        case KnownValue.CC_103:
-            return 'CC_103';
-        case KnownValue.CC_104:
-            return 'CC_104';
-        case KnownValue.CC_105:
-            return 'CC_105';
-        case KnownValue.CC_106:
-            return 'CC_106';
-        case KnownValue.CC_107:
-            return 'CC_107';
-        case KnownValue.CC_108:
-            return 'CC_108';
-        case KnownValue.CC_109:
-            return 'CC_109';
-        case KnownValue.CC_110:
-            return 'CC_110';
-        case KnownValue.CC_111:
-            return 'CC_111';
-        case KnownValue.CC_112:
-            return 'CC_112';
-        case KnownValue.CC_113:
-            return 'CC_113';
-        case KnownValue.CC_114:
-            return 'CC_114';
-        case KnownValue.CC_115:
-            return 'CC_115';
-        case KnownValue.CC_116:
-            return 'CC_116';
-        case KnownValue.CC_117:
-            return 'CC_117';
-        case KnownValue.CC_118:
-            return 'CC_118';
-        case KnownValue.CC_119:
-            return 'CC_119';
-        case KnownValue.HyperVoice_Count:
-            return 'HyperVoice Count';
-        case KnownValue.HyperVoice_Phase:
-            return 'HyperVoice Phase';
-        case KnownValue.HyperVoice_Volume:
-            return 'HyperVoice Volume';
-        case KnownValue.volume:
-            return 'Volume';
-        case KnownValue.volumeCurrent:
-            return 'volumeCurrent';
-        case KnownValue.volumeTarget:
-            return 'volumeTarget';
-        case KnownValue.volumeFactor:
-            return 'volumeFactor';
-    }
-    value satisfies never;
+    return KnownValue[value];
 }
 
 export function modulationToString(mType: ModulationType) {
@@ -140,7 +54,6 @@ export function modulationToString(mType: ModulationType) {
 
 interface ConstantRef {
     type: 'constant';
-    // TODO needs a 1e6 factor to it in legacy parser and wire serializer
     value: number;
 }
 interface KnownValueRef {
@@ -202,7 +115,6 @@ export interface Block {
     offBlock?: BlockId;
     // "INVERTED" means (currently?) that the offBlock is ignored. This is intended for the "decay chain" describing the
     // sound after the key has been released.
-    // TODO this needs to be derived from whether there is an incoming edge
     offBehavior: NoteOffBehavior;
     // How fast/with what waveform should the target value be updated
     modulation: Modulation;
@@ -228,18 +140,16 @@ export interface MapOptions {
     volumeScale: number;
     // Should MIDI pitchbend affect notes handled by this block?
     enablePitchbend: boolean;
-    // TODO seem to be various volume multipliers? enableVolume also depends on note velocity
     enableStereo: boolean;
     enableVolume: boolean;
     enableDamper: boolean;
-    // TODO a bit magical, not clear if this is active in the current UD3 code?
+    // TODO Currently not in UI since it is not supported in the UD3 yet
     enablePortamento: boolean;
 }
 
 export interface BlockMap {
     options: MapOptions;
     // ID of the first block of this map
-    // TODO maybe use a different ID concept in memory? In UD3, IDs are global across maps.
     startBlock: number;
     // Blocks used by this map
     blocks: Block[];

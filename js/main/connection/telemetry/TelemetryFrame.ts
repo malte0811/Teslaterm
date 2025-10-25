@@ -1,7 +1,7 @@
 import {CoilID, DATA_NUM, DATA_TYPE, TelemetryEvent, UD3AlarmLevel, UNITS} from "../../../common/constants";
 import {UD3Alarm, UD3ConfigOption, UD3ConfigType} from "../../../common/IPCConstantsToRenderer";
 import {ChartText, TelemetryFrame} from "../../../common/TelemetryTypes";
-import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../helper";
+import {bytes_to_signed, convertBufferToString, Endianness, from_32_bit_bytes} from "../../../common/helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {getCoilCommands} from "../connection";
 import {addAlarm} from "./Alarms";

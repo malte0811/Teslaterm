@@ -1,7 +1,7 @@
 import {Button, Form, FormCheck, Modal, OverlayTrigger, Tooltip} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {PrecountSettings, ShowModeOptions} from "../../../common/UIConfig";
-import {KeyOfType, makeFieldUpdater} from "../../../main/helper";
+import {KeyOfType, makeFieldUpdater} from "../../../common/helper";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {SimpleSlider} from "../sliders/SimpleSlider";

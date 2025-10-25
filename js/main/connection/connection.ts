@@ -4,7 +4,7 @@ import {ConnectionStatus, ToastSeverity} from "../../common/IPCConstantsToRender
 import {PlayerActivity} from "../../common/MediaTypes";
 import {AdvancedOptions} from "../../common/Options";
 import {MultiConnectionOptions, SingleConnectionOptions} from "../../common/SingleConnectionOptions";
-import {sleep} from "../helper";
+import {sleep} from "../../common/helper";
 import {ipcs} from "../ipc/IPCProvider";
 import {setRelativeOntime} from "../ipc/sliders";
 import * as media from "../media/media_player";

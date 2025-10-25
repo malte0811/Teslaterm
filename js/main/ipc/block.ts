@@ -2,7 +2,7 @@ import {DroppedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
 import {forEachCoil, getMixer, getOptionalUD3Connection} from "../connection/connection";
 import {setUIConfig} from "../UIConfigHandler";
-import {parseLegacyVMSFile} from "../vms/LegacyVMSParser";
+import {parseLegacyVMSFile} from "../../common/vms/LegacyVMSParser";
 import {sendBlocks} from "../vms/VMSWireSerializer";
 import {ipcs} from "./IPCProvider";
 

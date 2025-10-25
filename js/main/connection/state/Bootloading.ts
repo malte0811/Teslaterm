@@ -1,7 +1,7 @@
 import {CoilID} from "../../../common/constants";
 import {DroppedFile} from "../../../common/IPCConstantsToMain";
 import {ConnectionStatus, ToastSeverity} from "../../../common/IPCConstantsToRenderer";
-import {sleep} from "../../helper";
+import {sleep} from "../../../common/helper";
 import {ipcs} from "../../ipc/IPCProvider";
 import {BootloadableConnection} from "../bootloader/bootloadable_connection";
 import {Bootloader} from "../bootloader/bootloader";

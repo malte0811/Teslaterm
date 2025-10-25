@@ -1,6 +1,6 @@
 import React, {CSSProperties} from "react";
 import {ControlPosition} from "react-draggable";
-import {Block, BlockIO, OUTPUTS} from "../../common/VMS";
+import {Block, BlockIO, OUTPUTS} from "../../common/vms/VMS";
 
 export const BLOCK_WIDTH = 100;
 export const BLOCK_HEIGHT = 150;

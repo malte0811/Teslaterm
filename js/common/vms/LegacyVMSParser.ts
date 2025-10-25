@@ -1,3 +1,4 @@
+import {parseEnumValue} from "../helper";
 import {
     AffectedValue,
     Block,
@@ -8,11 +9,9 @@ import {
     ModulationType,
     NoteOffBehavior,
     Program,
-} from "../../common/VMS";
-import {cleanVMSConfig} from "../../common/VMSOperations";
-import {parseEnumValue} from "../helper";
+} from "./VMS";
+import {cleanVMSConfig} from "./VMSOperations";
 
-// TODO mvoe to wire serializer?
 export enum AmbiguousValue { param1, param2, param3, targetFactor }
 export interface AmbiguousValueData {
     flagMask: number;
@@ -69,8 +68,7 @@ class VMSDataMap {
         } else if (value === 'false') {
             return false;
         } else {
-            console.log('Unexpected boolean: "' + value + '"');
-            throw new Error('Failed to parse VMS file');
+            throw new Error(`Unexpected boolean in VMS: "${value}"`);
         }
     }
 
@@ -106,7 +104,7 @@ function parseVMSToStructuredMap(data: Buffer) {
             currentMap.map.set(name, newMap);
             currentStack.push(newMap);
         } else {
-            console.log(`Ignoring unknown line "${line}"`);
+            console.warn(`Ignoring unknown line "${line}"`);
         }
     }
     return toplevel;
@@ -184,10 +182,8 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
         if (newBlock.offBlock === -1) {
             newBlock.offBlock = undefined;
         }
-        // TODO for wire serializer: Blocks with no outputs should get VMS_FLAG_ISBLOCKPERSISTENT (?)
 
         // "block -1" is used as the start block, and does not contain any useful data
-        // TODO find good concept for this in new data and editor!
         if (newBlock.uid !== -1) {
             blocks.push(newBlock);
         }

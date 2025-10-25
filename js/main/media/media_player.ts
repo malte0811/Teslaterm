@@ -12,7 +12,7 @@ import {
     hasUD3Connection, isMulticoil,
 } from "../connection/connection";
 import {getUD3State} from "../connection/telemetry/UD3State";
-import {sleep} from "../helper";
+import {sleep} from "../../common/helper";
 import {IPCCollection, ipcs, processIPC} from "../ipc/IPCProvider";
 import {CommonMenuIPC} from "../ipc/Menu";
 import {clearMidiFile, currentMidiFile, guessMicrosecondsPerQuarter, loadMidiFile} from "../midi/midi_file";

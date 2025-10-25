@@ -1,6 +1,6 @@
 import React, {RefObject, useEffect, useRef, useState} from "react";
 import {ControlPosition} from "react-draggable";
-import {BlockIO} from "../../common/VMS";
+import {BlockIO} from "../../common/vms/VMS";
 import {INPUT_CENTER_X_OFFSET} from "./VMSBlockOffsets";
 
 export interface ArrowProps {

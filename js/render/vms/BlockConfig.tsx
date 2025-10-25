@@ -7,7 +7,7 @@ import {
     Block, ConstantOrValue, KNOWN_VALUES,
     KnownValue,
     vmsValueToString,
-} from "../../common/VMS";
+} from "../../common/vms/VMS";
 import {TTDropdown} from "../TTDropdown";
 import {ModulationSelector} from "./ModulationConfig";
 

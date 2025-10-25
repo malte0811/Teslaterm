@@ -1,6 +1,6 @@
 import {CoilID, FEATURE_PROTOCOL_VERSION, FEATURE_TIMEBASE, FEATURE_TIMECOUNT} from "../../../common/constants";
 import {MediaFileType, SynthType, synthTypeFor} from "../../../common/MediaTypes";
-import {Endianness, to_ud3_time, withTimeout} from "../../helper";
+import {Endianness, to_ud3_time, withTimeout} from "../../../common/helper";
 import {config} from "../../init";
 import {ISidConnection} from "../../sid/ISidConnection";
 import {getCoilCommands} from "../connection";

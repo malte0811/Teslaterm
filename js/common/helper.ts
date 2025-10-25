@@ -17,7 +17,7 @@ export function to_ud3_time_number(time_us: number, timebase: number, direction:
     const activeBits = 0xFF_FF_FF_FF;
     const time_ticks = Math.floor(time_us / timebase);
     const baseTime = time_ticks & activeBits;
-    if (direction == "down") {
+    if (direction === "down") {
         return (0x1_00_00_00_00 - baseTime) & activeBits;
     } else {
         return baseTime;

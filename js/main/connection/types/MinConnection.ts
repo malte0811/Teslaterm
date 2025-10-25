@@ -1,7 +1,7 @@
 import {CoilID, FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {FlightEventType} from "../../../common/FlightRecorderTypes";
 import {SynthType} from "../../../common/MediaTypes";
-import {convertBufferToString, withTimeout} from "../../helper";
+import {convertBufferToString, withTimeout} from "../../../common/helper";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
