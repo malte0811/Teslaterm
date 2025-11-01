@@ -12,6 +12,8 @@ import {
 } from "./VMS";
 import {cleanVMSConfig} from "./VMSOperations";
 
+export const VMS_LEGACY_SUFFIX = '.mcf';
+
 export enum AmbiguousValue { param1, param2, param3, targetFactor }
 export interface AmbiguousValueData {
     flagMask: number;
@@ -81,9 +83,8 @@ class VMSDataMap {
     }
 }
 
-function parseVMSToStructuredMap(data: Buffer) {
-    const lines = data.toString('utf8')
-        .replace(/[\t,\u0000\r]*/g, '')
+function parseVMSToStructuredMap(data: string) {
+    const lines = data.replace(/[\t,\u0000\r]*/g, '')
         .split('\n');
     const toplevel = new VMSDataMap();
     const currentStack: VMSDataMap[] = [toplevel];
@@ -191,8 +192,8 @@ function parseBlocksFromStructure(mapData: VMSDataMap, keyPrefix: string): Block
     return blocks;
 }
 
-export function parseLegacyVMSFile(bytes: Buffer) {
-    const data = parseVMSToStructuredMap(bytes);
+export function parseLegacyVMSFile(fileData: string) {
+    const data = parseVMSToStructuredMap(fileData);
     const initialResult = parseProgramsFromStructure(data.getAsMap('MidiPrograms'));
     return cleanVMSConfig(initialResult);
 }

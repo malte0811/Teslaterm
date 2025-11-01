@@ -101,6 +101,7 @@ export interface SineModulation {
     // Scaled by pi/256 (TODO is there any scaling done within the UD3?)
     timeIncrement: ConstantOrValue;
 }
+
 export interface StepModulation {
     type: ModulationType.step;
 }

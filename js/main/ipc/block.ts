@@ -1,15 +1,15 @@
 import {DroppedFile} from "../../common/IPCConstantsToMain";
 import {ChannelID, ToastSeverity} from "../../common/IPCConstantsToRenderer";
+import {loadVMSFromFile} from "../../common/vms/VMSFileIO";
 import {forEachCoil, getMixer, getOptionalUD3Connection} from "../connection/connection";
 import {setUIConfig} from "../UIConfigHandler";
-import {parseLegacyVMSFile} from "../../common/vms/LegacyVMSParser";
 import {sendBlocks} from "../vms/VMSWireSerializer";
 import {ipcs} from "./IPCProvider";
 
 export function loadVMS(file: DroppedFile) {
     try {
         ipcs.misc.openGenericToast('VMS', "Load VMS file: " + file.name, ToastSeverity.info);
-        const programs = parseLegacyVMSFile(Buffer.from(file.bytes));
+        const [_, programs] = loadVMSFromFile(file.name, Buffer.from(file.bytes).toString());
         const totalBlocks = programs.map(
             p => p.maps.map(map => map.blocks.length).reduce((a, b) => a + b),
         ).reduce((a, b) => a + b);

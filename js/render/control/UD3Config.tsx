@@ -4,6 +4,7 @@ import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {UD3ConfigOption, UD3ConfigType} from '../../common/IPCConstantsToRenderer';
 import {TTConfig} from "../../common/TTConfig";
+import {downloadJSON, uploadFile} from "../FileHelper";
 import {commands} from "../ipc/commands";
 import {processIPC} from "../ipc/IPCProvider";
 import {TTComponent} from "../TTComponent";
@@ -140,39 +141,23 @@ export class UD3Config extends TTComponent<UD3ConfigProps, UD3ConfigState> {
         for (const option of this.state.current) {
             saveJSON[option.name] = option.current;
         }
-        const dummyElement = document.createElement('a');
-        document.body.appendChild(dummyElement);
-        dummyElement.download = 'ud3-config.json';
-        dummyElement.href = "data:application/json," + encodeURIComponent(JSON.stringify(saveJSON, null, 4));
-        dummyElement.click();
-        document.body.removeChild(dummyElement);
+        downloadJSON(saveJSON, 'ud3-config.json');
     }
 
-    private loadJSON() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/json';
-        input.onchange = () => {
-            const reader = new FileReader();
-            reader.readAsText(input.files[0]);
-            reader.onload = readerEvent => {
-                const content = readerEvent.target.result as string;
-                try {
-                    const jsonData = JSON.parse(content);
-                    const newOptions = [...this.state.current];
-                    for (let i = 0; i < newOptions.length; ++i) {
-                        const newValue = jsonData[newOptions[i].name];
-                        if (newValue !== undefined) {
-                            newOptions[i] = {...newOptions[i], current: newValue};
-                        }
-                    }
-                    this.setState({current: newOptions});
-                } catch (e) {
-                    console.log("Failed to load data: ", e);
+    private async loadJSON() {
+        const file = await uploadFile(['.json']);
+        try {
+            const jsonData = JSON.parse(file.content);
+            const newOptions = [...this.state.current];
+            for (let i = 0; i < newOptions.length; ++i) {
+                const newValue = jsonData[newOptions[i].name];
+                if (newValue !== undefined) {
+                    newOptions[i] = {...newOptions[i], current: newValue};
                 }
-                document.removeChild(input);
-            };
-        };
-        input.click();
+            }
+            this.setState({current: newOptions});
+        } catch (e) {
+            console.log("Failed to load data: ", e);
+        }
     }
 }

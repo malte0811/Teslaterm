@@ -1,5 +1,7 @@
 import JSZip from "jszip";
 import {DroppedFile, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
+import {VMS_LEGACY_SUFFIX} from "../../common/vms/LegacyVMSParser";
+import {VMS_JSON_SUFFIX} from "../../common/vms/VMSFileIO";
 import {getMixer, isMulticoil} from "../connection/connection";
 import {FirmwareFiletype, handleBootloaderFileDrop} from "../connection/state/Bootloading";
 import {isMediaFile} from "../media/media_player";
@@ -19,7 +21,7 @@ export class FileUploadIPC {
             }
         } else if (extension === FirmwareFiletype.ud3 || extension === FirmwareFiletype.fibernet) {
             await handleBootloaderFileDrop(extension, file);
-        } else if (extension === "mcf") {
+        } else if (file.name.endsWith(VMS_LEGACY_SUFFIX) || file.name.endsWith(VMS_JSON_SUFFIX)) {
             loadVMS(file);
         } else {
             await media_player.loadMediaFile(file);
