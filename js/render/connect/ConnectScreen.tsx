@@ -1,9 +1,9 @@
 import React from "react";
 import {Button, Toast, ToastContainer} from "react-bootstrap";
+import Dropdown from "react-bootstrap/Dropdown";
 import {UD3ConnectionType} from "../../common/constants";
 import {InitialFRState, ParsedEvent} from "../../common/FlightRecorderTypes";
 import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
-import {IPC_CONSTANTS_TO_RENDERER} from "../../common/IPCConstantsToRenderer";
 import {AdvancedOptions} from "../../common/Options";
 import {
     SerialConnectionOptions,
@@ -11,6 +11,7 @@ import {
     UDPConnectionOptions,
 } from "../../common/SingleConnectionOptions";
 import {SyncedUIConfig} from "../../common/UIConfig";
+import {ExtraScreen, TopScreen} from "../App";
 import {processIPC} from "../ipc/IPCProvider";
 import {ScreenWithDrop} from "../ScreenWithDrop";
 import {ConnectForm} from "./ConnectForm";
@@ -79,7 +80,7 @@ export interface ConnectScreenProps {
     config: SyncedUIConfig;
     connecting: boolean;
     setDarkMode: (newVal: boolean) => void;
-    openFlightRecording: (data: FRDisplayData) => any;
+    openExtraScreen: (screen: ExtraScreen) => void;
 }
 
 export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScreenState> {
@@ -123,6 +124,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
                 presets={this.props.config.connectionPresets}
             />
             {this.makeDarkmodeToggle()}
+            {this.makeExtraScreens()}
             {this.makeToast()}
         </div>;
     }
@@ -133,9 +135,10 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
             return;
         }
         const data = await files[0].arrayBuffer();
-        processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (frData) => {
-            this.props.openFlightRecording(frData);
-        });
+        // TODO
+        //processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (frData) => {
+        //    this.props.openFlightRecording(frData);
+        //});
         processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFlightRecording, [...new Uint8Array(data)]);
     }
 
@@ -161,5 +164,19 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
         >
             Switch to {otherMode} mode
         </Button>;
+    }
+
+    private makeExtraScreens() {
+        const makeItem = (title: string, screen: ExtraScreen) => {
+            return <Dropdown.Item onClick={() => this.props.openExtraScreen(screen)}>{title}</Dropdown.Item>;
+        };
+        return <Dropdown className={"tt-extra-screens"} drop={"up"}>
+            <Dropdown.Toggle>Tools</Dropdown.Toggle>
+
+            <Dropdown.Menu>
+                {makeItem('VMS Editor', TopScreen.vms_edit)}
+                {makeItem('Flight Recording Viewer', TopScreen.flight_recording)}
+            </Dropdown.Menu>
+        </Dropdown>;
     }
 }

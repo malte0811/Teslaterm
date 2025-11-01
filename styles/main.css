@@ -73,6 +73,12 @@
     bottom: 0;
 }
 
+.tt-extra-screens {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
 /*TODO this should really be in bootstrap itself in some form!*/
 .bg-warning {
     color: black !important;

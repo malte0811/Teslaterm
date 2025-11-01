@@ -7,7 +7,7 @@ import {downloadJSON, uploadFile} from "../FileHelper";
 import {useDropCallback} from "../ScreenWithDrop";
 import {VMSEditor} from "./VMSEditor";
 
-export function VMSTest() {
+export function StandaloneVMSEditor(props: {exit: () => void}) {
     const [programs, setPrograms] = useState<FullVMSData>([]);
     const [name, setName] = useState('example');
     const mainRef = useRef<HTMLDivElement>();
@@ -36,6 +36,7 @@ export function VMSTest() {
                 <Button onClick={downloadJson}>Save to file</Button>
                 <Button onClick={loadFromFile}>Load from file</Button>
             </ButtonGroup>
+            <Button onClick={props.exit} variant={'warning'}>Exit</Button>
         </ButtonToolbar>
         <div style={{flexGrow: 1}}>
             <VMSEditor programs={programs} setPrograms={setPrograms}/>

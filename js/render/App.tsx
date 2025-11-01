@@ -11,17 +11,19 @@ import {DarkModeContext} from "./DarkModeContext";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {TTComponent} from "./TTComponent";
-import { VMSTest } from "./vms/Test";
+import {StandaloneVMSEditor} from "./vms/StandaloneVMSEditor";
 
-enum TopScreen {
+export enum TopScreen {
     connect,
     control,
     flight_recording,
+    vms_edit,
 }
+
+export type ExtraScreen = TopScreen.flight_recording | TopScreen.vms_edit;
 
 interface TopLevelState {
     screen: TopScreen;
-    flightEvents?: FRDisplayData;
     ttConfig: TTConfig;
     config: SyncedUIConfig;
     coils: CoilID[];
@@ -68,7 +70,6 @@ export class App extends TTComponent<{}, TopLevelState> {
     }
 
     public render(): React.ReactNode {
-        return <VMSTest/>;
         return <div className={'tt-root'}>
             <DarkModeContext.Provider value={this.state.config && this.state.config.darkMode}>
                 {this.getMainElement()}
@@ -79,35 +80,37 @@ export class App extends TTComponent<{}, TopLevelState> {
     private getMainElement(): React.JSX.Element {
         if (!this.state.ttConfig || !this.state.config) {
             return <>Initializing...</>;
-        } else if (this.state.screen === TopScreen.flight_recording) {
-            return <FlightRecordingScreen
-                events={this.state.flightEvents}
-                close={() => this.setState({screen: TopScreen.connect})}
-            />;
-        } else if (this.state.screen === TopScreen.control) {
-            return <MainScreen
-                ttConfig={this.state.ttConfig}
-                returnToConnect={() => {
-                    processIPC.send(IPC_CONSTANTS_TO_MAIN.clearCoils, undefined);
-                    this.setState({screen: TopScreen.connect, coils: []});
-                }}
-                config={this.state.config}
-                coils={this.state.coils}
-                multicoil={this.state.multicoil}
-            />;
-        } else if (this.state.screen === TopScreen.connect) {
-            return <ConnectScreen
-                config={this.state.config}
-                connecting={false/*TODO*/}
-                setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setUIConfig, {darkMode: newVal})}
-                openFlightRecording={(data) => this.setState({
-                    flightEvents: data,
-                    screen: TopScreen.flight_recording,
-                })}
-            />;
-        } else {
-            return <>Unsupported status {this.state.screen} :(</>;
         }
+        switch (this.state.screen) {
+            case TopScreen.connect:
+                return <ConnectScreen
+                    config={this.state.config}
+                    connecting={false/*TODO*/}
+                    setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setUIConfig, {darkMode: newVal})}
+                    openExtraScreen={(screen) => this.setState({screen})}
+                />;
+            case TopScreen.control:
+                return <MainScreen
+                    ttConfig={this.state.ttConfig}
+                    returnToConnect={() => {
+                        processIPC.send(IPC_CONSTANTS_TO_MAIN.clearCoils, undefined);
+                        this.setState({screen: TopScreen.connect, coils: []});
+                    }}
+                    config={this.state.config}
+                    coils={this.state.coils}
+                    multicoil={this.state.multicoil}
+                />;
+            case TopScreen.flight_recording:
+                // TODO fix FR viewer!
+                return <div>TODO fix</div>;
+                //return <FlightRecordingScreen
+                //    events={this.state.flightEvents}
+                //    close={() => this.setState({screen: TopScreen.connect})}
+                ///>;
+            case TopScreen.vms_edit:
+                return <StandaloneVMSEditor exit={() => this.setState({screen: TopScreen.connect})}/>;
+        }
+        this.state.screen satisfies never;
     }
 }
 
