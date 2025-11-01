@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import ReactDOM from "react-dom/client";
 import {CoilID} from "../common/constants";
 import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
@@ -10,7 +10,7 @@ import {MainScreen} from "./control/MainScreen";
 import {DarkModeContext} from "./DarkModeContext";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
-import {TTComponent} from "./TTComponent";
+import {TTComponent, useIPCListener} from "./TTComponent";
 import {StandaloneVMSEditor} from "./vms/StandaloneVMSEditor";
 
 export enum TopScreen {
@@ -22,96 +22,68 @@ export enum TopScreen {
 
 export type ExtraScreen = TopScreen.flight_recording | TopScreen.vms_edit;
 
-interface TopLevelState {
-    screen: TopScreen;
-    ttConfig: TTConfig;
-    config: SyncedUIConfig;
-    coils: CoilID[];
-    multicoil: boolean;
-}
-
-export class App extends TTComponent<{}, TopLevelState> {
-    constructor(props: any) {
-        super(props);
-        this.state = {
-            coils: [],
-            config: undefined,
-            multicoil: false,
-            screen: TopScreen.connect,
-            ttConfig: undefined,
-        };
-    }
-
-    public componentDidMount() {
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.ttConfig, (cfg) => this.setState({ttConfig: cfg}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.uiConfig, (cfg) => {
-                this.setState({config: cfg});
-                document.documentElement.setAttribute('data-bs-theme', cfg.darkMode ? 'dark' : 'light');
-            },
-        );
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, ([coil, multicoil]) => {
-            this.setState((oldState) => {
-                const result = {
-                    coils: [...oldState.coils],
-                    multicoil,
-                    screen: oldState.screen,
-                };
-                if (!oldState.coils.includes(coil)) {
-                    result.coils.push(coil);
-                    result.screen = TopScreen.control;
-                }
-                return result;
-            });
-        });
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
-    }
-
-    public render(): React.ReactNode {
-        return <div className={'tt-root'}>
-            <DarkModeContext.Provider value={this.state.config && this.state.config.darkMode}>
-                {this.getMainElement()}
-            </DarkModeContext.Provider>
-        </div>;
-    }
-
-    private getMainElement(): React.JSX.Element {
-        if (!this.state.ttConfig || !this.state.config) {
+export function App() {
+    const [screen, setScreen] = useState(TopScreen.connect);
+    const [ttConfig, setTtConfig] = useState<TTConfig>(undefined);
+    const [uiConfig, setUiConfig] = useState<SyncedUIConfig>(undefined);
+    const [coils, setCoils] = useState<CoilID[]>([]);
+    const [multicoil, setMulticoil] = useState(false);
+    useIPCListener(IPC_CONSTANTS_TO_RENDERER.ttConfig, setTtConfig);
+    useIPCListener(
+        IPC_CONSTANTS_TO_RENDERER.uiConfig, (cfg) => {
+            setUiConfig(cfg);
+            document.documentElement.setAttribute('data-bs-theme', cfg.darkMode ? 'dark' : 'light');
+        },
+    );
+    useIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, ([coil, multicoil]) => {
+        setMulticoil(multicoil);
+        if (!coils.includes(coil)) {
+            setCoils((oldCoils) => [...oldCoils, coil]);
+            setScreen(TopScreen.control);
+        }
+    });
+    useEffect(() => processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined), []);
+    const mainElement = (() => {
+        if (!ttConfig || !uiConfig) {
             return <>Initializing...</>;
         }
-        switch (this.state.screen) {
+        switch (screen) {
             case TopScreen.connect:
                 return <ConnectScreen
-                    config={this.state.config}
+                    config={uiConfig}
                     connecting={false/*TODO*/}
                     setDarkMode={newVal => processIPC.send(IPC_CONSTANTS_TO_MAIN.setUIConfig, {darkMode: newVal})}
-                    openExtraScreen={(screen) => this.setState({screen})}
+                    openExtraScreen={setScreen}
                 />;
             case TopScreen.control:
                 return <MainScreen
-                    ttConfig={this.state.ttConfig}
+                    ttConfig={ttConfig}
                     returnToConnect={() => {
                         processIPC.send(IPC_CONSTANTS_TO_MAIN.clearCoils, undefined);
-                        this.setState({screen: TopScreen.connect, coils: []});
+                        setScreen(TopScreen.connect);
+                        setCoils([]);
                     }}
-                    config={this.state.config}
-                    coils={this.state.coils}
-                    multicoil={this.state.multicoil}
+                    config={uiConfig}
+                    coils={coils}
+                    multicoil={multicoil}
                 />;
             case TopScreen.flight_recording:
                 // TODO fix FR viewer!
                 return <div>TODO fix</div>;
-                //return <FlightRecordingScreen
-                //    events={this.state.flightEvents}
-                //    close={() => this.setState({screen: TopScreen.connect})}
-                ///>;
+            //return <FlightRecordingScreen
+            //    events={flightEvents}
+            //    close={() => setState({screen: TopScreen.connect})}
+            ///>;
             case TopScreen.vms_edit:
-                return <StandaloneVMSEditor exit={() => this.setState({screen: TopScreen.connect})}/>;
+                return <StandaloneVMSEditor exit={() => setScreen(TopScreen.connect)}/>;
         }
-        this.state.screen satisfies never;
-    }
+        screen satisfies never;
+    })();
+    return <div className={'tt-root'}>
+        <DarkModeContext.Provider value={uiConfig && uiConfig.darkMode}>
+            {mainElement}
+        </DarkModeContext.Provider>
+    </div>;
 }
 
 export function init() {
