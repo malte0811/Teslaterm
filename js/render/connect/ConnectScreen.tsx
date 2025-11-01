@@ -2,8 +2,6 @@ import React from "react";
 import {Button, Toast, ToastContainer} from "react-bootstrap";
 import Dropdown from "react-bootstrap/Dropdown";
 import {UD3ConnectionType} from "../../common/constants";
-import {InitialFRState, ParsedEvent} from "../../common/FlightRecorderTypes";
-import {IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {AdvancedOptions} from "../../common/Options";
 import {
     SerialConnectionOptions,
@@ -12,8 +10,8 @@ import {
 } from "../../common/SingleConnectionOptions";
 import {SyncedUIConfig} from "../../common/UIConfig";
 import {ExtraScreen, TopScreen} from "../App";
-import {processIPC} from "../ipc/IPCProvider";
-import {ScreenWithDrop} from "../ScreenWithDrop";
+import {selectFileForFRViewer} from "../flightrecord/FlightRecordingScreen";
+import {TTComponent} from "../TTComponent";
 import {ConnectForm} from "./ConnectForm";
 import {ConnectionPresets} from "./ConnectionPresets";
 
@@ -71,11 +69,6 @@ interface ConnectScreenState {
     currentAdvancedOptions: AdvancedOptions;
 }
 
-export interface FRDisplayData {
-    events: ParsedEvent[];
-    initial: InitialFRState;
-}
-
 export interface ConnectScreenProps {
     config: SyncedUIConfig;
     connecting: boolean;
@@ -83,11 +76,10 @@ export interface ConnectScreenProps {
     openExtraScreen: (screen: ExtraScreen) => void;
 }
 
-export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScreenState> {
+export class ConnectScreen extends TTComponent<ConnectScreenProps, ConnectScreenState> {
     constructor(props: ConnectScreenProps) {
         super(props);
         const connectOptions = this.props.config.lastConnectOptions;
-        console.log(connectOptions);
         this.state = {
             currentAdvancedOptions: this.props.config.advancedOptions,
             currentOptions: {
@@ -107,7 +99,7 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
         const setAdvancedOptions = (opts: Partial<AdvancedOptions>) => this.setState(
             (oldState) => ({currentAdvancedOptions: {...oldState.currentAdvancedOptions, ...opts}}),
         );
-        return <div className={'tt-connect-screen'} ref={this.mainDivRef}>
+        return <div className={'tt-connect-screen'}>
             <ConnectForm
                 currentOptions={this.state.currentOptions}
                 currentAdvancedOptions={this.state.currentAdvancedOptions}
@@ -127,19 +119,6 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
             {this.makeExtraScreens()}
             {this.makeToast()}
         </div>;
-    }
-
-    protected async onDrop(e: DragEvent) {
-        const files = e.dataTransfer.files;
-        if (files.length !== 1 || !files[0].name.endsWith('.zip')) {
-            return;
-        }
-        const data = await files[0].arrayBuffer();
-        // TODO
-        //processIPC.once(IPC_CONSTANTS_TO_RENDERER.flightRecorder.fullList, (frData) => {
-        //    this.props.openFlightRecording(frData);
-        //});
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.loadFlightRecording, [...new Uint8Array(data)]);
     }
 
     private makeToast() {
@@ -168,7 +147,12 @@ export class ConnectScreen extends ScreenWithDrop<ConnectScreenProps, ConnectScr
 
     private makeExtraScreens() {
         const makeItem = (title: string, screen: ExtraScreen) => {
-            return <Dropdown.Item onClick={() => this.props.openExtraScreen(screen)}>{title}</Dropdown.Item>;
+            return <Dropdown.Item onClick={() => {
+                this.props.openExtraScreen(screen);
+                if (screen === TopScreen.flight_recording) {
+                    selectFileForFRViewer();
+                }
+            }}>{title}</Dropdown.Item>;
         };
         return <Dropdown className={"tt-extra-screens"} drop={"up"}>
             <Dropdown.Toggle>Tools</Dropdown.Toggle>

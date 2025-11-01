@@ -1,55 +1,53 @@
-import React from "react";
-import {FRDisplayEventType, FREventSet, makeEmptyEventSet, ParsedEvent} from "../../common/FlightRecorderTypes";
-import {TTComponent} from "../TTComponent";
+import React, {useState} from "react";
+import {
+    allFREvents,
+    FRDisplayEventType,
+    FREventSet,
+    makeEmptyEventSet,
+    ParsedEvent
+} from "../../common/FlightRecorderTypes";
 import {EventFilter, FRFilter} from "./EventFilter";
-import {FREventList} from "./EventList";
+import {EventListProps, FREventList} from "./EventList";
 
-interface FREventsTabState {
-    presentTypes: FREventSet;
-    filter: FRFilter;
-}
-
-export interface FREVentsTabProps {
+export interface FREventsTabProps {
     events: ParsedEvent[];
     endTime: number;
 }
 
-export class EventListTab extends TTComponent<FREVentsTabProps, FREventsTabState> {
-    constructor(props: FREVentsTabProps) {
-        super(props);
-        const presentTypes: FREventSet = makeEmptyEventSet();
-        const selectedTypes: FREventSet = makeEmptyEventSet();
-        for (const event of this.props.events) {
-            if (event.type !== FRDisplayEventType.telemetry) {
-                presentTypes[event.type] = true;
-                selectedTypes[event.type] = true;
-            }
+function allExceptTelemetry() {
+    const result = makeEmptyEventSet();
+    for (const key of allFREvents) {
+        if (key !== FRDisplayEventType.telemetry) {
+            result[key] = true;
         }
-        const filter: FRFilter = {
-            selectedTypes,
-            showToTT: true,
-            showToUD3: true,
-        };
-        this.state = {presentTypes, filter};
     }
+    return result;
+}
 
-    public render() {
-        return (
-            <div className={'tt-fr-list-tab'}>
-                <EventFilter
-                    availableTypes={this.state.presentTypes}
-                    filter={this.state.filter}
-                    setFilter={f => this.setState((s) => {
-                            return {filter: {...s.filter, ...f}};
-                        },
-                    )}
-                />
-                <FREventList
-                    filter={this.state.filter}
-                    events={this.props.events}
-                    endTime={this.props.endTime}
-                />
-            </div>
-        );
+export function EventListTab(props: FREventsTabProps) {
+    const [filter, setFilter] = useState<FRFilter>({
+        selectedTypes: allExceptTelemetry(),
+        showToTT: true,
+        showToUD3: true,
+    });
+    const presentTypes: FREventSet = makeEmptyEventSet();
+    for (const event of props.events) {
+        if (event.type !== FRDisplayEventType.telemetry) {
+            presentTypes[event.type] = true;
+        }
     }
+    return (
+        <div className={'tt-fr-list-tab'}>
+            <EventFilter
+                availableTypes={presentTypes}
+                filter={filter}
+                setFilter={f => setFilter((old) => ({...old, ...f}))}
+            />
+            <FREventList
+                filter={filter}
+                events={props.events}
+                endTime={props.endTime}
+            />
+        </div>
+    );
 }

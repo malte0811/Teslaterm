@@ -5,12 +5,12 @@ import {IPC_CONSTANTS_TO_MAIN} from "../common/IPCConstantsToMain";
 import {IPC_CONSTANTS_TO_RENDERER} from "../common/IPCConstantsToRenderer";
 import {TTConfig} from "../common/TTConfig";
 import {SyncedUIConfig} from "../common/UIConfig";
-import {ConnectScreen, FRDisplayData} from "./connect/ConnectScreen";
+import {ConnectScreen} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
 import {DarkModeContext} from "./DarkModeContext";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
-import {TTComponent, useIPCListener} from "./TTComponent";
+import {useIPCListener} from "./TTComponent";
 import {StandaloneVMSEditor} from "./vms/StandaloneVMSEditor";
 
 export enum TopScreen {
@@ -68,12 +68,7 @@ export function App() {
                     multicoil={multicoil}
                 />;
             case TopScreen.flight_recording:
-                // TODO fix FR viewer!
-                return <div>TODO fix</div>;
-            //return <FlightRecordingScreen
-            //    events={flightEvents}
-            //    close={() => setState({screen: TopScreen.connect})}
-            ///>;
+                return <FlightRecordingScreen close={() => setScreen(TopScreen.connect)}/>;
             case TopScreen.vms_edit:
                 return <StandaloneVMSEditor exit={() => setScreen(TopScreen.connect)}/>;
         }
