@@ -13,6 +13,7 @@ import {CommonMenuIPC, PerCoilMenuIPC} from "./Menu";
 import {MetersIPC} from "./Meters";
 import {ByCoilMiscIPC, CommonMiscIPC, sendCoilSync} from "./Misc";
 import {MixerIPC} from "./MixerIPC";
+import {QCWIPC} from "./QCW";
 import {ScopeIPC} from "./Scope";
 import {ScriptingIPC} from "./Scripting";
 import {registerCommonSliderIPC, SlidersIPC} from "./sliders";
@@ -89,6 +90,7 @@ export class IPCCollection {
     private readonly scopeByCoil: Map<CoilID, ScopeIPC> = new Map<CoilID, ScopeIPC>();
     private readonly miscByCoil: Map<CoilID, ByCoilMiscIPC> = new Map<CoilID, ByCoilMiscIPC>();
     private readonly ipcScopeByCoil: Map<CoilID, TemporaryIPC> = new Map<CoilID, TemporaryIPC>();
+    private readonly qcwByCoil: Map<CoilID, QCWIPC> = new Map<CoilID, QCWIPC>();
     private readonly processIPC: MainIPC;
 
     constructor(process: MainIPC) {
@@ -140,6 +142,7 @@ export class IPCCollection {
         this.metersByCoil.set(coil, new MetersIPC(tempIPC, coil));
         this.scopeByCoil.set(coil, new ScopeIPC(tempIPC, coil));
         this.miscByCoil.set(coil, new ByCoilMiscIPC(tempIPC, coil));
+        this.qcwByCoil.set(coil, new QCWIPC(tempIPC, coil));
         initAlarms(coil);
         this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.registerCoil, [coil, isMulticoil()]);
         sendCoilSync(coil);
@@ -155,6 +158,7 @@ export class IPCCollection {
         this.metersByCoil.clear();
         this.scopeByCoil.clear();
         this.miscByCoil.clear();
+        this.qcwByCoil.clear();
     }
 
     public tick100() {

@@ -1,3 +1,4 @@
+import {SimpleQCWPulseKey} from "./IPCConstantsToMain";
 import {ConnectionPreset} from "./IPCConstantsToRenderer";
 import {VolumeSetting} from "./MixerTypes";
 import {AdvancedOptions} from "./Options";
@@ -17,6 +18,15 @@ export interface ShowModeOptions {
     saveMixerToMIDI: boolean;
 }
 
+
+export interface SimpleQCWUIConfig {
+    commonOptions: {[slider in SimpleQCWPulseKey]?: boolean};
+}
+
+export interface QCWUIConfig {
+    simpleRamp: SimpleQCWUIConfig;
+}
+
 export interface SyncedUIConfig {
     connectionPresets: ConnectionPreset[];
     darkMode: boolean;
@@ -26,6 +36,7 @@ export interface SyncedUIConfig {
     lastConnectOptions: FullConnectionOptions;
     advancedOptions: AdvancedOptions;
     showmodeOptions: ShowModeOptions;
+    qcwOptions: QCWUIConfig;
 }
 
 export interface CoilMixerState {

@@ -72,9 +72,17 @@ export function getToMainIPCPerCoil(coil: CoilID) {
         menu: {
             disconnect: makeCoilKey<undefined>('disconnect-from-coil'),
             downloadUD3ConfigElectron: makeCoilKey<undefined>('download-ud-config-electron'),
-            requestAlarmList: makeCoilKey<undefined>('request-alarms'),
             reconnect: makeCoilKey<undefined>('reconnect-if-idle'),
+            requestAlarmList: makeCoilKey<undefined>('request-alarms'),
             requestUDConfig: makeCoilKey<undefined>('request-ud-config'),
+        },
+        qcw: {
+            configurePulseFull: makeCoilKey<QCWPulse>('qcw-configure-pulse-full'),
+            setSimplePulseProp: makeCoilKey<SimpleQCWPulseSet>('qcw-set-pw'),
+            setRepeat: makeCoilKey<number>('qcw-set-repeat-ms'),
+            singleShot: makeCoilKey<undefined>('qcw-single-shot'),
+            start: makeCoilKey<QCWStart>('qcw-start-periodic'),
+            stop: makeCoilKey<undefined>('qcw-stop'),
         },
         sliders: {
             setBPS: makeCoilKey<number>('slider-set-bps'),
@@ -102,4 +110,35 @@ export interface DroppedFile {
     name: string;
     bytes: number[];
     path?: string;
+}
+
+export interface SimpleQCWPulse {
+    type: 'simple';
+    pulseWidth: number;
+    slope: number;
+    initialValue: number;
+    initialTime: number;
+    maxValue: number;
+    modulationFreq: number;
+    modulationAmplitude: number;
+}
+
+export type SimpleQCWPulseKey = {
+    [K in keyof SimpleQCWPulse]-?: number extends SimpleQCWPulse[K] ? K : never
+}[keyof SimpleQCWPulse];
+
+export interface SimpleQCWPulseSet {
+    key: SimpleQCWPulseKey;
+    value: number;
+}
+
+export interface CustomQCWPulse {
+    type: 'custom';
+}
+
+export type QCWPulse = SimpleQCWPulse | CustomQCWPulse;
+
+export interface QCWStart {
+    // TODO assert equal 0 or >= 100
+    repeat: number;
 }

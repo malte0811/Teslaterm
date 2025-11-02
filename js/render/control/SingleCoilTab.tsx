@@ -7,6 +7,7 @@ import {TTComponent} from "../TTComponent";
 import {Gauges} from "./gauges/Gauges";
 import {MenuBar} from "./menu/Menu";
 import {Oscilloscope} from "./scope/Oscilloscope";
+import {QCWControls} from "./qcw/QCWControls";
 import {Sliders} from "./sliders/Sliders";
 import {Terminal} from "./Terminal";
 import {Toasts, ToastsProps} from "./Toasts";
@@ -50,11 +51,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                     <div className={'tt-terminal-container'}>
                         <div className={'tt-scope-container'}>
                             <Oscilloscope coil={this.props.coil}/>
-                            <Sliders
-                                disabled={!this.props.allowInteraction}
-                                enableMIDI={this.props.config.advancedOptions.enableMIDIInput}
-                                level={{level: this.props.level, coil: this.props.coil, ud3State: this.props.ud3State}}
-                            />
+                            {this.renderControlElement()}
                         </div>
                         <Terminal
                             disabled={!this.props.allowInteraction}
@@ -66,5 +63,23 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                 <Toasts {...this.props.toasts}/>
             </div>
         );
+    }
+
+    private renderControlElement() {
+        if (!this.props.ud3State.isQCW) {
+            return (
+                <Sliders
+                    disabled={!this.props.allowInteraction}
+                    enableMIDI={this.props.config.advancedOptions.enableMIDIInput}
+                    level={{level: this.props.level, coil: this.props.coil, ud3State: this.props.ud3State}}
+                />
+            );
+        } else {
+            // TODO MIDI input?
+            // TODO multicoil concept
+            return <QCWControls
+                coil={this.props.coil}
+            />;
+        }
     }
 }

@@ -7,7 +7,7 @@ import {TTConfig} from "../common/TTConfig";
 import {SyncedUIConfig} from "../common/UIConfig";
 import {ConnectScreen} from "./connect/ConnectScreen";
 import {MainScreen} from "./control/MainScreen";
-import {DarkModeContext} from "./DarkModeContext";
+import {DarkModeContext, UIConfigContext} from "./Contexts";
 import {FlightRecordingScreen} from "./flightrecord/FlightRecordingScreen";
 import {processIPC} from "./ipc/IPCProvider";
 import {useIPCListener} from "./TTComponent";
@@ -76,7 +76,9 @@ export function App() {
     })();
     return <div className={'tt-root'}>
         <DarkModeContext.Provider value={uiConfig && uiConfig.darkMode}>
-            {mainElement}
+            <UIConfigContext.Provider value={uiConfig}>
+                {mainElement}
+            </UIConfigContext.Provider>
         </DarkModeContext.Provider>
     </div>;
 }

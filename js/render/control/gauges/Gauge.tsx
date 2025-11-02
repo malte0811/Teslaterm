@@ -2,7 +2,7 @@ import 'justgage/dist/justgage';
 import React from "react";
 import {MeterConfig} from "../../../common/IPCConstantsToRenderer";
 
-import {DarkModeContext} from "../../DarkModeContext";
+import {DarkModeContext} from "../../Contexts";
 import {TTComponent} from "../../TTComponent";
 
 export interface GaugeProps {

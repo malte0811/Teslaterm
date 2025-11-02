@@ -111,6 +111,17 @@ function fixSyncedConfig(object: Partial<SyncedUIConfig>) {
             skipInitialSilence: false,
         };
     }
+    if (object.qcwOptions === undefined) {
+        object.qcwOptions = {
+            simpleRamp: {
+                commonOptions: {
+                    initialTime: true,
+                    pulseWidth: true,
+                    slope: true,
+                },
+            },
+        };
+    }
     return object as SyncedUIConfig;
 }
 

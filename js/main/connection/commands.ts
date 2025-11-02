@@ -10,7 +10,7 @@ export class CommandInterface {
         this.coil = coil;
     }
 
-    public async stop() {
+    public async stopTelemetry() {
         await this.sendCommand('tterm stop\rcls\r');
     }
 
@@ -72,6 +72,18 @@ export class CommandInterface {
     public async singlePulse(ontime: number, volumePercent: number) {
         const volumeUD3 = Math.floor(UD3_MAX_VOLUME * (volumePercent / 100));
         await this.sendCommand(`oneshot ${ontime} ${volumeUD3}\r`);
+    }
+
+    public async startQCW() {
+        await this.sendCommand('qcw start\r');
+    }
+
+    public async stopQCW() {
+        await this.sendCommand('qcw stop\r');
+    }
+
+    public async setQCWRepeat(repeatMS: number) {
+        await this.setParam('qcw_repeat', repeatMS.toFixed(0));
     }
 
     public async sendCommand(c: string) {
