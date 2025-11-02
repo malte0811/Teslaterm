@@ -12,6 +12,8 @@
       "ES2021"
     ],
     "esModuleInterop": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // "Workaround for broken d.ts in react-range-slider-input"
+    "skipLibCheck": true
   }
 }
