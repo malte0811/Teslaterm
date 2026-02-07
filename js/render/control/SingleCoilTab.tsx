@@ -6,8 +6,8 @@ import {SyncedUIConfig} from "../../common/UIConfig";
 import {TTComponent} from "../TTComponent";
 import {Gauges} from "./gauges/Gauges";
 import {MenuBar} from "./menu/Menu";
-import {Oscilloscope} from "./scope/Oscilloscope";
 import {QCWControls} from "./qcw/QCWControls";
+import {Oscilloscope} from "./scope/Oscilloscope";
 import {Sliders} from "./sliders/Sliders";
 import {Terminal} from "./Terminal";
 import {Toasts, ToastsProps} from "./Toasts";
@@ -50,7 +50,7 @@ export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
                 <div className={'tt-terminal-and-gauges'}>
                     <div className={'tt-terminal-container'}>
                         <div className={'tt-scope-container'}>
-                            <Oscilloscope coil={this.props.coil}/>
+                            <Oscilloscope coil={this.props.coil} isQCW={this.props.ud3State.isQCW}/>
                             {this.renderControlElement()}
                         </div>
                         <Terminal

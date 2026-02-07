@@ -108,6 +108,10 @@ export class IPCCollection {
         return this.slidersByCoil.get(coil);
     }
 
+    public qcw(coil: CoilID) {
+        return this.qcwByCoil.get(coil);
+    }
+
     public coilMenu(coil: CoilID): PerCoilMenuIPC {
         return this.menuByCoil.get(coil);
     }

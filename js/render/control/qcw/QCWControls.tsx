@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import {Button, Form} from "react-bootstrap";
 import {CoilID} from "../../../common/constants";
-import {getToMainIPCPerCoil, SimpleQCWPulse} from "../../../common/IPCConstantsToMain";
+import {getToMainIPCPerCoil, makeDefaultSimplePulse, SimpleQCWPulse} from "../../../common/IPCConstantsToMain";
 import {processIPC} from "../../ipc/IPCProvider";
 import {SimpleSlider} from "../sliders/SimpleSlider";
 import {SimpleQCWPulseConfig} from "./SimpleQCWPulse";
@@ -15,16 +15,7 @@ export function QCWControls(props: QCWControlsProps) {
     const [simpleRamp, setSimpleRamp] = useState(true);
     const [isSingleShot, setSingleShot] = useState(false);
     const [repeatPeriod, setRepeatPeriod] = useState(500);
-    const [simplePulse, setSimplePulse] = useState<SimpleQCWPulse>({
-        initialTime: 0,
-        initialValue: 0,
-        maxValue: 255,
-        modulationAmplitude: 0,
-        modulationFreq: 100,
-        pulseWidth: 0,
-        slope: 2,
-        type: 'simple',
-    });
+    const [simplePulse, setSimplePulse] = useState(makeDefaultSimplePulse());
     const [periodicRunning, setPeriodicRunning] = useState(false);
     const getIPCs = () => {
         return getToMainIPCPerCoil(props.coil).qcw;

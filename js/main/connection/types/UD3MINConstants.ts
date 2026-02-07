@@ -7,6 +7,7 @@ export enum UD3MinIDs {
     SOCKET = 13,
     SYNTH = 14,
     FEATURE = 15,
+    QCW_RAMP = 22,
     // TODO handle in flight recording
     EVENT = 40,
     VMS = 43,

@@ -123,6 +123,19 @@ export interface SimpleQCWPulse {
     modulationAmplitude: number;
 }
 
+export function makeDefaultSimplePulse(): SimpleQCWPulse {
+    return {
+        initialTime: 0,
+        initialValue: 0,
+        maxValue: 255,
+        modulationAmplitude: 0,
+        modulationFreq: 100,
+        pulseWidth: 0,
+        slope: 2,
+        type: 'simple',
+    };
+}
+
 export type SimpleQCWPulseKey = {
     [K in keyof SimpleQCWPulse]-?: number extends SimpleQCWPulse[K] ? K : never
 }[keyof SimpleQCWPulse];

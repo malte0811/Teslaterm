@@ -1,7 +1,7 @@
 import {CoilID, FEATURE_MINSID, FEATURE_NOTELEMETRY} from "../../../common/constants";
 import {FlightEventType} from "../../../common/FlightRecorderTypes";
-import {SynthType} from "../../../common/MediaTypes";
 import {convertBufferToString, withTimeout} from "../../../common/helper";
+import {SynthType} from "../../../common/MediaTypes";
 import {config} from "../../init";
 import {ipcs} from "../../ipc/IPCProvider";
 import * as microtime from "../../microtime";
@@ -23,6 +23,8 @@ export abstract class MinConnection extends BootloadableConnection {
     private connectionsToSetTTerm: TerminalHandle[] = [];
     private udName: string = undefined;
     private sidMINChannel: number = UD3MinIDs.SID;
+    // TODO not really right point for this...
+    private qcwRamp: number[] = [];
 
     protected constructor(coil: CoilID) {
         super(coil);
@@ -278,6 +280,10 @@ export abstract class MinConnection extends BootloadableConnection {
             } else if (id === UD3MinIDs.EVENT && data[0] === EVENT_GET_INFO) {
                 this.udName = parseEventInfo(data).udName;
                 ipcs.coilMisc(this.getCoil()).sendUDName(this.getUDName());
+            } else if (id === UD3MinIDs.QCW_RAMP) {
+                await ipcs.qcw(this.getCoil()).receiveRampFromCoil(
+                    ((data[0] & 0x7f) << 8) | data[1], (data[0] & 0x80) !== 0, data.slice(2),
+                );
             } else if (this.terminalCallbacks.has(id)) {
                 this.terminalCallbacks.get(id).callback(Buffer.from(data));
             } else {

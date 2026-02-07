@@ -29,8 +29,8 @@ const QCW_SLIDERS: QCWSliderSpec[] = (() => {
     // TODO check all min/max's. Dynamic update for PW?
     // TODO check unit for frequency
     return [
-        makeSpec('Pulse Width', 'ms', 0, 15, 'pulseWidth', {step: 0.05}),
-        makeSpec('Slope', 'cnt/ms', 0, 5, 'slope', {step: 0.1, displayScale: QCW_STEPS_PER_MS}),
+        makeSpec('Pulse Width', 'ms', 0, 30, 'pulseWidth', {step: 0.05}),
+        makeSpec('Slope', 'cnt/ms', 0.1, 5, 'slope', {step: 0.1, displayScale: QCW_STEPS_PER_MS}),
         makeSpec('Offset', 'cnt', 0, 255, 'initialValue'),
         makeSpec('Holdoff', 'ms', 0, 400, 'initialTime', {displayScale: 1 / QCW_STEPS_PER_MS}),
         makeSpec('Maximum', 'cnt', 0, 255, 'maxValue'),

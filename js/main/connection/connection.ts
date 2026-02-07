@@ -16,11 +16,10 @@ import {setLastConnectionOptions, setUIConfig} from "../UIConfigHandler";
 import {CommandInterface} from "./commands";
 import {ExtraConnections} from "./ExtraConnections";
 import {getFlightRecorder} from "./flightrecorder/FlightRecorder";
-import {Connected} from "./state/Connected";
 import {IConnectionState} from "./state/IConnectionState";
 import {Idle} from "./state/Idle";
 import {resetAllAlarms} from "./telemetry/Alarms";
-import {TerminalHandle, UD3Connection} from "./types/UD3Connection";
+import {UD3Connection} from "./types/UD3Connection";
 
 const connectionState: Map<CoilID, IConnectionState> = new Map<CoilID, IConnectionState>();
 let extraConnections: ExtraConnections;
@@ -104,6 +103,7 @@ export async function startConf(coil: CoilID) {
     await commands.sendCommand('\r');
     await sliderIPC.resetOntimeOnConnect();
     await commands.setBPS(sliderIPC.bps);
+    await ipcs.qcw(coil).syncAllParameters();
     await commands.setBurstOntime(sliderIPC.burstOntime);
     await commands.setBurstOfftime(sliderIPC.burstOfftime);
     await getUD3Connection(coil).setSynthByFiletype(media_state.type, false);

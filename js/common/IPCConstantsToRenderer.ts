@@ -53,6 +53,7 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
             configure: makeCoilKey<MeterConfig>('meter-config'),
             setValue: makeCoilKey<SetMeters>('meter-set-value'),
         },
+        qcwRamp: makeKey<number[]>('qcw-ramp'),
         scope: {
             addValues: makeCoilKey<ScopeValues>('scope-values'),
             configure: makeCoilKey<ScopeTraceConfig>('scope-config'),
