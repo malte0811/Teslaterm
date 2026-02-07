@@ -4,7 +4,7 @@ import Dropdown from "react-bootstrap/Dropdown";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN, IPCToMainKey} from "../../../common/IPCConstantsToMain";
 import {
     getToRenderIPCPerCoil,
-    IUD3State,
+    UD3State,
     UD3Alarm,
     UD3ConfigOption,
 } from "../../../common/IPCConstantsToRenderer";
@@ -27,7 +27,7 @@ interface CommandsState {
 
 export interface CommandsMenuProps {
     level: TabControlLevel;
-    udState?: IUD3State;
+    udState?: UD3State;
     ttConfig: TTConfig;
     disabled: boolean;
 }

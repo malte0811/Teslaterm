@@ -1,7 +1,7 @@
 import React from 'react';
 import {CoilID} from "../../../common/constants";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
-import {getToRenderIPCPerCoil, ISliderState, IUD3State} from "../../../common/IPCConstantsToRenderer";
+import {getToRenderIPCPerCoil, ISliderState, UD3State} from "../../../common/IPCConstantsToRenderer";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TabControlLevel, TabControlLevelBase} from "../SingleCoilTab";
@@ -12,7 +12,7 @@ import {SimpleSlider} from './SimpleSlider';
 export interface SlidersProps {
     disabled: boolean;
     enableMIDI: boolean;
-    level: TabControlLevelBase<{ coil: CoilID, ud3State: IUD3State }, {}>;
+    level: TabControlLevelBase<{ coil: CoilID, ud3State: UD3State }, {}>;
 }
 
 interface SliderUIState extends ISliderState {

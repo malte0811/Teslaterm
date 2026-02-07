@@ -1,12 +1,12 @@
 import {CoilID} from "../../../common/constants";
-import {UD3State} from "../../../common/IPCConstantsToRenderer";
+import {DEFAULT_UD3_STATE, UD3State} from "../../../common/IPCConstantsToRenderer";
 import {ipcs} from "../../ipc/IPCProvider";
 
 const ud3States: Map<CoilID, UD3State> = new Map<CoilID, UD3State>();
 
 export function getUD3State(coil: CoilID) {
     if (!ud3States.has(coil)) {
-        setUD3State(coil, UD3State.DEFAULT_STATE);
+        setUD3State(coil, DEFAULT_UD3_STATE);
     }
     return ud3States.get(coil);
 }
@@ -16,12 +16,13 @@ export function setUD3State(coil: CoilID, state: UD3State) {
 }
 
 export function updateStateFromTelemetry(coil: CoilID, packedData: number) {
-    const busActive = (packedData & 1) !== 0;
-    const transientActive = (packedData & 2) !== 0;
-    const busControllable = (packedData & 4) !== 0;
-    const killBitSet = (packedData & 8) !== 0;
-    const isQCW = (packedData & 16) !== 0;
-    const state = new UD3State(busActive, busControllable, transientActive, killBitSet, isQCW);
+    const state: UD3State = {
+        busActive: (packedData & 1) !== 0,
+        busControllable: (packedData & 4) !== 0,
+        isQCW: (packedData & 16) !== 0,
+        killBitSet: (packedData & 8) !== 0,
+        transientActive: (packedData & 2) !== 0,
+    };
     setUD3State(coil, state);
     ipcs.coilMenu(coil).setUD3State(state);
 }

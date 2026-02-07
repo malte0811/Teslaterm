@@ -92,7 +92,7 @@ export interface CentralTelemetryValue {
     readonly value: number;
 }
 
-export interface IUD3State {
+export interface UD3State {
     readonly busActive: boolean;
     readonly busControllable: boolean;
     readonly transientActive: boolean;
@@ -100,33 +100,22 @@ export interface IUD3State {
     readonly isQCW: boolean;
 }
 
-export class UD3State implements IUD3State {
-    public static DEFAULT_STATE = new UD3State(
-        false, false, false, false, false,
-    );
-
-    public readonly busActive: boolean;
-    public readonly busControllable: boolean;
-    public readonly transientActive: boolean;
-    public readonly killBitSet: boolean;
-    public readonly isQCW: boolean;
-
-    constructor(active: boolean, controllable: boolean, transientActive: boolean, killBitSet: boolean, isQCW: boolean) {
-        this.busActive = active;
-        this.busControllable = controllable;
-        this.transientActive = transientActive;
-        this.killBitSet = killBitSet;
-        this.isQCW = isQCW;
-    }
-
-    public equals(other: UD3State): boolean {
-        return this.busActive === other.busActive &&
-            this.busControllable === other.busControllable &&
-            this.transientActive === other.transientActive &&
-            this.killBitSet === other.killBitSet &&
-            this.isQCW === other.isQCW;
-    }
+export function ud3StateEquals(first: UD3State, second: UD3State) {
+    if (first.busActive !== second.busActive) { return false; }
+    if (first.busControllable !== second.busControllable) { return false; }
+    if (first.transientActive !== second.transientActive) { return false; }
+    if (first.killBitSet !== second.killBitSet) { return false; }
+    if (first.isQCW !== second.isQCW) { return false; }
+    return true;
 }
+
+export const DEFAULT_UD3_STATE: UD3State = {
+    busActive: false,
+    busControllable: true,
+    isQCW: false,
+    killBitSet: false,
+    transientActive: false,
+};
 
 export interface ScopeTraceConfig {
     readonly id: number;

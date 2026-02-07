@@ -1,10 +1,11 @@
 import {CoilID} from "../../common/constants";
 import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
+    DEFAULT_UD3_STATE,
     getToRenderIPCPerCoil,
     IPC_CONSTANTS_TO_RENDERER,
     PerCoilRenderIPCs,
-    UD3State
+    UD3State, ud3StateEquals,
 } from "../../common/IPCConstantsToRenderer";
 import {disconnectFrom, getConnectionState} from "../connection/connection";
 import {Idle} from "../connection/state/Idle";
@@ -14,7 +15,7 @@ import {ipcs, MainIPC} from "./IPCProvider";
 import {TemporaryIPC} from "./TemporaryIPC";
 
 export class PerCoilMenuIPC {
-    private lastUD3State: UD3State = UD3State.DEFAULT_STATE;
+    private lastUD3State: UD3State = DEFAULT_UD3_STATE;
     private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
 
@@ -35,7 +36,7 @@ export class PerCoilMenuIPC {
     }
 
     public setUD3State(newState: UD3State) {
-        if (!newState.equals(this.lastUD3State)) {
+        if (!ud3StateEquals(newState, this.lastUD3State)) {
             this.lastUD3State = newState;
             this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, [this.coil, this.lastUD3State]);
         }

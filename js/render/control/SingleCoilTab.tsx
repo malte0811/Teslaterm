@@ -1,6 +1,6 @@
 import React from "react";
 import {CoilID} from "../../common/constants";
-import {ConnectionStatus, IUD3State, UD3State} from "../../common/IPCConstantsToRenderer";
+import {ConnectionStatus, DEFAULT_UD3_STATE, UD3State} from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
 import {SyncedUIConfig} from "../../common/UIConfig";
 import {TTComponent} from "../TTComponent";
@@ -23,7 +23,7 @@ export interface SingleCoilTabProps {
     ttConfig: TTConfig;
     connectionStatus: ConnectionStatus;
     coil: CoilID;
-    ud3State: IUD3State;
+    ud3State: UD3State;
     toasts: ToastsProps;
     level: 'single-coil' | 'combined';
     returnToConnect: () => any;
@@ -33,7 +33,7 @@ export interface SingleCoilTabProps {
 export class SingleCoilTab extends TTComponent<SingleCoilTabProps, {}> {
     constructor(props) {
         super(props);
-        this.state = {ud3State: UD3State.DEFAULT_STATE};
+        this.state = {ud3State: DEFAULT_UD3_STATE};
     }
 
     public render() {

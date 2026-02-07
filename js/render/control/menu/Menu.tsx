@@ -5,7 +5,7 @@ import {getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCCon
 import {
     ConnectionStatus,
     IPC_CONSTANTS_TO_RENDERER,
-    IUD3State,
+    UD3State,
     MediaState
 } from "../../../common/IPCConstantsToRenderer";
 import {MediaFileType, PlayerActivity} from "../../../common/MediaTypes";
@@ -21,7 +21,7 @@ import {StartStopMenuItem} from "./StartStopItem";
 
 export interface MenuProps {
     level: TabControlLevelBase<
-        { coil: CoilID, state: IUD3State },
+        { coil: CoilID, state: UD3State },
         { numCoils: number, numKill: number, numDisconnected: number }
     >;
     connectionStatus: ConnectionStatus;

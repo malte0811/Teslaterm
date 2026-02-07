@@ -5,9 +5,8 @@ import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     ConfirmationRequest,
-    ConnectionStatus,
+    ConnectionStatus, DEFAULT_UD3_STATE,
     IPC_CONSTANTS_TO_RENDERER,
-    IUD3State,
     UD3State,
 } from "../../common/IPCConstantsToRenderer";
 import {TTConfig} from "../../common/TTConfig";
@@ -24,7 +23,7 @@ import {ToastsProps} from "./Toasts";
 export interface CoilState {
     connection: ConnectionStatus;
     id: CoilID;
-    ud: IUD3State;
+    ud: UD3State;
     name?: string;
 }
 
@@ -208,7 +207,7 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
 
     private getCoilStatus(coil: CoilID, state?: MainScreenState) {
         return (state || this.state).coilStates.get(coil) ||
-            {connection: ConnectionStatus.IDLE, id: coil, ud: UD3State.DEFAULT_STATE};
+            {connection: ConnectionStatus.IDLE, id: coil, ud: DEFAULT_UD3_STATE};
     }
 
     private renderSingleTab(coil: CoilID, type: 'single-coil' | 'combined'): React.ReactNode {
