@@ -113,6 +113,7 @@ export async function startConf(coil: CoilID) {
 }
 
 export async function disconnectFrom(coil: CoilID) {
+    console.log(`Triggering disconnect from ${coil}`);
     setConnectionState(coil, await getConnectionState(coil).disconnectFromCoil());
 }
 

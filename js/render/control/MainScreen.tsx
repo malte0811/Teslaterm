@@ -1,5 +1,4 @@
-import JSZip from "jszip";
-import React from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {Button, ButtonGroup, ButtonToolbar, Col, Modal, Nav, OverlayTrigger, Row, Tab, Tooltip} from "react-bootstrap";
 import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
@@ -13,11 +12,12 @@ import {TTConfig} from "../../common/TTConfig";
 import {SyncedUIConfig} from "../../common/UIConfig";
 import {FileUploadIPC} from "../ipc/FileUpload";
 import {processIPC} from "../ipc/IPCProvider";
-import {ScreenWithDrop} from "../ScreenWithDrop";
+import {useDropCallback} from "../ScreenWithDrop";
+import {useIPCListener, useIPCListeners} from "../TTComponent";
 import {CentralControlTab} from "./showmode/CentralControlTab";
 import {ShowSettingsDialog} from "./showmode/ShowSettingsDialog";
 import {SingleCoilTab} from "./SingleCoilTab";
-import {addToast, getToasts, makeToastRemover, ToastManager, ToastUpdater} from "./ToastManager";
+import {addToast, getToasts, makeToastRemover, ToastManager} from "./ToastManager";
 import {ToastsProps} from "./Toasts";
 
 export interface CoilState {
@@ -27,239 +27,242 @@ export interface CoilState {
     name?: string;
 }
 
-interface MainScreenState {
-    scriptPopup: ConfirmationRequest;
-    scriptPopupShown: boolean;
-    coilStates: Map<CoilID, CoilState>;
-    toasts: ToastManager;
-    showShowSettings: boolean;
+interface CommonProps {
+    ttConfig: TTConfig;
+    config: SyncedUIConfig;
+    returnToConnect: () => any;
 }
 
-export interface MainScreenProps {
+interface SingleCoilProps {
+    status: CoilState;
+    toasts: ToastsProps;
+}
+
+interface MulticoilProps extends CommonProps {
+    coils: CoilID[];
+    getCoilProps: (coil: CoilID) => SingleCoilProps;
+    genericToasts: ToastsProps;
+}
+
+export interface MainScreenProps extends CommonProps {
     ttConfig: TTConfig;
-    returnToConnect: () => any;
     coils: CoilID[];
     multicoil: boolean;
     config: SyncedUIConfig;
 }
 
-export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState> {
-    constructor(props: any) {
-        super(props);
-        this.state = {
-            coilStates: new Map<CoilID, CoilState>(),
-            scriptPopup: {confirmationID: 0, message: "", title: undefined},
-            scriptPopupShown: false,
-            showShowSettings: false,
-            toasts: {allToasts: [], nextIndex: 0},
-        };
-    }
-
-    public componentDidMount() {
-        super.componentDidMount();
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
-            (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),
-        );
-        for (const coil of this.props.coils) {
-            const coilIPCs = getToRenderIPCPerCoil(coil);
-            this.addIPCListener(
-                coilIPCs.updateConnectionState,
-                (status) => this.onConnectionChange(coil, {connection: status}),
-            );
-            this.addIPCListener(coilIPCs.udState, (state) => this.onConnectionChange(coil, {ud: state}));
-            this.addIPCListener(coilIPCs.udName, (name) => this.onConnectionChange(coil, {name}));
-        }
-        this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.openToastOn, ([toast, coil]) => {
-            addToast(this.toastUpdater(), toast, coil);
-        });
-
-        processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined);
-    }
-
-    public render(): React.ReactNode {
-        if (this.props.multicoil) {
-            return this.renderMultiCoil();
+function renderTabTitle(coil: CoilID, coilState: CoilState) {
+    const coilTitle = coilState?.name || 'Unknown UD3';
+    const [color, tooltip] = (() => {
+        if (coilState.connection === ConnectionStatus.IDLE) {
+            return ['blue', 'Connection lost'];
+        } else if (coilState?.ud.killBitSet) {
+            return ['red', 'Killbit set'];
         } else {
-            return <div ref={this.mainDivRef} className={'tt-main-screen'}>
-                {this.renderSingleTab(this.props.coils[0], 'combined')}
-            </div>;
+            return ['green', 'Operational'];
         }
-    }
+    })();
+    const renderTooltip = (props) => <Tooltip {...props}>{tooltip}</Tooltip>;
+    return <Nav.Item>
+        <Nav.Link eventKey={"coil" + coilSuffix(coil)}>
+            <OverlayTrigger placement={'right'} overlay={renderTooltip}>
+                <div className={'tt-dot'} style={{background: color}}/>
+            </OverlayTrigger> {coilTitle}
+        </Nav.Link>
+    </Nav.Item>;
+}
 
-    protected async onDrop(e: DragEvent) {
-        const files: File[] = [];
-        for (let i = 0; i < e.dataTransfer.files.length; ++i) {
-            files.push(e.dataTransfer.files[i]);
-        }
-        await FileUploadIPC.uploadFiles(files);
-    }
+function SingleTab(props: SingleCoilProps & CommonProps & {coil: CoilID, type: 'single-coil' | 'combined'}) {
+    return <SingleCoilTab
+        allowInteraction={props.status.connection === ConnectionStatus.CONNECTED}
+        ttConfig={props.ttConfig}
+        connectionStatus={props.status.connection}
+        config={props.config}
+        coil={props.coil}
+        ud3State={props.status.ud}
+        toasts={props.toasts}
+        level={props.type}
+        returnToConnect={props.returnToConnect}
+    />;
+}
 
-    private renderMultiCoil() {
-        const tabs = this.props.coils.map((coil) => this.renderTabTitle(coil));
-        tabs.unshift(<Nav.Item>
-            <Nav.Link eventKey="control">Control</Nav.Link>
-        </Nav.Item>);
-        const coils = this.props.coils.map((coil) => {
-            return <Tab.Pane eventKey={"coil" + coilSuffix(coil)} style={{
-                height: '100%',
-                overflow: 'hidden',
-            }}>{this.renderSingleTab(coil, 'single-coil')}</Tab.Pane>;
-        });
-        return (
-            <div ref={this.mainDivRef} className={'tt-main-screen'}>
-                <Tab.Container transition={false} defaultActiveKey={'control'}>
-                    <Col className={'tt-coil-tabs'}>
-                        <Row className={'tt-coil-tab-bar'}>
-                            <ButtonToolbar className="justify-content-between">
-                                <Nav variant={'tabs'}>
-                                    {...tabs}
-                                </Nav>
-                                <ButtonGroup>
-                                    {this.makeShowSettingsButton()}
-                                    {this.makeCloseButton()}
-                                </ButtonGroup>
-                            </ButtonToolbar>
-                        </Row>
-                        <Row className={'tt-coil-tab-main'}>
-                            <Tab.Content style={{
-                                display: 'flex',
-                                flex: '1 1 auto',
-                                flexDirection: 'column',
-                                overflow: 'hidden',
-                            }}>
-                                <Tab.Pane eventKey="control" style={{
-                                    height: '100%',
-                                    overflow: 'hidden',
-                                }}>
-                                    <CentralControlTab
-                                        coils={this.props.coils.map((c) => this.getCoilStatus(c))}
-                                        ttConfig={this.props.ttConfig}
-                                        config={this.props.config}
-                                        toasts={this.toastsForCoil()}
-                                    />
-                                </Tab.Pane>
-                                {...coils}
-                            </Tab.Content>
-                        </Row>
-                    </Col>
-                    {this.makeScriptPopup()}
-                    {this.makeShowSettingsPopup()}
-                </Tab.Container>
-            </div>
-        );
-    }
+function MultiCoilTabs(props: MulticoilProps) {
+    type CoilEntry = [CoilID, SingleCoilProps];
 
-    private renderTabTitle(coil: CoilID) {
-        const coilState = this.getCoilStatus(coil);
-        const coilTitle = coilState?.name || 'Unknown UD3';
-        const [color, tooltip] = (() => {
-            if (coilState.connection === ConnectionStatus.IDLE) {
-                return ['blue', 'Connection lost'];
-            } else if (coilState?.ud.killBitSet) {
-                return ['red', 'Killbit set'];
-            } else {
-                return ['green', 'Operational'];
-            }
-        })();
-        const renderTooltip = (props) => <Tooltip {...props}>{tooltip}</Tooltip>;
-        return <Nav.Item>
-            <Nav.Link eventKey={"coil" + coilSuffix(coil)}>
-                <OverlayTrigger placement={'right'} overlay={renderTooltip}>
-                    <div className={'tt-dot'} style={{background: color}}/>
-                </OverlayTrigger> {coilTitle}
-            </Nav.Link>
-        </Nav.Item>;
-    }
-
-    private onConnectionChange(coil: CoilID, newState: Partial<CoilState>) {
-        this.setState((oldState) => {
-            const oldCoilState = this.getCoilStatus(coil, oldState);
-            const newStates = new Map<CoilID, CoilState>(oldState.coilStates);
-            newStates.set(coil, {...oldCoilState, ...newState});
-            return {coilStates: newStates};
-        });
-    }
-
-    private makeCloseButton() {
-        const anyConnected = !this.props.coils.every(
-            (coil) => this.getCoilStatus(coil).connection === ConnectionStatus.IDLE,
+    const [showShowSettings, setShowShowSettings] = useState(false);
+    const coilProps = props.coils.map((c): CoilEntry => [c, props.getCoilProps(c)]);
+    const tabs = coilProps.map(([coil, state]) => renderTabTitle(coil, state.status));
+    tabs.unshift(<Nav.Item>
+        <Nav.Link eventKey="control">Control</Nav.Link>
+    </Nav.Item>);
+    const coils = coilProps.map(([coil, singleProps]) => {
+        return <Tab.Pane eventKey={"coil" + coilSuffix(coil)} style={{
+            height: '100%',
+            overflow: 'hidden',
+        }}>{<SingleTab {...props} {...singleProps} coil={coil} type='single-coil'/>}</Tab.Pane>;
+    });
+    const closeButton = (() => {
+        const anyConnected = !coilProps.every(
+            ([_, coilProps]) => coilProps.status.connection === ConnectionStatus.IDLE,
         );
         if (anyConnected) {
             const disconnectCoil = (id: CoilID) => processIPC.send(getToMainIPCPerCoil(id).menu.disconnect, undefined);
             return <Button
                 variant={"warning"}
-                onClick={() => this.props.coils.forEach(disconnectCoil)}
+                onClick={() => props.coils.forEach(disconnectCoil)}
             >Disconnect All</Button>;
         } else {
-            return <Button variant={"warning"} onClick={this.props.returnToConnect}>Close</Button>;
+            return <Button variant={"warning"} onClick={props.returnToConnect}>Close</Button>;
         }
+    })();
+
+
+    return (
+        <div className={'tt-main-screen'}>
+            <Tab.Container transition={false} defaultActiveKey={'control'}>
+                <Col className={'tt-coil-tabs'}>
+                    <Row className={'tt-coil-tab-bar'}>
+                        <ButtonToolbar className="justify-content-between">
+                            <Nav variant={'tabs'}>
+                                {...tabs}
+                            </Nav>
+                            <ButtonGroup>
+                                <Button variant={'info'} onClick={() => setShowShowSettings(true)}>Settings</Button>
+                                {closeButton}
+                            </ButtonGroup>
+                        </ButtonToolbar>
+                    </Row>
+                    <Row className={'tt-coil-tab-main'}>
+                        <Tab.Content style={{
+                            display: 'flex',
+                            flex: '1 1 auto',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                        }}>
+                            <Tab.Pane eventKey="control" style={{
+                                height: '100%',
+                                overflow: 'hidden',
+                            }}>
+                                <CentralControlTab
+                                    coils={coilProps.map(([_, cProps]) => cProps.status)}
+                                    ttConfig={props.ttConfig}
+                                    config={props.config}
+                                    toasts={props.genericToasts}
+                                />
+                            </Tab.Pane>
+                            {...coils}
+                        </Tab.Content>
+                    </Row>
+                </Col>
+                <ShowSettingsDialog
+                    visible={showShowSettings}
+                    darkMode={props.config.darkMode}
+                    close={() => setShowShowSettings(false)}
+                    globalShowSettings={props.config.showmodeOptions}
+                />
+            </Tab.Container>
+        </div>
+    );
+}
+
+export function MainScreen(props: MainScreenProps) {
+    const [coilStates, setCoilStates] = useState(new Map<CoilID, CoilState>());
+    const [scriptRequest, setScriptRequest] = useState<ConfirmationRequest>(
+        {confirmationID: 0, message: "", title: undefined},
+    );
+    const [scriptPopupShown, setScriptPopupShown] = useState(false);
+    const [toasts, setToasts] = useState<ToastManager>({allToasts: [], nextIndex: 0});
+
+    const getCoilStatus = (coil: CoilID, state?: Map<CoilID, CoilState>) => {
+        return (state || coilStates).get(coil) || {connection: ConnectionStatus.IDLE, id: coil, ud: DEFAULT_UD3_STATE};
+    }
+    const toastsForCoil = (coil?: CoilID): ToastsProps => {
+        return {
+            closeToast: makeToastRemover(setToasts),
+            toasts: getToasts(toasts, (c) => getCoilStatus(c).name, coil),
+        };
+    };
+
+    const onConnectionChange = (coil: CoilID, newState: Partial<CoilState>) => {
+        setCoilStates((oldState) => {
+            const oldCoilState = getCoilStatus(coil, oldState);
+            const newStates = new Map<CoilID, CoilState>(oldState);
+            newStates.set(coil, {...oldCoilState, ...newState});
+            return newStates;
+        });
     }
 
-    private makeShowSettingsButton() {
-        return <Button variant={'info'} onClick={() => this.setState({showShowSettings: true})}>
-            Settings
-        </Button>;
-    }
+    useIPCListener(
+        IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
+        (req: ConfirmationRequest) => {
+            setScriptRequest(req);
+            setScriptPopupShown(true);
+        },
+    );
+    useIPCListener(IPC_CONSTANTS_TO_RENDERER.openToastOn, ([toast, coil]) => addToast(setToasts, toast, coil));
+    useIPCListeners<CoilID, ConnectionStatus>(props.coils, (coil) => ({
+        channel: getToRenderIPCPerCoil(coil).updateConnectionState,
+        listener: (status) => onConnectionChange(coil, {connection: status}),
+    }));
+    useIPCListeners<CoilID, UD3State>(props.coils, (coil) => ({
+        channel: getToRenderIPCPerCoil(coil).udState,
+        listener: (state) => onConnectionChange(coil, {ud: state}),
+    }));
+    useIPCListeners<CoilID, string>(props.coils, (coil) => ({
+        channel: getToRenderIPCPerCoil(coil).udName,
+        listener: (name) => onConnectionChange(coil, {name}),
+    }));
 
-    private getCoilStatus(coil: CoilID, state?: MainScreenState) {
-        return (state || this.state).coilStates.get(coil) ||
-            {connection: ConnectionStatus.IDLE, id: coil, ud: DEFAULT_UD3_STATE};
-    }
+    useEffect(() => processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined), []);
+    const mainDiv = useRef<HTMLDivElement>(null);
+    useDropCallback(mainDiv, async (e) => {
+        const files: File[] = [];
+        for (let i = 0; i < e.dataTransfer.files.length; ++i) {
+            files.push(e.dataTransfer.files[i]);
+        }
+        await FileUploadIPC.uploadFiles(files);
+    });
 
-    private renderSingleTab(coil: CoilID, type: 'single-coil' | 'combined'): React.ReactNode {
-        const coilStatus = this.getCoilStatus(coil);
-        return <SingleCoilTab
-            allowInteraction={coilStatus.connection === ConnectionStatus.CONNECTED}
-            ttConfig={this.props.ttConfig}
-            connectionStatus={coilStatus.connection}
-            config={this.props.config}
-            coil={coil}
-            ud3State={coilStatus.ud}
-            toasts={this.toastsForCoil(coil)}
-            level={type}
-            returnToConnect={this.props.returnToConnect}
-        />;
-    }
-
-    private makeScriptPopup(): React.JSX.Element {
+    const scriptPopup = (() => {
         const confirm = (ok: boolean) => {
             processIPC.send(
                 IPC_CONSTANTS_TO_MAIN.script.confirmOrDeny,
-                new ConfirmReply(ok, this.state.scriptPopup.confirmationID),
+                new ConfirmReply(ok, scriptRequest.confirmationID),
             );
-            this.setState({scriptPopupShown: false});
+            setScriptPopupShown(false);
         };
         return <Modal
-            show={this.state.scriptPopupShown}
+            show={scriptPopupShown}
             onHide={() => confirm(false)}
         >
-            {this.state.scriptPopup.title && <Modal.Title>{this.state.scriptPopup.title}</Modal.Title>}
-            <Modal.Body>{this.state.scriptPopup.message}</Modal.Body>
+            {scriptRequest.title && <Modal.Title>{scriptRequest.title}</Modal.Title>}
+            <Modal.Body>{scriptRequest.message}</Modal.Body>
             <Modal.Footer>
                 <Button variant={'primary'} onClick={() => confirm(true)}>Confirm</Button>
                 <Button variant={'secondary'} onClick={() => confirm(false)}>Abort script</Button>
             </Modal.Footer>
         </Modal>;
-    }
+    })();
 
-    private makeShowSettingsPopup(): React.JSX.Element {
-        return <ShowSettingsDialog
-            visible={this.state.showShowSettings}
-            darkMode={this.props.config.darkMode}
-            close={() => this.setState({showShowSettings: false})}
-            globalShowSettings={this.props.config.showmodeOptions}
-        />;
-    }
-
-    private toastUpdater(): ToastUpdater {
-        return (update) => this.setState((state) => ({...state, toasts: update(state.toasts)}));
-    }
-
-    private toastsForCoil(coil?: CoilID): ToastsProps {
-        return {
-            closeToast: makeToastRemover(this.toastUpdater()),
-            toasts: getToasts(this.state.toasts, (c) => this.getCoilStatus(c).name, coil),
+    const content = (() => {
+        const getCoilProps = (coil: CoilID): SingleCoilProps => {
+            return {
+                status: getCoilStatus(coil),
+                toasts: toastsForCoil(coil),
+            };
         };
-    }
+        if (props.multicoil) {
+            return <MultiCoilTabs
+                {...props}
+                getCoilProps={getCoilProps}
+                genericToasts={toastsForCoil(undefined)}
+                />;
+        } else {
+            return <SingleTab {...props} {...getCoilProps(props.coils[0])} coil={props.coils[0]} type='combined'/>;
+        }
+    })();
+    return <div className={'tt-main-screen'} ref={mainDiv}>
+        {content}
+        {scriptPopup}
+    </div>;
 }

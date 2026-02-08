@@ -53,7 +53,7 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
             configure: makeCoilKey<MeterConfig>('meter-config'),
             setValue: makeCoilKey<SetMeters>('meter-set-value'),
         },
-        qcwRamp: makeKey<number[]>('qcw-ramp'),
+        qcwRamp: makeCoilKey<number[]>('qcw-ramp'),
         scope: {
             addValues: makeCoilKey<ScopeValues>('scope-values'),
             configure: makeCoilKey<ScopeTraceConfig>('scope-config'),
@@ -66,9 +66,9 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
         },
         terminal: makeCoilKey<string>('terminal'),
         udConfig: makeCoilKey<UD3ConfigOption[]>('ud-config'),
-        udName: makeKey<string>('ud-name'),
-        udState: makeKey<UD3State>('menu-ud3-state'),
-        updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
+        udName: makeCoilKey<string>('ud-name'),
+        udState: makeCoilKey<UD3State>('menu-ud3-state'),
+        updateConnectionState: makeCoilKey<ConnectionStatus>('update-connection-state'),
     };
 }
 

@@ -104,6 +104,7 @@ export class MenuBar extends TTComponent<MenuProps, MenuState> {
         if (this.props.connectionStatus === ConnectionStatus.IDLE) {
             this.props.returnToConnect();
         } else if (this.props.level.level !== 'central-control') {
+            console.log('Triggering ' + getToMainIPCPerCoil(this.props.level.coil).menu.disconnect.channel);
             processIPC.send(getToMainIPCPerCoil(this.props.level.coil).menu.disconnect, undefined);
         }
     }

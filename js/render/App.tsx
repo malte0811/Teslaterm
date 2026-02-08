@@ -37,10 +37,14 @@ export function App() {
     );
     useIPCListener(IPC_CONSTANTS_TO_RENDERER.registerCoil, ([coil, multicoil]) => {
         setMulticoil(multicoil);
-        if (!coils.includes(coil)) {
-            setCoils((oldCoils) => [...oldCoils, coil]);
-            setScreen(TopScreen.control);
-        }
+        setCoils((oldCoils) => {
+            if (!coils.includes(coil)) {
+                return [...oldCoils, coil]
+            } else {
+                return oldCoils;
+            }
+        });
+        setScreen(TopScreen.control);
     });
     useEffect(() => processIPC.send(IPC_CONSTANTS_TO_MAIN.requestFullSync, undefined), []);
     const mainElement = (() => {
