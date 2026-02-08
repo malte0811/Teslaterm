@@ -1,5 +1,5 @@
 // Based on https://github.com/og2t/jsSID/blob/master/source/jsSID.js
-import {convertArrayBufferToString} from "../../common/helper";
+import {convertArrayBufferToString, convertBufferToString} from "../../common/helper";
 import {FRAME_LENGTH, ISidSource, SidFrame} from "./sid_api";
 import {NTSC, PAL, TimingStandard} from "./SIDConstants";
 
@@ -168,9 +168,9 @@ export class EmulationSidSource implements ISidSource {
             }
         }
         return new SidFileInfo(
-            convertArrayBufferToString(sidTitle),
-            convertArrayBufferToString(sidAuthor),
-            convertArrayBufferToString(sidInfo),
+            convertBufferToString(sidTitle),
+            convertBufferToString(sidAuthor),
+            convertBufferToString(sidInfo),
             timermode,
             initaddr,
             playaddr,

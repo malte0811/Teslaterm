@@ -53,11 +53,11 @@ export function convertBufferToString(buf: number[] | Buffer | Uint8Array): stri
     return convertBufferToStringImpl(buf, buf.length);
 }
 
-export function convertArrayBufferToString(buf: ArrayBuffer): string {
+export function convertArrayBufferToString(buf: Buffer): string {
     return convertBufferToStringImpl(buf, buf.byteLength);
 }
 
-function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array | ArrayBuffer, length: number): string {
+function convertBufferToStringImpl(buf: number[] | Buffer | Uint8Array, length: number): string {
     let firstNull = 0;
     while (firstNull < length && buf[firstNull] !== 0) {
         ++firstNull;
