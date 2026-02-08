@@ -14,7 +14,6 @@ import {MediaFileType, PlayerActivity} from "../../../common/MediaTypes";
 import {useIPCListener} from "../../TTComponent";
 import {ControlledDraw, ControlledDrawProps, DrawCommand} from "./ControlledDraw";
 import {MediaProgress} from "./MediaProgress";
-import {QCWRamp} from "./QCWRamp";
 import {ScopeSettings} from "./ScopeSettings";
 import {ScopeStatistics} from "./ScopeStatistics";
 import {OscilloscopeTrace, TraceConfig} from "./Trace";

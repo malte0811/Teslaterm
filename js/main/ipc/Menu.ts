@@ -18,10 +18,12 @@ export class PerCoilMenuIPC {
     private lastUD3State: UD3State = DEFAULT_UD3_STATE;
     private readonly processIPC: TemporaryIPC;
     private readonly coil: CoilID;
+    private readonly ipcsToRender: PerCoilRenderIPCs;
 
     constructor(processIPC: TemporaryIPC, coil: CoilID) {
         this.coil = coil;
         this.processIPC = processIPC;
+        this.ipcsToRender = getToRenderIPCPerCoil(this.coil);
         const mainIPCs = getToMainIPCPerCoil(coil);
         processIPC.on(mainIPCs.menu.requestUDConfig, async () => {
             requestConfig(this.coil, (cfg) => ipcs.coilMisc(coil).openUDConfig(cfg));
@@ -38,12 +40,12 @@ export class PerCoilMenuIPC {
     public setUD3State(newState: UD3State) {
         if (!ud3StateEquals(newState, this.lastUD3State)) {
             this.lastUD3State = newState;
-            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, [this.coil, this.lastUD3State]);
+            this.processIPC.send(this.ipcsToRender.udState, this.lastUD3State);
         }
     }
 
     public sendFullState() {
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.menu.ud3State, [this.coil, this.lastUD3State]);
+        this.processIPC.send(this.ipcsToRender.udState, this.lastUD3State);
     }
 }
 

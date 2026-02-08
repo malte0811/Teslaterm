@@ -5,7 +5,7 @@ import {CoilID, coilSuffix} from "../../common/constants";
 import {ConfirmReply, getToMainIPCPerCoil, IPC_CONSTANTS_TO_MAIN} from "../../common/IPCConstantsToMain";
 import {
     ConfirmationRequest,
-    ConnectionStatus, DEFAULT_UD3_STATE,
+    ConnectionStatus, DEFAULT_UD3_STATE, getToRenderIPCPerCoil,
     IPC_CONSTANTS_TO_RENDERER,
     UD3State,
 } from "../../common/IPCConstantsToRenderer";
@@ -61,18 +61,15 @@ export class MainScreen extends ScreenWithDrop<MainScreenProps, MainScreenState>
             IPC_CONSTANTS_TO_RENDERER.script.requestConfirm,
             (req: ConfirmationRequest) => this.setState({scriptPopup: req, scriptPopupShown: true}),
         );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.updateConnectionState,
-            ([coil, status]) => this.onConnectionChange(coil, {connection: status}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.menu.ud3State,
-            ([coil, state]) => this.onConnectionChange(coil, {ud: state}),
-        );
-        this.addIPCListener(
-            IPC_CONSTANTS_TO_RENDERER.udName,
-            ([coil, name]) => this.onConnectionChange(coil, {name}),
-        );
+        for (const coil of this.props.coils) {
+            const coilIPCs = getToRenderIPCPerCoil(coil);
+            this.addIPCListener(
+                coilIPCs.updateConnectionState,
+                (status) => this.onConnectionChange(coil, {connection: status}),
+            );
+            this.addIPCListener(coilIPCs.udState, (state) => this.onConnectionChange(coil, {ud: state}));
+            this.addIPCListener(coilIPCs.udName, (name) => this.onConnectionChange(coil, {name}));
+        }
         this.addIPCListener(IPC_CONSTANTS_TO_RENDERER.openToastOn, ([toast, coil]) => {
             addToast(this.toastUpdater(), toast, coil);
         });

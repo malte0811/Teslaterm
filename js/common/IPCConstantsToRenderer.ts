@@ -33,7 +33,6 @@ export const IPC_CONSTANTS_TO_RENDERER = {
     menu: {
         setMediaTitle: makeKey<string>('menu-media-title'),
         setScriptName: makeKey<string>('menu-script-name'),
-        ud3State: makeKey<[CoilID, UD3State]>('menu-ud3-state'),
     },
     openToastOn: makeKey<[ToastData, CoilID?]>('open-toast-coil'),
     redrawMedia: makeKey<MediaState>('scope-draw-media'),
@@ -42,9 +41,7 @@ export const IPC_CONSTANTS_TO_RENDERER = {
         requestConfirm: makeKey<ConfirmationRequest>('script-request-confirm'),
     },
     ttConfig: makeKey<TTConfig>('tt-config'),
-    udName: makeKey<[CoilID, string]>('ud-name'),
     uiConfig: makeKey<SyncedUIConfig>('uiConfig'),
-    updateConnectionState: makeKey<[CoilID, ConnectionStatus]>('update-connection-state'),
 };
 
 export function getToRenderIPCPerCoil(coil: CoilID) {
@@ -68,6 +65,9 @@ export function getToRenderIPCPerCoil(coil: CoilID) {
         },
         terminal: makeCoilKey<string>('terminal'),
         udConfig: makeCoilKey<UD3ConfigOption[]>('ud-config'),
+        udName: makeKey<string>('ud-name'),
+        udState: makeKey<UD3State>('menu-ud3-state'),
+        updateConnectionState: makeKey<ConnectionStatus>('update-connection-state'),
     };
 }
 

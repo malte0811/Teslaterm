@@ -36,13 +36,13 @@ export class ByCoilMiscIPC {
         this.renderIPCs = getToRenderIPCPerCoil(this.coil);
         processIPC.on(
             getToMainIPCPerCoil(coil).dumpFlightRecorder,
-            (coil) => getFlightRecorder(coil).exportAsFile(),
+            (frCoil) => getFlightRecorder(frCoil).exportAsFile(),
         );
     }
 
     public setConnectionState(newState: ConnectionStatus) {
         this.lastConnectionState = newState;
-        this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, newState]);
+        this.processIPC.send(this.renderIPCs.updateConnectionState, newState);
     }
 
     public openUDConfig(configToSync: UD3ConfigOption[]) {
@@ -61,11 +61,9 @@ export class ByCoilMiscIPC {
 
     public sendSync() {
         if (this.udName) {
-            this.processIPC.send(IPC_CONSTANTS_TO_RENDERER.udName, [this.coil, this.udName]);
+            this.processIPC.send(this.renderIPCs.udName, this.udName);
         }
-        this.processIPC.send(
-            IPC_CONSTANTS_TO_RENDERER.updateConnectionState, [this.coil, this.lastConnectionState],
-        );
+        this.processIPC.send(this.renderIPCs.updateConnectionState, this.lastConnectionState);
     }
 
     public init() {
