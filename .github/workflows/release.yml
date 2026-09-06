@@ -38,7 +38,7 @@ jobs:
           name: teslaterm-linux
   build-windows:
     name: Build on Windows
-    runs-on: windows-2025
+    runs-on: windows-2025-vs2026
     steps:
       - name: Checkout
         uses: actions/checkout@v4
