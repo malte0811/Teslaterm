@@ -1,4 +1,4 @@
-import React, {useRef, useState} from "react";
+import {useRef, useState} from "react";
 import {Button, ButtonGroup, ButtonToolbar} from "react-bootstrap";
 import {VMS_LEGACY_SUFFIX} from "../../common/vms/LegacyVMSParser";
 import {FullVMSData} from "../../common/vms/VMS";

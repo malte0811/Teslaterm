@@ -1,4 +1,4 @@
-import React, {CSSProperties, KeyboardEventHandler, MouseEventHandler, useRef, useState} from "react";
+import {CSSProperties, KeyboardEventHandler, MouseEventHandler, useRef, useState} from "react";
 import {Button} from "react-bootstrap";
 import Draggable, {ControlPosition, DraggableData, DraggableEvent} from "react-draggable";
 import {TransformComponent, TransformWrapper} from "react-zoom-pan-pinch";
@@ -64,7 +64,7 @@ export function BlockEditorCanvas(props: EditorCanvasProps) {
                 disabled={draggingElement}
                 limitToBounds={false}
                 minScale={0.5}
-                onTransformed={(_, data) => setTransform({
+                onTransform={(_, data) => setTransform({
                     position: {x: data.positionX, y: data.positionY},
                     scale: data.scale,
                 })}

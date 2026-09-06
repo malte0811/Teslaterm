@@ -1,4 +1,3 @@
-import 'justgage/dist/justgage';
 import React from "react";
 import {MeterConfig} from "../../../common/IPCConstantsToRenderer";
 

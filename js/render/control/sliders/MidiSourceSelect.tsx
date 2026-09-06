@@ -1,17 +1,16 @@
-import React, {ReactElement} from "react";
+import {ReactElement} from "react";
 import {Button, Dropdown} from "react-bootstrap";
 import {IPC_CONSTANTS_TO_MAIN} from "../../../common/IPCConstantsToMain";
 import {processIPC} from "../../ipc/IPCProvider";
 import {TTComponent} from "../../TTComponent";
 import {TTDropdown} from "../../TTDropdown";
-import MIDIInput = WebMidi.MIDIInput;
 
 export interface MidiSelectProps {
 }
 
 interface MidiSelectState {
-    access?: WebMidi.MIDIAccess;
-    currentInput?: WebMidi.MIDIInput;
+    access?: MIDIAccess;
+    currentInput?: MIDIInput;
 }
 
 export class MidiSourceSelect extends TTComponent<MidiSelectProps, MidiSelectState> {

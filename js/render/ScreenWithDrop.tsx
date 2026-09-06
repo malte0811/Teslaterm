@@ -40,12 +40,12 @@ export abstract class ScreenWithDrop<Props, State> extends TTComponent<Props, St
 }
 
 export function useDropCallback<T extends HTMLElement>(
-    mainDiv: React.RefObject<T>, onDrop: (e: DragEvent) => Promise<any>,
+    mainDiv: React.RefObject<T | undefined>, onDrop: (e: DragEvent) => Promise<any>,
 ) {
     useEffect(() => {
         const div = mainDiv.current;
         if (!div) { return; }
-        const dropListener = (e) => {
+        const dropListener = (e: DragEvent) => {
             e.stopPropagation();
             e.preventDefault();
             onDrop(e).catch((err) => console.error('While processing dropped files:', err));

@@ -14,6 +14,7 @@
     "esModuleInterop": true,
     "jsx": "react-jsx",
     // "Workaround for broken d.ts in react-range-slider-input"
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strict": false
   }
 }
